@@ -2,11 +2,48 @@ import {
   ServiceOrderChecklistsRepository,
   ChecklistResponsesRepository,
   ChecklistItemsRepository,
+  ChecklistsRepository,
 } from '../repositories/checklists.repository'
-import type { CreateChecklistResponseDTO } from '../repositories/types/quality'
+import type {
+  CreateChecklistResponseDTO,
+  CreateChecklistDTO,
+  UpdateChecklistDTO,
+} from '../repositories/types/quality'
 import { BusinessError } from './errors'
 
 export class ChecklistsService {
+  static async createChecklist(data: CreateChecklistDTO) {
+    return ChecklistsRepository.create(data)
+  }
+
+  static async findAllChecklists() {
+    return ChecklistsRepository.findAll()
+  }
+
+  static async findChecklistById(id: string) {
+    const checklist = await ChecklistsRepository.findById(id)
+    if (!checklist) {
+      throw new BusinessError('Checklist not found')
+    }
+    return checklist
+  }
+
+  static async updateChecklist(id: string, data: UpdateChecklistDTO) {
+    const updated = await ChecklistsRepository.update(id, data)
+    if (!updated) {
+      throw new BusinessError('Checklist not found')
+    }
+    return updated
+  }
+
+  static async deleteChecklist(id: string) {
+    const deleted = await ChecklistsRepository.delete(id)
+    if (!deleted) {
+      throw new BusinessError('Checklist not found')
+    }
+    return true
+  }
+
   static async addResponse(data: CreateChecklistResponseDTO) {
     const soChecklist = await ServiceOrderChecklistsRepository.findById(
       data.service_order_checklist_id,

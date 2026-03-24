@@ -1,11 +1,45 @@
 import {
   InventoryRepository,
   ServiceOrderMaterialsRepository,
+  MaterialsRepository,
 } from '../repositories/materials.repository'
 import { ServiceOrdersRepository } from '../repositories/service-orders.repository'
 import { BusinessError } from './errors'
+import type { CreateMaterialDTO, UpdateMaterialDTO } from '../repositories/types/resources'
 
 export class MaterialsService {
+  static async findAll() {
+    return MaterialsRepository.findAll()
+  }
+
+  static async findById(id: string) {
+    const material = await MaterialsRepository.findById(id)
+    if (!material) {
+      throw new BusinessError('Material not found')
+    }
+    return material
+  }
+
+  static async createMaterial(data: CreateMaterialDTO) {
+    return MaterialsRepository.create(data)
+  }
+
+  static async updateMaterial(id: string, data: UpdateMaterialDTO) {
+    const updated = await MaterialsRepository.update(id, data)
+    if (!updated) {
+      throw new BusinessError('Material not found')
+    }
+    return updated
+  }
+
+  static async deleteMaterial(id: string) {
+    const deleted = await MaterialsRepository.delete(id)
+    if (!deleted) {
+      throw new BusinessError('Material not found')
+    }
+    return true
+  }
+
   static async assignMaterialToOrder(serviceOrderId: string, materialId: string, quantity: number) {
     if (quantity <= 0) {
       throw new BusinessError('Quantity must be greater than zero')

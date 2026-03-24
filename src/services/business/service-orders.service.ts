@@ -8,7 +8,7 @@ import {
 } from '../repositories/users.repository'
 import { BusinessError } from './errors'
 import type { ServiceOrderStatus, SLAStatus } from '../repositories/types/common'
-import type { ServiceOrder } from '../repositories/types/service-orders'
+import type { ServiceOrder, CreateServiceOrderDTO } from '../repositories/types/service-orders'
 
 const VALID_TRANSITIONS: Record<ServiceOrderStatus, ServiceOrderStatus[]> = {
   draft: ['pending'],
@@ -41,6 +41,31 @@ export class ServiceOrdersService {
         'Unauthorized: You do not have permissions to modify this service order',
       )
     }
+  }
+
+  static async findAll() {
+    return ServiceOrdersRepository.findAll()
+  }
+
+  static async findById(id: string) {
+    const order = await ServiceOrdersRepository.findById(id)
+    if (!order) {
+      throw new BusinessError('Service order not found')
+    }
+    return order
+  }
+
+  static async create(data: CreateServiceOrderDTO, userId: string = 'system') {
+    const created = await ServiceOrdersRepository.create(data as any)
+    await AuditsRepository.create({
+      table_name: 'service_orders',
+      record_id: created.id,
+      action: 'CREATE',
+      old_value: null,
+      new_value: created,
+      user_id: userId === 'system' ? null : userId,
+    })
+    return created
   }
 
   static async update(orderId: string, updates: Partial<ServiceOrder>, userId: string = 'system') {

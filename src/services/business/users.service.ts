@@ -3,6 +3,26 @@ import type { CreateUserDTO, UpdateUserDTO } from '../repositories/types/users'
 import { BusinessError } from './errors'
 
 export class UsersService {
+  static async findAll() {
+    return UsersRepository.findAll()
+  }
+
+  static async findById(id: string) {
+    const user = await UsersRepository.findById(id)
+    if (!user) {
+      throw new BusinessError('User not found')
+    }
+    return user
+  }
+
+  static async deleteUser(id: string) {
+    const deleted = await UsersRepository.delete(id)
+    if (!deleted) {
+      throw new BusinessError('User not found')
+    }
+    return true
+  }
+
   static async createUser(data: CreateUserDTO) {
     if (!data.email || !data.email.includes('@')) {
       throw new BusinessError('Invalid email format')
