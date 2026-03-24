@@ -4,6 +4,16 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- 1. CORE ACCESS CONTROL
 -- ==========================================
 
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL UNIQUE,
@@ -12,15 +22,12 @@ CREATE TABLE roles (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    role_id UUID REFERENCES roles(id) ON DELETE SET NULL,
-    status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
+CREATE TABLE user_roles (
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    role_id UUID REFERENCES roles(id) ON DELETE CASCADE ON UPDATE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, role_id)
 );
 
 -- ==========================================
@@ -30,26 +37,19 @@ CREATE TABLE users (
 CREATE TABLE teams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
-    supervisor_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    supervisor_id UUID REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 1:1 Relationship with users
 CREATE TABLE technicians (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    team_id UUID REFERENCES teams(id) ON DELETE SET NULL ON UPDATE CASCADE,
     specialty VARCHAR(255),
+    availability_status VARCHAR(50) DEFAULT 'available',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- N:N Relationship via Join Table (teams <-> technicians)
-CREATE TABLE team_technicians (
-    team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
-    technician_id UUID REFERENCES technicians(id) ON DELETE CASCADE,
-    assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (team_id, technician_id)
 );
 
 -- ==========================================
@@ -60,22 +60,22 @@ CREATE TABLE clients (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     document VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(255),
+    phone VARCHAR(50),
     address TEXT,
-    contact_info JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE contracts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+    client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE ON UPDATE CASCADE,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'expired', 'canceled')),
+    value DECIMAL(12, 2),
     terms TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CHECK (end_date > start_date)
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ==========================================
@@ -84,18 +84,13 @@ CREATE TABLE contracts (
 
 CREATE TABLE service_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    title VARCHAR(255) NOT NULL,
+    client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    technician_id UUID REFERENCES technicians(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    priority VARCHAR(50) NOT NULL DEFAULT 'medium',
     description TEXT,
-    -- Business logic enforcement at database level for specific statuses
-    status VARCHAR(50) NOT NULL DEFAULT 'Pending' CHECK (status IN ('Aberta', 'Planejada', 'Em Execução', 'Pausada', 'Em Auditoria', 'Finalizada', 'Reprovada', 'Pending', 'In Progress', 'Completed', 'Canceled')),
-    priority VARCHAR(50) NOT NULL DEFAULT 'Média' CHECK (priority IN ('Alta', 'Média', 'Baixa', 'Urgente')),
-    sla_deadline TIMESTAMP WITH TIME ZONE,
-    client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
-    contract_id UUID REFERENCES contracts(id) ON DELETE SET NULL,
-    technician_id UUID REFERENCES technicians(id) ON DELETE SET NULL,
-    scheduled_date TIMESTAMP WITH TIME ZONE,
-    latitude DECIMAL(10, 8),
-    longitude DECIMAL(11, 8),
+    scheduled_at TIMESTAMP WITH TIME ZONE,
+    finished_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -107,36 +102,37 @@ CREATE TABLE service_orders (
 CREATE TABLE materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
-    unit VARCHAR(50),
-    unit_price DECIMAL(10, 2) CHECK (unit_price >= 0),
+    unit_type VARCHAR(50),
+    sku VARCHAR(100) UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE inventory (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    material_id UUID NOT NULL REFERENCES materials(id) ON DELETE CASCADE,
-    -- Business Rule: Ensure inventory quantities cannot be negative
+    material_id UUID NOT NULL REFERENCES materials(id) ON DELETE CASCADE ON UPDATE CASCADE,
     quantity INT NOT NULL DEFAULT 0 CHECK (quantity >= 0),
     location VARCHAR(255),
+    min_stock_level INT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- N:N Relationship via Join Table (service_orders <-> materials) to track consumption
 CREATE TABLE service_order_materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_order_id UUID NOT NULL REFERENCES service_orders(id) ON DELETE CASCADE,
-    material_id UUID NOT NULL REFERENCES materials(id) ON DELETE RESTRICT,
-    quantity INT NOT NULL CHECK (quantity > 0),
-    assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    service_order_id UUID NOT NULL REFERENCES service_orders(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    material_id UUID NOT NULL REFERENCES materials(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    quantity_used INT NOT NULL CHECK (quantity_used > 0),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE vehicles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     plate VARCHAR(20) NOT NULL UNIQUE,
     model VARCHAR(255),
-    technician_id UUID REFERENCES technicians(id) ON DELETE SET NULL,
+    brand VARCHAR(255),
+    technician_id UUID REFERENCES technicians(id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -147,39 +143,29 @@ CREATE TABLE vehicles (
 
 CREATE TABLE checklists (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
+    title VARCHAR(255) NOT NULL,
     description TEXT,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE checklist_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    checklist_id UUID NOT NULL REFERENCES checklists(id) ON DELETE CASCADE,
+    checklist_id UUID NOT NULL REFERENCES checklists(id) ON DELETE CASCADE ON UPDATE CASCADE,
     label VARCHAR(255) NOT NULL,
     field_type VARCHAR(50) NOT NULL,
     is_required BOOLEAN DEFAULT false,
-    order_index INT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE photos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_order_id UUID NOT NULL REFERENCES service_orders(id) ON DELETE CASCADE,
-    url VARCHAR(1024) NOT NULL,
-    type VARCHAR(50),
-    coordinates JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE audits (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    service_order_id UUID NOT NULL REFERENCES service_orders(id) ON DELETE CASCADE,
-    auditor_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    status VARCHAR(50) NOT NULL CHECK (status IN ('approved', 'rejected', 'pending')),
-    notes TEXT,
+    related_entity_type VARCHAR(50) NOT NULL,
+    related_entity_id UUID NOT NULL,
+    storage_url VARCHAR(1024) NOT NULL,
+    uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -188,14 +174,25 @@ CREATE TABLE audits (
 -- 7. TRACEABILITY
 -- ==========================================
 
-CREATE TABLE logs (
+CREATE TABLE audits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    action VARCHAR(255) NOT NULL,
     table_name VARCHAR(255) NOT NULL,
     record_id UUID NOT NULL,
-    details JSONB,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    action VARCHAR(50) NOT NULL,
+    old_value JSONB,
+    new_value JSONB,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    level VARCHAR(50) NOT NULL,
+    message TEXT NOT NULL,
+    context JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ==========================================
@@ -210,8 +207,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER set_timestamp_roles BEFORE UPDATE ON roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+CREATE TRIGGER set_timestamp_roles BEFORE UPDATE ON roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+CREATE TRIGGER set_timestamp_user_roles BEFORE UPDATE ON user_roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_teams BEFORE UPDATE ON teams FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_technicians BEFORE UPDATE ON technicians FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_clients BEFORE UPDATE ON clients FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
@@ -219,57 +217,98 @@ CREATE TRIGGER set_timestamp_contracts BEFORE UPDATE ON contracts FOR EACH ROW E
 CREATE TRIGGER set_timestamp_service_orders BEFORE UPDATE ON service_orders FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_materials BEFORE UPDATE ON materials FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_inventory BEFORE UPDATE ON inventory FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+CREATE TRIGGER set_timestamp_service_order_materials BEFORE UPDATE ON service_order_materials FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_vehicles BEFORE UPDATE ON vehicles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_checklists BEFORE UPDATE ON checklists FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_checklist_items BEFORE UPDATE ON checklist_items FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_photos BEFORE UPDATE ON photos FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_audits BEFORE UPDATE ON audits FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+CREATE TRIGGER set_timestamp_logs BEFORE UPDATE ON logs FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+
+-- ==========================================
+-- AUDIT TRIGGER FOR SERVICE ORDERS
+-- ==========================================
+
+CREATE OR REPLACE FUNCTION audit_service_order_status_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.status IS DISTINCT FROM NEW.status THEN
+    INSERT INTO audits (table_name, record_id, action, old_value, new_value)
+    VALUES (
+      'service_orders',
+      NEW.id,
+      'UPDATE',
+      jsonb_build_object('status', OLD.status),
+      jsonb_build_object('status', NEW.status)
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER audit_service_order_status
+AFTER UPDATE ON service_orders
+FOR EACH ROW
+EXECUTE FUNCTION audit_service_order_status_change();
 
 -- ==========================================
 -- INDEXING STRATEGY
 -- ==========================================
 
--- Optimizing Kanban board filtering and status dashboard queries
+-- B-Tree for Foreign Keys
+CREATE INDEX idx_user_roles_user_id ON user_roles(user_id);
+CREATE INDEX idx_user_roles_role_id ON user_roles(role_id);
+CREATE INDEX idx_teams_supervisor_id ON teams(supervisor_id);
+CREATE INDEX idx_technicians_user_id ON technicians(user_id);
+CREATE INDEX idx_technicians_team_id ON technicians(team_id);
+CREATE INDEX idx_contracts_client_id ON contracts(client_id);
+CREATE INDEX idx_service_orders_client_id ON service_orders(client_id);
+CREATE INDEX idx_service_orders_technician_id ON service_orders(technician_id);
+CREATE INDEX idx_inventory_material_id ON inventory(material_id);
+CREATE INDEX idx_so_materials_so_id ON service_order_materials(service_order_id);
+CREATE INDEX idx_so_materials_material_id ON service_order_materials(material_id);
+CREATE INDEX idx_vehicles_technician_id ON vehicles(technician_id);
+CREATE INDEX idx_checklists_created_by ON checklists(created_by);
+CREATE INDEX idx_checklist_items_checklist_id ON checklist_items(checklist_id);
+CREATE INDEX idx_photos_uploaded_by ON photos(uploaded_by);
+CREATE INDEX idx_audits_user_id ON audits(user_id);
+
+-- Frequently filtered columns
 CREATE INDEX idx_service_orders_status ON service_orders(status);
-
--- Optimizing priority-based queries for SLA management and sorting
 CREATE INDEX idx_service_orders_priority ON service_orders(priority);
-
--- Optimizing login procedures and user lookups
 CREATE INDEX idx_users_email ON users(email);
-
--- Optimizing client lookups by CNPJ/Document
 CREATE INDEX idx_clients_document ON clients(document);
 
--- Composite index: Optimizing routing, calendar views, and searching OS by specific technician and date
-CREATE INDEX idx_service_orders_tech_date ON service_orders(technician_id, scheduled_date);
-
--- Optimizing inventory and stock lookups by material
-CREATE INDEX idx_inventory_material_id ON inventory(material_id);
-
 -- ==========================================
--- SEED DATA EXAMPLE (DML)
+-- OPERATIONAL EXAMPLES (SEED DATA)
 -- ==========================================
 
--- 1. Create a role (Admin)
+-- 1. Create a user with an "Administrator" role
 INSERT INTO roles (id, name, description) 
-VALUES ('11111111-1111-1111-1111-111111111111', 'Admin', 'System Administrator with full access');
+VALUES ('11111111-1111-1111-1111-111111111111', 'Administrator', 'Full system access');
 
--- 2. Create a user linked to that role
-INSERT INTO users (id, name, email, password_hash, role_id) 
-VALUES ('22222222-2222-2222-2222-222222222222', 'Admin User', 'admin@example.com', 'hashed_password_123', '11111111-1111-1111-1111-111111111111');
+INSERT INTO users (id, name, email, password_hash) 
+VALUES ('22222222-2222-2222-2222-222222222222', 'Admin User', 'admin@example.com', 'hashed_pwd_123');
 
--- 3. Create a client with an active contract
-INSERT INTO clients (id, name, document, address, contact_info)
-VALUES ('33333333-3333-3333-3333-333333333333', 'Acme Corp', '12.345.678/0001-90', '123 Business Rd', '{"phone": "555-0100", "email": "contact@acmecorp.com"}'::jsonb);
+INSERT INTO user_roles (user_id, role_id)
+VALUES ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111');
 
-INSERT INTO contracts (id, client_id, start_date, end_date, status, terms)
-VALUES ('44444444-4444-4444-4444-444444444444', '33333333-3333-3333-3333-333333333333', CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year', 'active', 'Standard SLA 24h Coverage');
+-- 2. Create a new client record
+INSERT INTO clients (id, name, document, email, phone, address)
+VALUES ('33333333-3333-3333-3333-333333333333', 'Acme Corporation', '12.345.678/0001-90', 'contact@acme.com', '555-0199', '123 Business Avenue');
 
--- Create a technician
+-- 3. Create a service order linked to the previously created client and an existing technician
+-- First, ensure a technician exists
 INSERT INTO technicians (id, user_id, specialty)
-VALUES ('55555555-5555-5555-5555-555555555555', '22222222-2222-2222-2222-222222222222', 'HVAC');
+VALUES ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'General Maintenance');
 
--- 4. Create a service_order linked to the client and a specific technician
-INSERT INTO service_orders (id, title, description, status, priority, client_id, contract_id, technician_id, scheduled_date)
-VALUES ('66666666-6666-6666-6666-666666666666', 'AC Unit Repair', 'Main AC unit in server room is making noise and failing to cool.', 'Aberta', 'Alta', '33333333-3333-3333-3333-333333333333', '44444444-4444-4444-4444-444444444444', '55555555-5555-5555-5555-555555555555', CURRENT_TIMESTAMP + INTERVAL '1 day');
+INSERT INTO service_orders (id, client_id, technician_id, status, priority, description, scheduled_at)
+VALUES (
+    '55555555-5555-5555-5555-555555555555', 
+    '33333333-3333-3333-3333-333333333333', 
+    '44444444-4444-4444-4444-444444444444', 
+    'pending', 
+    'high', 
+    'Annual HVAC maintenance and inspection.', 
+    CURRENT_TIMESTAMP + INTERVAL '2 days'
+);

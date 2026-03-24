@@ -2,41 +2,38 @@
 
 ## 1. Core Access Control
 
-- **`roles`**: Defines system access levels (e.g., Admin, Technician, Auditor).
-- **`users`**: Contains system access credentials and profile data. The `role_id` is a Foreign Key referencing `roles(id)` to enforce Role-Based Access Control (RBAC).
+- **`users`**: Contains system access credentials and profile data.
+- **`roles`**: Defines system access levels (e.g., Administrator, Technician).
+- **`user_roles`**: Pivot table handling the Many-to-Many (N:N) relationship between users and roles, allowing users to have multiple access contexts.
 
-## 2. Client & Contract Infrastructure
+## 2. Operational Management
 
-- **`clients`**: Stores customer entities and organizational details. Uses `JSONB` for flexible contact information schema (emails, multiple phones, etc.).
-- **`contracts`**: Defines the commercial agreements. The `client_id` is a Foreign Key referencing `clients(id)`. Deleting a client cascades and removes their contracts. (1:N Relationship)
+- **`teams`**: Represents operational groups or squads. The `supervisor_id` references `users(id)` to identify the team's manager.
+- **`technicians`**: Specialized field agents, referencing `users(id)` for their identity. Links to a team via `team_id` (1:N relationship).
 
-## 3. Operational Management
+## 3. Client & Contract Infrastructure
 
-- **`teams`**: Represents operational groups. The `supervisor_id` references `users(id)` to identify the team's manager.
-- **`technicians`**: Specialized field agents. It links a system login (`user_id` referencing `users(id)`) ensuring a strict 1:1 relationship via `UNIQUE` constraint.
-- **`team_technicians`**: Join table to handle the many-to-many (N:N) relationship between `teams` and `technicians`, enabling a technician to participate in multiple operational teams.
+- **`clients`**: Stores customer entities and organizational details with a unique CNPJ/CPF document structure.
+- **`contracts`**: Defines the commercial agreements. The `client_id` references `clients(id)` (1:N). Deleting a client cascades and removes their contracts.
 
 ## 4. Service Order Lifecycle
 
-- **`service_orders`**: The central operational entity. It connects multiple dimensions:
-  - The customer (`client_id` referencing `clients(id)`).
-  - The commercial agreement (`contract_id` referencing `contracts(id)`).
-  - The assigned executor (`technician_id` referencing `technicians(id)`).
+- **`service_orders`**: The central operational entity linking the client (`client_id`) and assigned executor (`technician_id`). An audit trigger automatically monitors and logs status transitions over time.
 
 ## 5. Resource Management
 
-- **`materials`**: Global catalog of items, tools, and equipment.
-- **`inventory`**: Tracks stock quantities. The `material_id` references `materials(id)`. Ensures quantity cannot be negative via database-level `CHECK` constraints.
+- **`materials`**: Global catalog of items, tools, and equipment identified by a unique SKU.
+- **`inventory`**: Tracks stock quantities at various locations. `material_id` references `materials(id)` (1:N).
 - **`service_order_materials`**: Join table mapping the N:N relationship between `service_orders` and `materials` to track consumption and parts used per work order.
-- **`vehicles`**: Represents the fleet. Vehicles are assigned to field agents via `technician_id` referencing `technicians(id)`.
+- **`vehicles`**: Represents the fleet. Vehicles are assigned to field agents via the `technician_id` mapping.
 
 ## 6. Quality & Compliance
 
-- **`checklists`**: Parent entity for dynamic form templates.
-- **`checklist_items`**: Questions or steps inside a template. `checklist_id` references `checklists(id)` establishing a 1:N relationship.
-- **`photos`**: Stores evidence for completed tasks. `service_order_id` references `service_orders(id)` (1:N relationship). Uses `JSONB` to capture GPS coordinates payload flexibly.
-- **`audits`**: Evaluates completed service orders. It ties the order (`service_order_id` referencing `service_orders(id)`) to the reviewer (`auditor_id` referencing `users(id)`).
+- **`checklists`**: Parent entity for dynamic inspection form templates.
+- **`checklist_items`**: Questions or steps inside a template. `checklist_id` references `checklists(id)` (1:N).
+- **`photos`**: Stores evidence for completed tasks. Uses a polymorphic relationship (`related_entity_type` and `related_entity_id`) to attach photos flexibly to either Service Orders or Checklists.
 
 ## 7. Traceability
 
-- **`logs`**: Tracks all system events and data changes for auditing purposes. `user_id` references `users(id)` to show who performed the action, while `table_name` and `record_id` logically map back to any modified entity. Stores granular event differences inside a `JSONB` column.
+- **`audits`**: Captures changes at the database level. Specifically populated via triggers for events like status updates on Service Orders.
+- **`logs`**: System-wide structured application logging for tracking errors, warnings, and contextual info.
