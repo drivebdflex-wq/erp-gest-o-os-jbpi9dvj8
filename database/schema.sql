@@ -1,6 +1,41 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ==========================================
+-- ENUMS
+-- ==========================================
+
+CREATE TYPE service_order_status AS ENUM (
+    'draft',
+    'pending',
+    'scheduled',
+    'in_progress',
+    'paused',
+    'in_audit',
+    'completed',
+    'rejected',
+    'cancelled'
+);
+
+CREATE TYPE service_order_priority AS ENUM (
+    'low',
+    'medium',
+    'high',
+    'urgent'
+);
+
+CREATE TYPE sla_status AS ENUM (
+    'within_sla',
+    'warning',
+    'breached'
+);
+
+CREATE TYPE checklist_status AS ENUM (
+    'pending',
+    'in_progress',
+    'completed'
+);
+
+-- ==========================================
 -- 1. CORE ACCESS CONTROL
 -- ==========================================
 
@@ -86,11 +121,25 @@ CREATE TABLE service_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE ON UPDATE CASCADE,
     technician_id UUID REFERENCES technicians(id) ON DELETE SET NULL ON UPDATE CASCADE,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending',
-    priority VARCHAR(50) NOT NULL DEFAULT 'medium',
+    status service_order_status NOT NULL DEFAULT 'pending',
+    priority service_order_priority NOT NULL DEFAULT 'medium',
     description TEXT,
+    
+    -- Schedule & Deadlines
     scheduled_at TIMESTAMP WITH TIME ZONE,
+    deadline_at TIMESTAMP WITH TIME ZONE,
+    sla_status sla_status DEFAULT 'within_sla',
+    
+    -- Execution Time Tracking
+    started_at TIMESTAMP WITH TIME ZONE,
+    paused_at TIMESTAMP WITH TIME ZONE,
     finished_at TIMESTAMP WITH TIME ZONE,
+    total_duration_minutes INT DEFAULT 0,
+    
+    -- Spatial Data
+    latitude DECIMAL(10, 8),
+    longitude DECIMAL(11, 8),
+    
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -160,6 +209,28 @@ CREATE TABLE checklist_items (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE service_order_checklists (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_order_id UUID NOT NULL REFERENCES service_orders(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    checklist_id UUID NOT NULL REFERENCES checklists(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    status checklist_status DEFAULT 'pending',
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE checklist_responses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_order_checklist_id UUID NOT NULL REFERENCES service_order_checklists(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    checklist_item_id UUID NOT NULL REFERENCES checklist_items(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    response_text TEXT,
+    response_boolean BOOLEAN,
+    response_number DECIMAL,
+    photo_url VARCHAR(1024),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE photos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     related_entity_type VARCHAR(50) NOT NULL,
@@ -221,6 +292,8 @@ CREATE TRIGGER set_timestamp_service_order_materials BEFORE UPDATE ON service_or
 CREATE TRIGGER set_timestamp_vehicles BEFORE UPDATE ON vehicles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_checklists BEFORE UPDATE ON checklists FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_checklist_items BEFORE UPDATE ON checklist_items FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+CREATE TRIGGER set_timestamp_service_order_checklists BEFORE UPDATE ON service_order_checklists FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+CREATE TRIGGER set_timestamp_checklist_responses BEFORE UPDATE ON checklist_responses FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_photos BEFORE UPDATE ON photos FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_audits BEFORE UPDATE ON audits FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 CREATE TRIGGER set_timestamp_logs BEFORE UPDATE ON logs FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
@@ -238,8 +311,8 @@ BEGIN
       'service_orders',
       NEW.id,
       'UPDATE',
-      jsonb_build_object('status', OLD.status),
-      jsonb_build_object('status', NEW.status)
+      jsonb_build_object('status', OLD.status::text),
+      jsonb_build_object('status', NEW.status::text)
     );
   END IF;
   RETURN NEW;
@@ -270,12 +343,16 @@ CREATE INDEX idx_so_materials_material_id ON service_order_materials(material_id
 CREATE INDEX idx_vehicles_technician_id ON vehicles(technician_id);
 CREATE INDEX idx_checklists_created_by ON checklists(created_by);
 CREATE INDEX idx_checklist_items_checklist_id ON checklist_items(checklist_id);
+CREATE INDEX idx_so_checklists_so_id ON service_order_checklists(service_order_id);
+CREATE INDEX idx_so_checklists_checklist_id ON service_order_checklists(checklist_id);
+CREATE INDEX idx_checklist_responses_so_chk_id ON checklist_responses(service_order_checklist_id);
 CREATE INDEX idx_photos_uploaded_by ON photos(uploaded_by);
 CREATE INDEX idx_audits_user_id ON audits(user_id);
 
 -- Frequently filtered columns
 CREATE INDEX idx_service_orders_status ON service_orders(status);
 CREATE INDEX idx_service_orders_priority ON service_orders(priority);
+CREATE INDEX idx_service_orders_sla_status ON service_orders(sla_status);
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_clients_document ON clients(document);
 
@@ -302,7 +379,7 @@ VALUES ('33333333-3333-3333-3333-333333333333', 'Acme Corporation', '12.345.678/
 INSERT INTO technicians (id, user_id, specialty)
 VALUES ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'General Maintenance');
 
-INSERT INTO service_orders (id, client_id, technician_id, status, priority, description, scheduled_at)
+INSERT INTO service_orders (id, client_id, technician_id, status, priority, description, scheduled_at, deadline_at, sla_status, latitude, longitude)
 VALUES (
     '55555555-5555-5555-5555-555555555555', 
     '33333333-3333-3333-3333-333333333333', 
@@ -310,5 +387,9 @@ VALUES (
     'pending', 
     'high', 
     'Annual HVAC maintenance and inspection.', 
-    CURRENT_TIMESTAMP + INTERVAL '2 days'
+    CURRENT_TIMESTAMP + INTERVAL '2 days',
+    CURRENT_TIMESTAMP + INTERVAL '3 days',
+    'within_sla',
+    -23.5505,
+    -46.6333
 );
