@@ -9,7 +9,7 @@ const MOCK_SERVICE_ORDERS: ServiceOrder[] = [
   {
     id: '55555555-5555-5555-5555-555555555555',
     client_id: '33333333-3333-3333-3333-333333333333',
-    technician_id: '44444444-4444-4444-4444-444444444444',
+    technician_id: 'tech-record-1',
     status: 'pending',
     priority: 'high',
     description: 'Annual HVAC maintenance and inspection.',
@@ -26,7 +26,7 @@ const MOCK_SERVICE_ORDERS: ServiceOrder[] = [
   {
     id: '66666666-6666-6666-6666-666666666666',
     client_id: '33333333-3333-3333-3333-333333333333',
-    technician_id: '44444444-4444-4444-4444-444444444444',
+    technician_id: 'tech-record-1',
     status: 'in_progress',
     priority: 'medium',
     description: 'Elevator system routine check.',

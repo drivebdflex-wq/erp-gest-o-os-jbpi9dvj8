@@ -1,10 +1,13 @@
 import { UsersService } from '@/services/business/users.service'
 import { ResponseHandler } from './core/response.handler'
+import { AuthGuard } from './core/auth.guard'
 import { CreateUserDto, UpdateUserDto } from './dtos/users.dto'
 
 export class UsersController {
-  static async create(body: unknown) {
+  static async create(body: unknown, token?: string) {
     try {
+      const ctx = await AuthGuard.verify(token)
+      AuthGuard.requireRoles(ctx, ['Administrator'])
       const data = CreateUserDto.parse(body)
       const result = await UsersService.createUser(data as any)
       return ResponseHandler.success(result, 201)
@@ -13,8 +16,10 @@ export class UsersController {
     }
   }
 
-  static async findAll() {
+  static async findAll(token?: string) {
     try {
+      const ctx = await AuthGuard.verify(token)
+      AuthGuard.requireRoles(ctx, ['Administrator'])
       const result = await UsersService.findAll()
       return ResponseHandler.success(result)
     } catch (error) {
@@ -22,8 +27,10 @@ export class UsersController {
     }
   }
 
-  static async findById(id: string) {
+  static async findById(id: string, token?: string) {
     try {
+      const ctx = await AuthGuard.verify(token)
+      AuthGuard.requireRoles(ctx, ['Administrator'])
       const result = await UsersService.findById(id)
       return ResponseHandler.success(result)
     } catch (error) {
@@ -31,8 +38,10 @@ export class UsersController {
     }
   }
 
-  static async update(id: string, body: unknown) {
+  static async update(id: string, body: unknown, token?: string) {
     try {
+      const ctx = await AuthGuard.verify(token)
+      AuthGuard.requireRoles(ctx, ['Administrator'])
       const data = UpdateUserDto.parse(body)
       const result = await UsersService.updateUser(id, data)
       return ResponseHandler.success(result)
@@ -41,8 +50,10 @@ export class UsersController {
     }
   }
 
-  static async suspend(id: string) {
+  static async suspend(id: string, token?: string) {
     try {
+      const ctx = await AuthGuard.verify(token)
+      AuthGuard.requireRoles(ctx, ['Administrator'])
       const result = await UsersService.suspendUser(id)
       return ResponseHandler.success(result)
     } catch (error) {
@@ -50,8 +61,10 @@ export class UsersController {
     }
   }
 
-  static async delete(id: string) {
+  static async delete(id: string, token?: string) {
     try {
+      const ctx = await AuthGuard.verify(token)
+      AuthGuard.requireRoles(ctx, ['Administrator'])
       const result = await UsersService.deleteUser(id)
       return ResponseHandler.success({ deleted: result })
     } catch (error) {

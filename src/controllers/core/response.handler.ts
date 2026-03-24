@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { BusinessError } from '@/services/business/errors'
 
 export interface ApiResponse<T = any> {
   success: boolean
@@ -16,11 +17,19 @@ export class ResponseHandler {
     }
   }
 
-  static error(error: unknown, statusCode = 400): ApiResponse<never> {
+  static error(error: unknown, defaultStatusCode = 400): ApiResponse<never> {
     let message = 'An unexpected error occurred'
+    let statusCode = defaultStatusCode
 
     if (error instanceof z.ZodError) {
       message = error.errors.map((e) => `${e.path.join('.') || 'body'}: ${e.message}`).join(', ')
+    } else if (error instanceof BusinessError) {
+      message = error.message
+      if (message.includes('Unauthorized')) {
+        statusCode = 401
+      } else if (message.includes('Forbidden')) {
+        statusCode = 403
+      }
     } else if (error instanceof Error) {
       message = error.message
     } else if (typeof error === 'string') {

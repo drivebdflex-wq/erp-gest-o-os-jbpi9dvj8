@@ -4,6 +4,7 @@ export interface User extends Timestamps {
   id: ID
   name: string
   email: string
+  password_hash: string
   status: string
 }
 
@@ -16,6 +17,12 @@ export interface Role extends Timestamps {
   id: ID
   name: string
   description?: string
+}
+
+export interface Team extends Timestamps {
+  id: ID
+  name: string
+  supervisor_id?: ID | null
 }
 
 export interface Technician extends Timestamps {

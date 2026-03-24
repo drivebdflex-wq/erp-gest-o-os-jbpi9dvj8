@@ -1,5 +1,6 @@
 import { MaterialsService } from '@/services/business/materials.service'
 import { ResponseHandler } from './core/response.handler'
+import { AuthGuard } from './core/auth.guard'
 import {
   CreateMaterialDto,
   UpdateMaterialDto,
@@ -8,8 +9,10 @@ import {
 } from './dtos/materials.dto'
 
 export class MaterialsController {
-  static async create(body: unknown) {
+  static async create(body: unknown, token?: string) {
     try {
+      const ctx = await AuthGuard.verify(token)
+      AuthGuard.requireRoles(ctx, ['Administrator', 'Supervisor'])
       const data = CreateMaterialDto.parse(body)
       const result = await MaterialsService.createMaterial(data)
       return ResponseHandler.success(result, 201)
@@ -18,8 +21,9 @@ export class MaterialsController {
     }
   }
 
-  static async findAll() {
+  static async findAll(token?: string) {
     try {
+      await AuthGuard.verify(token)
       const result = await MaterialsService.findAll()
       return ResponseHandler.success(result)
     } catch (error) {
@@ -27,8 +31,9 @@ export class MaterialsController {
     }
   }
 
-  static async findById(id: string) {
+  static async findById(id: string, token?: string) {
     try {
+      await AuthGuard.verify(token)
       const result = await MaterialsService.findById(id)
       return ResponseHandler.success(result)
     } catch (error) {
@@ -36,8 +41,10 @@ export class MaterialsController {
     }
   }
 
-  static async update(id: string, body: unknown) {
+  static async update(id: string, body: unknown, token?: string) {
     try {
+      const ctx = await AuthGuard.verify(token)
+      AuthGuard.requireRoles(ctx, ['Administrator', 'Supervisor'])
       const data = UpdateMaterialDto.parse(body)
       const result = await MaterialsService.updateMaterial(id, data)
       return ResponseHandler.success(result)
@@ -46,8 +53,10 @@ export class MaterialsController {
     }
   }
 
-  static async delete(id: string) {
+  static async delete(id: string, token?: string) {
     try {
+      const ctx = await AuthGuard.verify(token)
+      AuthGuard.requireRoles(ctx, ['Administrator', 'Supervisor'])
       const result = await MaterialsService.deleteMaterial(id)
       return ResponseHandler.success({ deleted: result })
     } catch (error) {
@@ -55,8 +64,9 @@ export class MaterialsController {
     }
   }
 
-  static async assignToOrder(id: string, body: unknown) {
+  static async assignToOrder(id: string, body: unknown, token?: string) {
     try {
+      await AuthGuard.verify(token)
       const data = AssignMaterialDto.parse(body)
       const result = await MaterialsService.assignMaterialToOrder(
         data.serviceOrderId,
@@ -69,8 +79,10 @@ export class MaterialsController {
     }
   }
 
-  static async restock(id: string, body: unknown) {
+  static async restock(id: string, body: unknown, token?: string) {
     try {
+      const ctx = await AuthGuard.verify(token)
+      AuthGuard.requireRoles(ctx, ['Administrator', 'Supervisor'])
       const data = RestockMaterialDto.parse(body)
       const result = await MaterialsService.restockMaterial(id, data.quantity)
       return ResponseHandler.success(result)

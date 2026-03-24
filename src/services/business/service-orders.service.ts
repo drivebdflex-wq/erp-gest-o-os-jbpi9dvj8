@@ -5,6 +5,7 @@ import {
   UserRolesRepository,
   RolesRepository,
   TechniciansRepository,
+  TeamsRepository,
 } from '../repositories/users.repository'
 import { BusinessError } from './errors'
 import type { ServiceOrderStatus, SLAStatus } from '../repositories/types/common'
@@ -26,32 +27,71 @@ export class ServiceOrdersService {
   private static async checkAuthorization(order: ServiceOrder, userId: string) {
     if (userId === 'system') return
 
-    // Check if user is admin
     const userRoles = await UserRolesRepository.findByUserId(userId)
     const roles = await RolesRepository.findAll()
-    const adminRoleIds = roles.filter((r) => r.name === 'Administrator').map((r) => r.id)
-    const isAdmin = userRoles.some((ur) => adminRoleIds.includes(ur.role_id))
+    const roleNames = userRoles.map((ur) => roles.find((r) => r.id === ur.role_id)?.name)
 
-    if (isAdmin) return
+    if (roleNames.includes('Administrator')) return
 
-    // Check ownership
+    if (roleNames.includes('Supervisor')) {
+      const teams = await TeamsRepository.findAll()
+      const myTeams = teams.filter((t) => t.supervisor_id === userId).map((t) => t.id)
+
+      const allTechs = await TechniciansRepository.findAll()
+      const myTechIds = allTechs
+        .filter((t) => t.team_id && myTeams.includes(t.team_id))
+        .map((t) => t.id)
+
+      if (order.technician_id && myTechIds.includes(order.technician_id)) return
+    }
+
     const technician = await TechniciansRepository.findByUserId(userId)
     if (!technician || order.technician_id !== technician.id) {
       throw new BusinessError(
-        'Unauthorized: You do not have permissions to modify this service order',
+        'Forbidden: You do not have permissions to access or modify this service order',
       )
     }
   }
 
-  static async findAll() {
-    return ServiceOrdersRepository.findAll()
+  static async findAll(userId: string = 'system') {
+    const orders = await ServiceOrdersRepository.findAll()
+
+    if (userId === 'system') return orders
+
+    const userRoles = await UserRolesRepository.findByUserId(userId)
+    const roles = await RolesRepository.findAll()
+    const roleNames = userRoles.map((ur) => roles.find((r) => r.id === ur.role_id)?.name)
+
+    if (roleNames.includes('Administrator')) return orders
+
+    if (roleNames.includes('Supervisor')) {
+      const teams = await TeamsRepository.findAll()
+      const myTeams = teams.filter((t) => t.supervisor_id === userId).map((t) => t.id)
+
+      const allTechs = await TechniciansRepository.findAll()
+      const myTechIds = allTechs
+        .filter((t) => t.team_id && myTeams.includes(t.team_id))
+        .map((t) => t.id)
+
+      return orders.filter((o) => o.technician_id && myTechIds.includes(o.technician_id))
+    }
+
+    const technician = await TechniciansRepository.findByUserId(userId)
+    if (technician) {
+      return orders.filter((o) => o.technician_id === technician.id)
+    }
+
+    return []
   }
 
-  static async findById(id: string) {
+  static async findById(id: string, userId: string = 'system') {
     const order = await ServiceOrdersRepository.findById(id)
     if (!order) {
       throw new BusinessError('Service order not found')
     }
+
+    await this.checkAuthorization(order, userId)
+
     return order
   }
 
@@ -75,7 +115,9 @@ export class ServiceOrdersService {
     }
 
     if (order.status === 'completed' || order.status === 'cancelled') {
-      throw new BusinessError(`Cannot modify a service order that is already ${order.status}`)
+      throw new BusinessError(
+        `Forbidden: Cannot modify a service order that is already ${order.status}`,
+      )
     }
 
     await this.checkAuthorization(order, userId)
@@ -105,13 +147,17 @@ export class ServiceOrdersService {
     }
 
     if (order.status === 'completed' || order.status === 'cancelled') {
-      throw new BusinessError(`Cannot modify a service order that is already ${order.status}`)
+      throw new BusinessError(
+        `Forbidden: Cannot modify a service order that is already ${order.status}`,
+      )
     }
 
     await this.checkAuthorization(order, userId)
 
     if (!VALID_TRANSITIONS[order.status]?.includes(newStatus)) {
-      throw new BusinessError(`Invalid status transition from '${order.status}' to '${newStatus}'`)
+      throw new BusinessError(
+        `Forbidden: Invalid status transition from '${order.status}' to '${newStatus}'`,
+      )
     }
 
     const updates: any = { status: newStatus }
@@ -172,12 +218,16 @@ export class ServiceOrdersService {
 
   private static async validateFinalization(order: any) {
     if (!order.customer_signature_url) {
-      throw new BusinessError('Customer signature is required to complete the service order')
+      throw new BusinessError(
+        'Forbidden: Customer signature is required to complete the service order',
+      )
     }
 
     const orderChecklists = await ServiceOrderChecklistsRepository.findByServiceOrderId(order.id)
     if (orderChecklists.some((c) => c.status !== 'completed')) {
-      throw new BusinessError('All associated checklists must be completed before finalizing')
+      throw new BusinessError(
+        'Forbidden: All associated checklists must be completed before finalizing',
+      )
     }
 
     const orderPhotos = await PhotosRepository.findByServiceOrderId(order.id)
@@ -186,7 +236,7 @@ export class ServiceOrdersService {
 
     if (initialPhotos.length === 0 || finalPhotos.length === 0) {
       throw new BusinessError(
-        'At least one initial and one final photo are required to complete the service order',
+        'Forbidden: At least one initial and one final photo are required to complete the service order',
       )
     }
   }

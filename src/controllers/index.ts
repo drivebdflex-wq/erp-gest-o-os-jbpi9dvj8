@@ -1,4 +1,6 @@
 export { ResponseHandler } from './core/response.handler'
+export { AuthGuard } from './core/auth.guard'
+export { AuthController } from './auth.controller'
 export { ServiceOrdersController } from './service-orders.controller'
 export { UsersController } from './users.controller'
 export { MaterialsController } from './materials.controller'
