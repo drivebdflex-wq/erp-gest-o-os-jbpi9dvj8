@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, List, KanBan } from 'lucide-react'
+import { Plus, List, Kanban } from 'lucide-react'
 import OrderTable from '@/components/admin/OrderTable'
 import OrderKanban from '@/components/admin/OrderKanban'
 
@@ -36,7 +36,7 @@ export default function WorkOrders() {
               Lista
             </TabsTrigger>
             <TabsTrigger value="kanban">
-              <KanBan className="h-4 w-4 mr-2" />
+              <Kanban className="h-4 w-4 mr-2" />
               Quadro
             </TabsTrigger>
           </TabsList>
