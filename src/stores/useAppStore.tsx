@@ -1,4 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
+import { ServiceOrdersRepository } from '@/services/repositories/service-orders.repository'
+import { ClientsRepository } from '@/services/repositories/clients.repository'
+import { TechniciansRepository } from '@/services/repositories/teams.repository'
+import { UsersRepository } from '@/services/repositories/users.repository'
 
 export type Role = 'admin' | 'tech'
 export type OSStatus =
@@ -42,57 +46,83 @@ const initialOrders: Order[] = [
     address: 'Av. Paulista, 1000',
     distance: '2.4 km',
   },
-  {
-    id: 'OS-1043',
-    title: 'Reparo Cabeamento Fibra Óptica',
-    client: 'TechCorp SA',
-    status: 'Aberta',
-    priority: 'Alta',
-    date: '2023-10-25',
-    tech: 'Não Atribuído',
-    address: 'Rua Augusta, 500',
-    distance: '5.1 km',
-  },
-  {
-    id: 'OS-1044',
-    title: 'Troca de Roteador Wi-Fi',
-    client: 'Escola Modelo',
-    status: 'Planejada',
-    priority: 'Baixa',
-    date: '2023-10-26',
-    tech: 'Ana Souza',
-    address: 'Av. Brasil, 200',
-    distance: '12 km',
-  },
-  {
-    id: 'OS-1045',
-    title: 'Instalação Câmeras Segurança',
-    client: 'Loja Centro',
-    status: 'Em Auditoria',
-    priority: 'Alta',
-    date: '2023-10-24',
-    tech: 'Carlos Silva',
-    address: 'Rua Direita, 10',
-    distance: '1.2 km',
-  },
-  {
-    id: 'OS-1046',
-    title: 'Verificação Quadro Elétrico',
-    client: 'Edifício Beta',
-    status: 'Pausada',
-    priority: 'Média',
-    date: '2023-10-25',
-    tech: 'Marcos Paulo',
-    address: 'Av. Faria Lima, 3000',
-    distance: '4.5 km',
-  },
 ]
+
+function mapStatus(s: string): OSStatus {
+  switch (s) {
+    case 'pending':
+      return 'Aberta'
+    case 'scheduled':
+      return 'Planejada'
+    case 'in_progress':
+      return 'Em Execução'
+    case 'paused':
+      return 'Pausada'
+    case 'in_audit':
+      return 'Em Auditoria'
+    case 'completed':
+      return 'Finalizada'
+    case 'rejected':
+      return 'Reprovada'
+    default:
+      return 'Aberta'
+  }
+}
+
+function mapPriority(p: string): OSPriority {
+  switch (p) {
+    case 'high':
+    case 'urgent':
+      return 'Alta'
+    case 'medium':
+      return 'Média'
+    case 'low':
+      return 'Baixa'
+    default:
+      return 'Média'
+  }
+}
 
 const AppContext = createContext<AppState | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>('admin')
   const [orders, setOrders] = useState<Order[]>(initialOrders)
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const dbOrders = await ServiceOrdersRepository.findAll()
+        const clients = await ClientsRepository.findAll()
+        const techs = await TechniciansRepository.findAll()
+        const users = await UsersRepository.findAll()
+
+        const mappedOrders: Order[] = dbOrders.map((o) => {
+          const client = clients.find((c) => c.id === o.client_id)?.name || 'Desconhecido'
+          const tech = techs.find((t) => t.id === o.technician_id)
+          const user = users.find((u) => u.id === tech?.user_id)?.name || 'Não Atribuído'
+
+          return {
+            id: o.id.substring(0, 8).toUpperCase(),
+            title: o.description || 'Manutenção',
+            client,
+            status: mapStatus(o.status),
+            priority: mapPriority(o.priority),
+            date: o.scheduled_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+            tech: user,
+            address: '123 Business Avenue',
+          }
+        })
+
+        if (mappedOrders.length > 0) {
+          setOrders(mappedOrders)
+        }
+      } catch (error) {
+        console.error('Error loading data from repositories', error)
+      }
+    }
+    loadData()
+  }, [])
 
   const updateOrderStatus = (id: string, status: OSStatus) => {
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)))
