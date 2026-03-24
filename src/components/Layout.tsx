@@ -1,13 +1,40 @@
-/* Layout Component - A component that wraps the main content of the app
-   - Use this file to add a header, footer, or other elements that should be present on every page
-   - This component is used in the App.tsx file to wrap the main content of the app */
-
 import { Outlet } from 'react-router-dom'
+import useAppStore from '@/stores/useAppStore'
+import { SidebarProvider } from '@/components/ui/sidebar'
+import AdminSidebar from './admin/AdminSidebar'
+import Header from './Header'
+import TechBottomNav from './tech/TechBottomNav'
 
 export default function Layout() {
+  const { role } = useAppStore()
+
+  if (role === 'tech') {
+    return (
+      <div className="min-h-screen bg-secondary/30 flex items-center justify-center p-0 sm:p-4 animate-fade-in">
+        <div className="tech-mobile-container">
+          <Header />
+          <main className="flex-1 overflow-y-auto pb-20 scroll-smooth">
+            <Outlet />
+          </main>
+          <TechBottomNav />
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <main className="flex flex-col min-h-screen">
-      <Outlet />
-    </main>
+    <SidebarProvider defaultOpen>
+      <div className="flex min-h-screen w-full bg-background animate-fade-in">
+        <AdminSidebar />
+        <div className="flex flex-col flex-1 w-full overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto p-6 bg-secondary/20">
+            <div className="mx-auto max-w-7xl">
+              <Outlet />
+            </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   )
 }

@@ -1,29 +1,84 @@
-/* Main App Component - Handles routing (using react-router-dom), query client and other providers - use this file to add all routes */
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import Index from './pages/Index'
-import NotFound from './pages/NotFound'
 import Layout from './components/Layout'
+import { AppProvider } from './stores/useAppStore'
 
-// ONLY IMPORT AND RENDER WORKING PAGES, NEVER ADD PLACEHOLDER COMPONENTS OR PAGES IN THIS FILE
-// AVOID REMOVING ANY CONTEXT PROVIDERS FROM THIS FILE (e.g. TooltipProvider, Toaster, Sonner)
+// Pages
+import Index from './pages/Index'
+import WorkOrders from './pages/admin/WorkOrders'
+import MapPage from './pages/admin/MapPage'
+import AuditPage from './pages/admin/AuditPage'
+import InventoryPage from './pages/admin/InventoryPage'
+import NotFound from './pages/NotFound'
+
+import TechQueue from './pages/tech/TechQueue'
+import TechExecution from './pages/tech/TechExecution'
 
 const App = () => (
-  <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES MUST BE ADDED HERE */}
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </TooltipProvider>
-  </BrowserRouter>
+  <AppProvider>
+    <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Routes>
+          <Route element={<Layout />}>
+            {/* Admin Routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/ordens" element={<WorkOrders />} />
+            <Route path="/mapa" element={<MapPage />} />
+            <Route path="/auditoria" element={<AuditPage />} />
+            <Route path="/estoque" element={<InventoryPage />} />
+            {/* Standard empty routes for completeness */}
+            <Route
+              path="/veiculos"
+              element={
+                <div className="p-8 text-center text-muted-foreground">
+                  Módulo de Veículos em Desenvolvimento
+                </div>
+              }
+            />
+            <Route
+              path="/financeiro"
+              element={
+                <div className="p-8 text-center text-muted-foreground">
+                  Módulo Financeiro em Desenvolvimento
+                </div>
+              }
+            />
+            <Route
+              path="/configs"
+              element={
+                <div className="p-8 text-center text-muted-foreground">
+                  Configurações do Sistema
+                </div>
+              }
+            />
+
+            {/* Tech Routes */}
+            <Route path="/tech" element={<TechQueue />} />
+            <Route path="/tech/execucao/:id" element={<TechExecution />} />
+            <Route
+              path="/tech/rotas"
+              element={
+                <div className="p-8 text-center text-muted-foreground mt-20">
+                  Mapa de Rotas Mobile
+                </div>
+              }
+            />
+            <Route
+              path="/tech/perfil"
+              element={
+                <div className="p-8 text-center text-muted-foreground mt-20">Perfil do Técnico</div>
+              }
+            />
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TooltipProvider>
+    </BrowserRouter>
+  </AppProvider>
 )
 
 export default App
