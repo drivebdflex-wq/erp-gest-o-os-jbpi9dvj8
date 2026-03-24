@@ -4,18 +4,13 @@ export interface User extends Timestamps {
   id: ID
   name: string
   email: string
-  password_hash: string
-  status: 'active' | 'inactive' | 'suspended'
+  status: string
 }
 
-export interface CreateUserDTO {
-  name: string
-  email: string
-  password_hash: string
-  status?: 'active' | 'inactive' | 'suspended'
+export interface UserRole extends Timestamps {
+  user_id: ID
+  role_id: ID
 }
-
-export type UpdateUserDTO = Partial<CreateUserDTO>
 
 export interface Role extends Timestamps {
   id: ID
@@ -23,14 +18,10 @@ export interface Role extends Timestamps {
   description?: string
 }
 
-export interface CreateRoleDTO {
-  name: string
-  description?: string
-}
-
-export type UpdateRoleDTO = Partial<CreateRoleDTO>
-
-export interface UserRole extends Timestamps {
+export interface Technician extends Timestamps {
+  id: ID
   user_id: ID
-  role_id: ID
+  team_id?: ID | null
+  specialty?: string
+  availability_status: string
 }

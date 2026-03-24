@@ -73,15 +73,15 @@ export type UpdateChecklistResponseDTO = Partial<CreateChecklistResponseDTO>
 
 export interface Photo extends Timestamps {
   id: ID
-  related_entity_type: string
-  related_entity_id: ID
+  service_order_id: ID
+  type: 'initial' | 'final'
   storage_url: string
   uploaded_by?: ID | null
 }
 
 export interface CreatePhotoDTO {
-  related_entity_type: string
-  related_entity_id: ID
+  service_order_id: ID
+  type: 'initial' | 'final'
   storage_url: string
   uploaded_by?: ID | null
 }

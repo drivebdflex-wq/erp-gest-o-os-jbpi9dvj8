@@ -11,6 +11,7 @@ export interface ServiceOrder extends Timestamps {
   deadline_at?: string
   sla_status: SLAStatus
   started_at?: string
+  last_resumed_at?: string | null
   paused_at?: string
   finished_at?: string
   total_duration_minutes: number
@@ -35,6 +36,7 @@ export interface CreateServiceOrderDTO {
 export type UpdateServiceOrderDTO = Partial<CreateServiceOrderDTO> & {
   sla_status?: SLAStatus
   started_at?: string
+  last_resumed_at?: string | null
   paused_at?: string
   finished_at?: string
   total_duration_minutes?: number

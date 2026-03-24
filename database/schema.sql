@@ -132,6 +132,7 @@ CREATE TABLE service_orders (
     
     -- Execution Time Tracking
     started_at TIMESTAMP WITH TIME ZONE,
+    last_resumed_at TIMESTAMP WITH TIME ZONE,
     paused_at TIMESTAMP WITH TIME ZONE,
     finished_at TIMESTAMP WITH TIME ZONE,
     total_duration_minutes INT DEFAULT 0,
@@ -233,8 +234,8 @@ CREATE TABLE checklist_responses (
 
 CREATE TABLE photos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    related_entity_type VARCHAR(50) NOT NULL,
-    related_entity_id UUID NOT NULL,
+    service_order_id UUID NOT NULL REFERENCES service_orders(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    type VARCHAR(50) NOT NULL CHECK (type IN ('initial', 'final')),
     storage_url VARCHAR(1024) NOT NULL,
     uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -346,6 +347,7 @@ CREATE INDEX idx_checklist_items_checklist_id ON checklist_items(checklist_id);
 CREATE INDEX idx_so_checklists_so_id ON service_order_checklists(service_order_id);
 CREATE INDEX idx_so_checklists_checklist_id ON service_order_checklists(checklist_id);
 CREATE INDEX idx_checklist_responses_so_chk_id ON checklist_responses(service_order_checklist_id);
+CREATE INDEX idx_photos_service_order_id ON photos(service_order_id);
 CREATE INDEX idx_photos_uploaded_by ON photos(uploaded_by);
 CREATE INDEX idx_audits_user_id ON audits(user_id);
 

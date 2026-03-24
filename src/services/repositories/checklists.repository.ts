@@ -13,6 +13,7 @@ import type {
   CreateChecklistResponseDTO,
   UpdateChecklistResponseDTO,
 } from './types/quality'
+import { isMock, supabase } from '@/lib/supabase'
 
 const MOCK_CHECKLISTS: Checklist[] = [
   {
@@ -66,11 +67,26 @@ export const ChecklistItemsRepository = createRepository<
   CreateChecklistItemDTO,
   UpdateChecklistItemDTO
 >('checklist_items', MOCK_CHECKLIST_ITEMS)
-export const ServiceOrderChecklistsRepository = createRepository<
+
+const baseServiceOrderChecklistsRepository = createRepository<
   ServiceOrderChecklist,
   CreateServiceOrderChecklistDTO,
   UpdateServiceOrderChecklistDTO
 >('service_order_checklists', MOCK_SO_CHECKLISTS)
+
+export const ServiceOrderChecklistsRepository = {
+  ...baseServiceOrderChecklistsRepository,
+  async findByServiceOrderId(serviceOrderId: string): Promise<ServiceOrderChecklist[]> {
+    if (isMock) {
+      const all = await baseServiceOrderChecklistsRepository.findAll()
+      return all.filter((c) => c.service_order_id === serviceOrderId)
+    }
+    return supabase.request<ServiceOrderChecklist[]>(
+      `service_order_checklists?service_order_id=eq.${serviceOrderId}&select=*`,
+    )
+  },
+}
+
 export const ChecklistResponsesRepository = createRepository<
   ChecklistResponse,
   CreateChecklistResponseDTO,
