@@ -1,183 +1,326 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import useAppStore from '@/stores/useAppStore'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { MapPin, Camera, PenTool, CheckCircle2, ChevronLeft } from 'lucide-react'
-import { toast } from '@/hooks/use-toast'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useToast } from '@/hooks/use-toast'
+import { ServiceOrdersRepository } from '@/services/repositories/service-orders.repository'
+import {
+  ServiceOrderChecklistsRepository,
+  ChecklistItemsRepository,
+} from '@/services/repositories/checklists.repository'
+import { PhotosRepository } from '@/services/repositories/auxiliary.repository'
+import { ServiceOrdersService } from '@/services/business/service-orders.service'
+import { ChecklistsService } from '@/services/business/checklists.service'
+import { BusinessError } from '@/services/business/errors'
+import { CheckCircle2, Play, Pause, Camera, PenTool, ClipboardList, Box, Check } from 'lucide-react'
 
 export default function TechExecution() {
-  const { id } = useParams()
+  const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { orders, updateOrderStatus } = useAppStore()
-  const order = orders.find((o) => o.id === id)
+  const { toast } = useToast()
 
-  const [step, setStep] = useState(order?.status === 'Em Execução' ? 2 : 1)
-  const [checks, setChecks] = useState([false, false, false])
+  const [order, setOrder] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [checklists, setChecklists] = useState<any[]>([])
+  const [photos, setPhotos] = useState<any[]>([])
 
-  if (!order) return <div className="p-4 text-center mt-20">OS não encontrada.</div>
+  useEffect(() => {
+    loadOrderData()
+  }, [id])
 
-  const handleCheckIn = () => {
-    updateOrderStatus(order.id, 'Em Execução')
-    setStep(2)
-    toast({
-      title: 'Check-in Realizado',
-      description: 'Localização GPS capturada. Cronômetro iniciado.',
+  const loadOrderData = async () => {
+    if (!id) return
+    setLoading(true)
+    try {
+      const data = await ServiceOrdersRepository.findById(id)
+      if (!data) {
+        toast({ title: 'Erro', description: 'OS não encontrada', variant: 'destructive' })
+        navigate('/tech')
+        return
+      }
+      setOrder(data)
+
+      const allSoChecklists = await ServiceOrderChecklistsRepository.findAll()
+      setChecklists(allSoChecklists.filter((c) => c.service_order_id === id))
+
+      const allPhotos = await PhotosRepository.findAll()
+      setPhotos(allPhotos.filter((p) => p.related_entity_id === id))
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleStatusChange = async (newStatus: any) => {
+    try {
+      await ServiceOrdersService.changeStatus(id!, newStatus, 'tech-user-id')
+      toast({ title: 'Sucesso', description: `Status alterado para ${newStatus}` })
+      loadOrderData()
+    } catch (error) {
+      if (error instanceof BusinessError) {
+        toast({
+          title: 'Atenção - Regra de Negócio',
+          description: error.message,
+          variant: 'destructive',
+        })
+      } else {
+        toast({ title: 'Erro', description: 'Ocorreu um erro inesperado', variant: 'destructive' })
+      }
+    }
+  }
+
+  const mockCompleteChecklist = async (soChecklistId: string) => {
+    try {
+      const items = await ChecklistItemsRepository.findAll()
+      const reqItems = items.filter((i) => i.is_required)
+
+      for (const item of reqItems) {
+        await ChecklistsService.addResponse({
+          service_order_checklist_id: soChecklistId,
+          checklist_item_id: item.id,
+          response_boolean: true,
+          response_number: 100,
+        })
+      }
+      toast({ title: 'Sucesso', description: 'Checklist preenchido e completado' })
+      loadOrderData()
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
+  const mockAddPhoto = async (type: string) => {
+    await PhotosRepository.create({
+      related_entity_type: type,
+      related_entity_id: id!,
+      storage_url: `https://img.usecurling.com/p/400/300?q=maintenance&color=gray&dpr=1&seed=${Math.random()}`,
+      uploaded_by: 'tech-user-id',
     })
+    toast({ title: 'Foto Adicionada', description: `Foto ${type} salva com sucesso.` })
+    loadOrderData()
   }
 
-  const handleCheckout = () => {
-    updateOrderStatus(order.id, 'Em Auditoria')
-    navigate('/tech')
-    toast({ title: 'OS Finalizada', description: 'Enviada para auditoria do supervisor.' })
+  const mockSignDocument = async () => {
+    await ServiceOrdersRepository.update(id!, {
+      customer_signature_url: 'https://img.usecurling.com/p/200/100?q=signature&color=black',
+    })
+    toast({ title: 'Assinatura Coletada', description: 'Assinatura salva com sucesso.' })
+    loadOrderData()
   }
+
+  if (loading) return <div className="p-8 text-center">Carregando...</div>
+  if (!order) return null
 
   return (
-    <div className="bg-background min-h-full flex flex-col animate-slide-up">
-      <div className="sticky top-0 bg-background/95 backdrop-blur z-10 border-b px-4 py-3 flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 -ml-2"
-          onClick={() => navigate('/tech')}
+    <div className="container max-w-4xl mx-auto p-4 space-y-6 animate-fade-in-up pb-20">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">OS #{order.id.split('-')[0]}</h1>
+          <p className="text-muted-foreground">{order.description}</p>
+        </div>
+        <Badge
+          variant={order.status === 'in_progress' ? 'default' : 'secondary'}
+          className="text-lg px-4 py-1"
         >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1">
-          <div className="text-xs font-bold text-primary">{order.id}</div>
-          <div className="text-sm font-semibold truncate leading-tight">{order.title}</div>
-        </div>
+          {order.status.toUpperCase()}
+        </Badge>
       </div>
 
-      <div className="px-4 py-2 bg-secondary/50">
-        <Progress value={(step / 4) * 100} className="h-2" />
-        <div className="flex justify-between text-[10px] mt-1 text-muted-foreground font-medium uppercase">
-          <span>Check-in</span>
-          <span>Execução</span>
-          <span>Evidência</span>
-          <span>Checkout</span>
-        </div>
-      </div>
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="p-6">
+          <div className="flex gap-4 justify-center">
+            {['pending', 'scheduled', 'paused'].includes(order.status) && (
+              <Button size="lg" onClick={() => handleStatusChange('in_progress')} className="w-40">
+                <Play className="mr-2 h-5 w-5" /> Iniciar OS
+              </Button>
+            )}
 
-      <div className="flex-1 p-4 overflow-y-auto pb-24">
-        {step === 1 && (
-          <div className="space-y-6 flex flex-col items-center justify-center h-full pt-10">
-            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-              <MapPin className="w-10 h-10 text-primary" />
-            </div>
-            <div className="text-center space-y-2">
-              <h2 className="text-xl font-bold">Chegou no local?</h2>
-              <p className="text-sm text-muted-foreground px-4">
-                Confirme seu check-in para registrar o tempo de atendimento e liberar o checklist.
-              </p>
-            </div>
-            <Card className="w-full bg-secondary/30 border-dashed">
-              <CardContent className="p-4 text-center text-sm font-mono text-muted-foreground">
-                GPS: -23.5505, -46.6333
-                <br />
-                Precisão: 4m
+            {order.status === 'in_progress' && (
+              <>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={() => handleStatusChange('paused')}
+                  className="w-40"
+                >
+                  <Pause className="mr-2 h-5 w-5" /> Pausar
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => handleStatusChange('completed')}
+                  className="w-40 bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar
+                </Button>
+              </>
+            )}
+          </div>
+
+          <div className="mt-4 text-sm text-center text-muted-foreground">
+            Tente finalizar a OS sem cumprir os requisitos para testar as regras de negócio!
+          </div>
+        </CardContent>
+      </Card>
+
+      <Tabs defaultValue="checklist" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="details">Detalhes</TabsTrigger>
+          <TabsTrigger value="checklist">
+            Checklist
+            {checklists.every((c) => c.status === 'completed') && checklists.length > 0 && (
+              <Check className="w-3 h-3 ml-1 text-green-500" />
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="materials">Materiais</TabsTrigger>
+          <TabsTrigger value="photos">
+            Fotos & Ass.
+            {order.customer_signature_url && photos.length >= 2 && (
+              <Check className="w-3 h-3 ml-1 text-green-500" />
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="details" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Informações Gerais</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-6">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">SLA Status</p>
+                <Badge
+                  variant={order.sla_status === 'breached' ? 'destructive' : 'outline'}
+                  className="mt-1"
+                >
+                  {order.sla_status}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Tempo Total</p>
+                <p className="text-xl font-semibold">{order.total_duration_minutes} min</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="checklist" className="mt-4 space-y-4">
+          {checklists.map((c) => (
+            <Card key={c.id}>
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-lg">Checklist de Manutenção</CardTitle>
+                  <Badge variant={c.status === 'completed' ? 'default' : 'secondary'}>
+                    {c.status}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {c.status !== 'completed' ? (
+                  <Button
+                    onClick={() => mockCompleteChecklist(c.id)}
+                    className="w-full"
+                    variant="outline"
+                  >
+                    <ClipboardList className="w-4 h-4 mr-2" /> Preencher Automaticamente (Mock)
+                  </Button>
+                ) : (
+                  <p className="text-sm text-green-600 font-medium flex items-center">
+                    <CheckCircle2 className="w-4 h-4 mr-2" /> Todas as respostas registradas
+                  </p>
+                )}
               </CardContent>
             </Card>
-            <Button
-              size="lg"
-              className="w-full h-14 text-lg mt-8 rounded-xl shadow-lg"
-              onClick={handleCheckIn}
-            >
-              Fazer Check-in Oficial
-            </Button>
-          </div>
-        )}
+          ))}
+          {checklists.length === 0 && (
+            <p className="text-muted-foreground">Nenhum checklist vinculado.</p>
+          )}
+        </TabsContent>
 
-        {step === 2 && (
-          <div className="space-y-4 animate-fade-in">
-            <h3 className="font-bold flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-primary" /> Checklist Obrigatório
-            </h3>
-            <Card>
-              <CardContent className="p-0 divide-y">
-                {[
-                  'Verificar integridade dos cabos',
-                  'Medir tensão do equipamento',
-                  'Limpeza da área de trabalho',
-                ].map((task, i) => (
-                  <div key={i} className="flex items-start space-x-3 p-4">
-                    <Checkbox
-                      id={`task-${i}`}
-                      checked={checks[i]}
-                      onCheckedChange={(c) => {
-                        const newChecks = [...checks]
-                        newChecks[i] = c as boolean
-                        setChecks(newChecks)
-                      }}
-                      className="mt-1 w-5 h-5"
+        <TabsContent value="materials" className="mt-4">
+          <Card>
+            <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-12 text-muted-foreground">
+              <Box className="h-12 w-12 mb-4 opacity-50" />
+              <p>Módulo de controle de materiais.</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="photos" className="mt-4 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Evidências Fotográficas</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex gap-4">
+                <Button
+                  variant={
+                    photos.some((p) => p.related_entity_type === 'service_order_initial')
+                      ? 'secondary'
+                      : 'default'
+                  }
+                  onClick={() => mockAddPhoto('service_order_initial')}
+                  className="flex-1"
+                >
+                  <Camera className="w-4 h-4 mr-2" /> Foto Inicial
+                </Button>
+                <Button
+                  variant={
+                    photos.some((p) => p.related_entity_type === 'service_order_final')
+                      ? 'secondary'
+                      : 'default'
+                  }
+                  onClick={() => mockAddPhoto('service_order_final')}
+                  className="flex-1"
+                >
+                  <Camera className="w-4 h-4 mr-2" /> Foto Final
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                {photos.map((p) => (
+                  <div
+                    key={p.id}
+                    className="relative aspect-video rounded-md overflow-hidden border"
+                  >
+                    <img
+                      src={p.storage_url}
+                      alt="Evidência"
+                      className="object-cover w-full h-full"
                     />
-                    <label htmlFor={`task-${i}`} className="text-sm leading-snug cursor-pointer">
-                      {task}
-                    </label>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1 text-xs text-white text-center">
+                      {p.related_entity_type.replace('service_order_', '')}
+                    </div>
                   </div>
                 ))}
-              </CardContent>
-            </Card>
-            <Button
-              size="lg"
-              className="w-full h-12"
-              disabled={!checks.every(Boolean)}
-              onClick={() => setStep(3)}
-            >
-              Avançar para Fotos
-            </Button>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-4 animate-fade-in">
-            <h3 className="font-bold flex items-center gap-2">
-              <Camera className="w-5 h-5 text-primary" /> Evidências Fotográficas
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="aspect-square border-2 border-dashed rounded-xl flex flex-col items-center justify-center text-muted-foreground bg-secondary/20 hover:bg-secondary/40 active:scale-95 transition-all">
-                <Camera className="w-8 h-8 mb-2" />
-                <span className="text-xs font-semibold">Foto ANTES</span>
               </div>
-              <div className="aspect-square border-2 border-primary rounded-xl overflow-hidden relative">
-                <img
-                  src="https://img.usecurling.com/p/300/300?q=cable%20repair"
-                  className="w-full h-full object-cover"
-                  alt="Depois"
-                />
-                <div className="absolute bottom-0 w-full bg-black/60 text-white text-[10px] text-center py-1">
-                  Foto DEPOIS ✓
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Assinatura do Cliente</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!order.customer_signature_url ? (
+                <Button onClick={mockSignDocument} variant="outline" className="w-full">
+                  <PenTool className="w-4 h-4 mr-2" /> Coletar Assinatura (Mock)
+                </Button>
+              ) : (
+                <div className="border rounded-md p-4 bg-white flex justify-center">
+                  <img
+                    src={order.customer_signature_url}
+                    alt="Assinatura"
+                    className="h-20 mix-blend-multiply"
+                  />
                 </div>
-              </div>
-            </div>
-            <Button size="lg" className="w-full h-12 mt-8" onClick={() => setStep(4)}>
-              Ir para Assinatura
-            </Button>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="space-y-4 animate-fade-in">
-            <h3 className="font-bold flex items-center gap-2">
-              <PenTool className="w-5 h-5 text-primary" /> Assinatura do Cliente
-            </h3>
-            <Card className="border-2 border-dashed h-48 flex items-center justify-center bg-white relative">
-              <span className="text-muted-foreground/40 font-mono rotate-12 text-2xl absolute pointer-events-none">
-                Assinar Aqui
-              </span>
-            </Card>
-            <Button
-              size="lg"
-              className="w-full h-14 text-lg bg-success hover:bg-success/90 rounded-xl shadow-lg mt-8"
-              onClick={handleCheckout}
-            >
-              Finalizar Atendimento
-            </Button>
-          </div>
-        )}
-      </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
