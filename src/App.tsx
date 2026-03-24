@@ -11,6 +11,7 @@ import WorkOrders from './pages/admin/WorkOrders'
 import MapPage from './pages/admin/MapPage'
 import AuditPage from './pages/admin/AuditPage'
 import InventoryPage from './pages/admin/InventoryPage'
+import SettingsPage from './pages/admin/SettingsPage'
 import NotFound from './pages/NotFound'
 
 import TechQueue from './pages/tech/TechQueue'
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/mapa" element={<MapPage />} />
             <Route path="/auditoria" element={<AuditPage />} />
             <Route path="/estoque" element={<InventoryPage />} />
+            <Route path="/configs" element={<SettingsPage />} />
             {/* Standard empty routes for completeness */}
             <Route
               path="/veiculos"
@@ -44,14 +46,6 @@ const App = () => (
               element={
                 <div className="p-8 text-center text-muted-foreground">
                   Módulo Financeiro em Desenvolvimento
-                </div>
-              }
-            />
-            <Route
-              path="/configs"
-              element={
-                <div className="p-8 text-center text-muted-foreground">
-                  Configurações do Sistema
                 </div>
               }
             />
