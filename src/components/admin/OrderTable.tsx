@@ -17,10 +17,8 @@ const getStatusColor = (status: OSStatus) => {
       return 'bg-success hover:bg-success/80 text-success-foreground'
     case 'Em Execução':
       return 'bg-primary hover:bg-primary/80 text-primary-foreground'
-    case 'Aberta':
+    case 'Pendente':
       return 'bg-muted text-muted-foreground hover:bg-muted/80 border-transparent'
-    case 'Reprovada':
-      return 'bg-destructive hover:bg-destructive/80 text-destructive-foreground'
     default:
       return 'bg-warning hover:bg-warning/80 text-warning-foreground'
   }

@@ -6,19 +6,12 @@ import React, {
   useEffect,
   useCallback,
 } from 'react'
-import { ServiceOrdersService } from '@/services/business/service-orders.service'
+import { ServiceOrdersService } from '@/services/service-orders/service-orders.service'
 import { ClientsRepository } from '@/services/repositories/clients.repository'
 import { TechniciansRepository, UsersRepository } from '@/services/repositories/users.repository'
 
 export type Role = 'admin' | 'tech'
-export type OSStatus =
-  | 'Aberta'
-  | 'Planejada'
-  | 'Em Execução'
-  | 'Pausada'
-  | 'Em Auditoria'
-  | 'Finalizada'
-  | 'Reprovada'
+export type OSStatus = 'Pendente' | 'Em Execução' | 'Finalizada'
 export type OSPriority = 'Alta' | 'Média' | 'Baixa'
 
 export interface Order {
@@ -47,41 +40,24 @@ interface AppState {
 function mapStatus(s: string): OSStatus {
   switch (s) {
     case 'pending':
-    case 'draft':
-      return 'Aberta'
-    case 'scheduled':
-      return 'Planejada'
+      return 'Pendente'
     case 'in_progress':
       return 'Em Execução'
-    case 'paused':
-      return 'Pausada'
-    case 'in_audit':
-      return 'Em Auditoria'
     case 'completed':
       return 'Finalizada'
-    case 'rejected':
-      return 'Reprovada'
     default:
-      return 'Aberta'
+      return 'Pendente'
   }
 }
 
 function mapStatusToDb(s: OSStatus): string {
   switch (s) {
-    case 'Aberta':
+    case 'Pendente':
       return 'pending'
-    case 'Planejada':
-      return 'scheduled'
     case 'Em Execução':
       return 'in_progress'
-    case 'Pausada':
-      return 'paused'
-    case 'Em Auditoria':
-      return 'in_audit'
     case 'Finalizada':
       return 'completed'
-    case 'Reprovada':
-      return 'rejected'
     default:
       return 'pending'
   }
@@ -109,7 +85,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const loadOrders = useCallback(async () => {
     try {
-      const dbOrders = await ServiceOrdersService.findAll('admin-id')
+      const dbOrders = await ServiceOrdersService.getServiceOrders()
       const clients = await ClientsRepository.findAll()
       const techs = await TechniciansRepository.findAll()
       const users = await UsersRepository.findAll()
@@ -145,12 +121,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateOrderStatus = async (id: string, status: OSStatus) => {
     const dbStatus = mapStatusToDb(status) as any
-    await ServiceOrdersService.changeStatus(id, dbStatus, 'admin-id')
+    await ServiceOrdersService.updateServiceOrderStatus(id, dbStatus)
     await loadOrders()
   }
 
   const createOrder = async (data: any) => {
-    await ServiceOrdersService.create(data, 'admin-id')
+    await ServiceOrdersService.createServiceOrder(data)
     await loadOrders()
   }
 

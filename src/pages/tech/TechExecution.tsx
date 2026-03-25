@@ -5,23 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
-import { ServiceOrdersRepository } from '@/services/repositories/service-orders.repository'
+import { ServiceOrdersService } from '@/services/service-orders/service-orders.service'
+import { ServiceOrder } from '@/services/service-orders/service-orders.types'
 import {
   ServiceOrderChecklistsRepository,
   ChecklistItemsRepository,
 } from '@/services/repositories/checklists.repository'
 import { PhotosRepository } from '@/services/repositories/auxiliary.repository'
-import { ServiceOrdersService } from '@/services/business/service-orders.service'
 import { ChecklistsService } from '@/services/business/checklists.service'
-import { BusinessError } from '@/services/business/errors'
-import { CheckCircle2, Play, Pause, Camera, PenTool, ClipboardList, Box, Check } from 'lucide-react'
+import { CheckCircle2, Play, Camera, PenTool, ClipboardList, Box, Check } from 'lucide-react'
 
 export default function TechExecution() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
 
-  const [order, setOrder] = useState<any>(null)
+  const [order, setOrder] = useState<ServiceOrder | null>(null)
   const [loading, setLoading] = useState(true)
   const [checklists, setChecklists] = useState<any[]>([])
   const [photos, setPhotos] = useState<any[]>([])
@@ -34,12 +33,7 @@ export default function TechExecution() {
     if (!id) return
     setLoading(true)
     try {
-      const data = await ServiceOrdersRepository.findById(id)
-      if (!data) {
-        toast({ title: 'Erro', description: 'OS não encontrada', variant: 'destructive' })
-        navigate('/tech')
-        return
-      }
+      const data = await ServiceOrdersService.getServiceOrderById(id)
       setOrder(data)
 
       const allSoChecklists = await ServiceOrderChecklistsRepository.findAll()
@@ -48,27 +42,24 @@ export default function TechExecution() {
       const allPhotos = await PhotosRepository.findAll()
       setPhotos(allPhotos.filter((p) => p.related_entity_id === id))
     } catch (error) {
-      console.error(error)
+      toast({ title: 'Erro', description: 'OS não encontrada', variant: 'destructive' })
+      navigate('/tech')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleStatusChange = async (newStatus: any) => {
+  const handleStatusChange = async (newStatus: string) => {
     try {
-      await ServiceOrdersService.changeStatus(id!, newStatus, 'tech-user-id')
+      await ServiceOrdersService.updateServiceOrderStatus(id!, newStatus as any)
       toast({ title: 'Sucesso', description: `Status alterado para ${newStatus}` })
       loadOrderData()
-    } catch (error) {
-      if (error instanceof BusinessError) {
-        toast({
-          title: 'Atenção - Regra de Negócio',
-          description: error.message,
-          variant: 'destructive',
-        })
-      } else {
-        toast({ title: 'Erro', description: 'Ocorreu um erro inesperado', variant: 'destructive' })
-      }
+    } catch (error: any) {
+      toast({
+        title: 'Atenção - Regra de Negócio',
+        description: error.message,
+        variant: 'destructive',
+      })
     }
   }
 
@@ -104,7 +95,7 @@ export default function TechExecution() {
   }
 
   const mockSignDocument = async () => {
-    await ServiceOrdersRepository.update(id!, {
+    await ServiceOrdersService.updateServiceOrder(id!, {
       customer_signature_url: 'https://img.usecurling.com/p/200/100?q=signature&color=black',
     })
     toast({ title: 'Assinatura Coletada', description: 'Assinatura salva com sucesso.' })
@@ -132,35 +123,26 @@ export default function TechExecution() {
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="p-6">
           <div className="flex gap-4 justify-center">
-            {['pending', 'scheduled', 'paused'].includes(order.status) && (
+            {order.status === 'pending' && (
               <Button size="lg" onClick={() => handleStatusChange('in_progress')} className="w-40">
                 <Play className="mr-2 h-5 w-5" /> Iniciar OS
               </Button>
             )}
 
             {order.status === 'in_progress' && (
-              <>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  onClick={() => handleStatusChange('paused')}
-                  className="w-40"
-                >
-                  <Pause className="mr-2 h-5 w-5" /> Pausar
-                </Button>
-                <Button
-                  size="lg"
-                  onClick={() => handleStatusChange('completed')}
-                  className="w-40 bg-green-600 hover:bg-green-700"
-                >
-                  <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar
-                </Button>
-              </>
+              <Button
+                size="lg"
+                onClick={() => handleStatusChange('completed')}
+                className="w-40 bg-green-600 hover:bg-green-700"
+              >
+                <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar
+              </Button>
             )}
           </div>
 
           <div className="mt-4 text-sm text-center text-muted-foreground">
-            Tente finalizar a OS sem cumprir os requisitos para testar as regras de negócio!
+            A transição de status segue rigorosamente a regra: Pendente &rarr; Em Execução &rarr;
+            Finalizada.
           </div>
         </CardContent>
       </Card>
@@ -195,12 +177,12 @@ export default function TechExecution() {
                   variant={order.sla_status === 'breached' ? 'destructive' : 'outline'}
                   className="mt-1"
                 >
-                  {order.sla_status}
+                  {order.sla_status || 'N/A'}
                 </Badge>
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Tempo Total</p>
-                <p className="text-xl font-semibold">{order.total_duration_minutes} min</p>
+                <p className="text-xl font-semibold">{order.total_duration_minutes || 0} min</p>
               </div>
             </CardContent>
           </Card>

@@ -5,17 +5,11 @@ import { Badge } from '@/components/ui/badge'
 
 export default function TechQueue() {
   const { orders } = useAppStore()
-  // Simulate filtering for the current technician (Carlos Silva in mock)
+
   const myOrders = orders.filter(
-    (o) =>
-      o.tech === 'Carlos Silva' &&
-      (o.status === 'Aberta' ||
-        o.status === 'Planejada' ||
-        o.status === 'Em Execução' ||
-        o.status === 'Pausada'),
+    (o) => o.tech === 'Carlos Silva' && (o.status === 'Pendente' || o.status === 'Em Execução'),
   )
 
-  // Sort: Executing first, then High priority, then others
   const sortedOrders = [...myOrders].sort((a, b) => {
     if (a.status === 'Em Execução') return -1
     if (b.status === 'Em Execução') return 1
