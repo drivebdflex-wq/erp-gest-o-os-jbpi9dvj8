@@ -1,31 +1,26 @@
 import { createRepository } from './core/base.repository'
-import type {
-  Client,
-  CreateClientDTO,
-  UpdateClientDTO,
-  Contract,
-  CreateContractDTO,
-  UpdateContractDTO,
-} from './types/clients'
+import { isMock, supabase } from '@/lib/supabase'
 
-const MOCK_CLIENTS: Client[] = [
+export interface Client {
+  id: string
+  name: string
+  document: string
+  email: string
+  phone: string
+  address: string
+  created_at: string
+  updated_at: string
+}
+
+export const ClientsRepository = createRepository<Client, any, any>('clients', [
   {
     id: '33333333-3333-3333-3333-333333333333',
-    name: 'Acme Corporation',
+    name: 'Condomínio Alpha',
     document: '12.345.678/0001-90',
-    email: 'contact@acme.com',
-    phone: '555-0199',
-    address: '123 Business Avenue',
+    email: 'contato@alpha.com',
+    phone: '11999999999',
+    address: 'Av. Paulista, 1000',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
-]
-
-export const ClientsRepository = createRepository<Client, CreateClientDTO, UpdateClientDTO>(
-  'clients',
-  MOCK_CLIENTS,
-)
-export const ContractsRepository = createRepository<Contract, CreateContractDTO, UpdateContractDTO>(
-  'contracts',
-  [],
-)
+])

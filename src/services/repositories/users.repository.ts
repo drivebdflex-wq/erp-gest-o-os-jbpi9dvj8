@@ -23,7 +23,7 @@ export const UsersRepository = createRepository<User, any, any>('users', [
   },
   {
     id: 'tech-id',
-    name: 'Technician User',
+    name: 'Carlos Silva',
     email: 'tech@example.com',
     password_hash: 'tech123',
     status: 'active',

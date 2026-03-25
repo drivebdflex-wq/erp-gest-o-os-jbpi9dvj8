@@ -9,13 +9,21 @@ export default function AuditPage() {
   const { orders, updateOrderStatus } = useAppStore()
   const auditOrders = orders.filter((o) => o.status === 'Em Auditoria')
 
-  const handleAudit = (id: string, approve: boolean) => {
-    updateOrderStatus(id, approve ? 'Finalizada' : 'Reprovada')
-    toast({
-      title: approve ? 'OS Aprovada' : 'OS Reprovada',
-      description: `A ordem ${id} foi ${approve ? 'finalizada' : 'devolvida para a fila'}.`,
-      variant: approve ? 'default' : 'destructive',
-    })
+  const handleAudit = async (id: string, approve: boolean) => {
+    try {
+      await updateOrderStatus(id, approve ? 'Finalizada' : 'Reprovada')
+      toast({
+        title: approve ? 'OS Aprovada' : 'OS Reprovada',
+        description: `A ordem ${id.substring(0, 8).toUpperCase()} foi ${approve ? 'finalizada' : 'devolvida para a fila'}.`,
+        variant: approve ? 'default' : 'destructive',
+      })
+    } catch (error: any) {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível atualizar a ordem.',
+        variant: 'destructive',
+      })
+    }
   }
 
   return (
@@ -44,7 +52,7 @@ export default function AuditPage() {
             </div>
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
-                <CardTitle className="text-lg">{order.id}</CardTitle>
+                <CardTitle className="text-lg">{order.shortId}</CardTitle>
                 <Badge variant="secondary">Aguardando Revisão</Badge>
               </div>
               <p className="text-sm font-medium line-clamp-1">{order.title}</p>

@@ -38,7 +38,7 @@ export default function Index() {
                     key={order.id}
                     className="flex flex-col gap-1 border-l-2 border-destructive pl-3 py-1 bg-destructive/5 rounded-r-md"
                   >
-                    <span className="text-sm font-semibold">{order.id}</span>
+                    <span className="text-sm font-semibold">{order.shortId}</span>
                     <span className="text-xs text-muted-foreground truncate">{order.title}</span>
                     <div className="flex justify-between items-center mt-1">
                       <span className="text-[10px] uppercase font-bold text-destructive">

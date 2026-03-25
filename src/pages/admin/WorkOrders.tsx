@@ -5,9 +5,20 @@ import { Input } from '@/components/ui/input'
 import { Plus, List, Kanban } from 'lucide-react'
 import OrderTable from '@/components/admin/OrderTable'
 import OrderKanban from '@/components/admin/OrderKanban'
+import CreateOrderDialog from '@/components/admin/CreateOrderDialog'
+import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog'
+import { Order } from '@/stores/useAppStore'
 
 export default function WorkOrders() {
   const [view, setView] = useState('list')
+  const [createOpen, setCreateOpen] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+
+  const handleOpenDetails = (order: Order) => {
+    setSelectedOrder(order)
+    setDetailsOpen(true)
+  }
 
   return (
     <div className="space-y-4 h-full flex flex-col animate-fade-in">
@@ -18,7 +29,7 @@ export default function WorkOrders() {
             Gerencie o fluxo de trabalho e planejamento.
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" /> Nova OS
         </Button>
       </div>
@@ -43,7 +54,16 @@ export default function WorkOrders() {
         </Tabs>
       </div>
 
-      <div className="flex-1 mt-2">{view === 'list' ? <OrderTable /> : <OrderKanban />}</div>
+      <div className="flex-1 mt-2">
+        {view === 'list' ? (
+          <OrderTable onRowClick={handleOpenDetails} />
+        ) : (
+          <OrderKanban onCardClick={handleOpenDetails} />
+        )}
+      </div>
+
+      <CreateOrderDialog open={createOpen} onOpenChange={setCreateOpen} />
+      <OrderDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen} order={selectedOrder} />
     </div>
   )
 }

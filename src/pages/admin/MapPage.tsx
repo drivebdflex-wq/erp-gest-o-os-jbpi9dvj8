@@ -75,7 +75,7 @@ export default function MapPage() {
                     className="border rounded-md p-3 text-sm hover:border-primary cursor-pointer transition-colors bg-background"
                   >
                     <div className="flex justify-between font-bold mb-1">
-                      <span>{order.id}</span>
+                      <span>{order.shortId}</span>
                       <Badge variant="outline">{order.priority}</Badge>
                     </div>
                     <div className="text-muted-foreground text-xs mb-2 line-clamp-1">

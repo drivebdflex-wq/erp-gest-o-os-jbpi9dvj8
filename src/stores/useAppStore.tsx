@@ -1,8 +1,14 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react'
-import { ServiceOrdersRepository } from '@/services/repositories/service-orders.repository'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+  useCallback,
+} from 'react'
+import { ServiceOrdersService } from '@/services/business/service-orders.service'
 import { ClientsRepository } from '@/services/repositories/clients.repository'
-import { TechniciansRepository } from '@/services/repositories/teams.repository'
-import { UsersRepository } from '@/services/repositories/users.repository'
+import { TechniciansRepository, UsersRepository } from '@/services/repositories/users.repository'
 
 export type Role = 'admin' | 'tech'
 export type OSStatus =
@@ -17,9 +23,11 @@ export type OSPriority = 'Alta' | 'Média' | 'Baixa'
 
 export interface Order {
   id: string
+  shortId: string
   title: string
   client: string
   status: OSStatus
+  dbStatus: string
   priority: OSPriority
   date: string
   tech: string
@@ -31,26 +39,15 @@ interface AppState {
   role: Role
   setRole: (role: Role) => void
   orders: Order[]
-  updateOrderStatus: (id: string, status: OSStatus) => void
+  updateOrderStatus: (id: string, status: OSStatus) => Promise<void>
+  createOrder: (data: any) => Promise<void>
+  loadOrders: () => Promise<void>
 }
-
-const initialOrders: Order[] = [
-  {
-    id: 'OS-1042',
-    title: 'Manutenção Preventiva Ar Condicionado',
-    client: 'Condomínio Alpha',
-    status: 'Em Execução',
-    priority: 'Média',
-    date: '2023-10-25',
-    tech: 'Carlos Silva',
-    address: 'Av. Paulista, 1000',
-    distance: '2.4 km',
-  },
-]
 
 function mapStatus(s: string): OSStatus {
   switch (s) {
     case 'pending':
+    case 'draft':
       return 'Aberta'
     case 'scheduled':
       return 'Planejada'
@@ -66,6 +63,27 @@ function mapStatus(s: string): OSStatus {
       return 'Reprovada'
     default:
       return 'Aberta'
+  }
+}
+
+function mapStatusToDb(s: OSStatus): string {
+  switch (s) {
+    case 'Aberta':
+      return 'pending'
+    case 'Planejada':
+      return 'scheduled'
+    case 'Em Execução':
+      return 'in_progress'
+    case 'Pausada':
+      return 'paused'
+    case 'Em Auditoria':
+      return 'in_audit'
+    case 'Finalizada':
+      return 'completed'
+    case 'Reprovada':
+      return 'rejected'
+    default:
+      return 'pending'
   }
 }
 
@@ -87,49 +105,59 @@ const AppContext = createContext<AppState | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>('admin')
-  const [orders, setOrders] = useState<Order[]>(initialOrders)
+  const [orders, setOrders] = useState<Order[]>([])
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const dbOrders = await ServiceOrdersRepository.findAll()
-        const clients = await ClientsRepository.findAll()
-        const techs = await TechniciansRepository.findAll()
-        const users = await UsersRepository.findAll()
+  const loadOrders = useCallback(async () => {
+    try {
+      const dbOrders = await ServiceOrdersService.findAll('admin-id')
+      const clients = await ClientsRepository.findAll()
+      const techs = await TechniciansRepository.findAll()
+      const users = await UsersRepository.findAll()
 
-        const mappedOrders: Order[] = dbOrders.map((o) => {
-          const client = clients.find((c) => c.id === o.client_id)?.name || 'Desconhecido'
-          const tech = techs.find((t) => t.id === o.technician_id)
-          const user = users.find((u) => u.id === tech?.user_id)?.name || 'Não Atribuído'
+      const mappedOrders: Order[] = dbOrders.map((o: any) => {
+        const client = clients.find((c) => c.id === o.client_id)?.name || 'Desconhecido'
+        const tech = techs.find((t) => t.id === o.technician_id)
+        const user = users.find((u) => u.id === tech?.user_id)?.name || 'Não Atribuído'
 
-          return {
-            id: o.id.substring(0, 8).toUpperCase(),
-            title: o.description || 'Manutenção',
-            client,
-            status: mapStatus(o.status),
-            priority: mapPriority(o.priority),
-            date: o.scheduled_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-            tech: user,
-            address: '123 Business Avenue',
-          }
-        })
-
-        if (mappedOrders.length > 0) {
-          setOrders(mappedOrders)
+        return {
+          id: o.id,
+          shortId: o.id.substring(0, 8).toUpperCase(),
+          title: o.description || 'Manutenção',
+          client,
+          status: mapStatus(o.status),
+          dbStatus: o.status,
+          priority: mapPriority(o.priority),
+          date: o.scheduled_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+          tech: user,
+          address: '123 Business Avenue',
         }
-      } catch (error) {
-        console.error('Error loading data from repositories', error)
-      }
+      })
+
+      setOrders(mappedOrders)
+    } catch (error) {
+      console.error('Error loading data from repositories', error)
     }
-    loadData()
   }, [])
 
-  const updateOrderStatus = (id: string, status: OSStatus) => {
-    setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)))
+  useEffect(() => {
+    loadOrders()
+  }, [loadOrders])
+
+  const updateOrderStatus = async (id: string, status: OSStatus) => {
+    const dbStatus = mapStatusToDb(status) as any
+    await ServiceOrdersService.changeStatus(id, dbStatus, 'admin-id')
+    await loadOrders()
+  }
+
+  const createOrder = async (data: any) => {
+    await ServiceOrdersService.create(data, 'admin-id')
+    await loadOrders()
   }
 
   return (
-    <AppContext.Provider value={{ role, setRole, orders, updateOrderStatus }}>
+    <AppContext.Provider
+      value={{ role, setRole, orders, updateOrderStatus, createOrder, loadOrders }}
+    >
       {children}
     </AppContext.Provider>
   )

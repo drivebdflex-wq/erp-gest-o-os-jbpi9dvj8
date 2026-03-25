@@ -1,11 +1,15 @@
-import useAppStore, { OSStatus } from '@/stores/useAppStore'
+import useAppStore, { OSStatus, Order } from '@/stores/useAppStore'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 const columns: OSStatus[] = ['Aberta', 'Planejada', 'Em Execução', 'Em Auditoria', 'Finalizada']
 
-export default function OrderKanban() {
+interface OrderKanbanProps {
+  onCardClick?: (order: Order) => void
+}
+
+export default function OrderKanban({ onCardClick }: OrderKanbanProps) {
   const { orders } = useAppStore()
 
   return (
@@ -26,11 +30,12 @@ export default function OrderKanban() {
                 {columnOrders.map((order) => (
                   <Card
                     key={order.id}
-                    className="cursor-grab hover:shadow-md transition-shadow border-l-4 border-l-primary"
+                    className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-primary"
+                    onClick={() => onCardClick?.(order)}
                   >
                     <CardContent className="p-3">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-bold">{order.id}</span>
+                        <span className="text-xs font-bold">{order.shortId}</span>
                         <Badge variant="outline" className="text-[10px] h-4 px-1">
                           {order.priority}
                         </Badge>

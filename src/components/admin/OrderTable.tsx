@@ -9,9 +9,9 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Eye } from 'lucide-react'
-import useAppStore, { OrderStatus } from '@/stores/useAppStore'
+import useAppStore, { OSStatus, Order } from '@/stores/useAppStore'
 
-const getStatusColor = (status: OrderStatus) => {
+const getStatusColor = (status: OSStatus) => {
   switch (status) {
     case 'Finalizada':
       return 'bg-success hover:bg-success/80 text-success-foreground'
@@ -26,7 +26,11 @@ const getStatusColor = (status: OrderStatus) => {
   }
 }
 
-export default function OrderTable() {
+interface OrderTableProps {
+  onRowClick?: (order: Order) => void
+}
+
+export default function OrderTable({ onRowClick }: OrderTableProps) {
   const { orders } = useAppStore()
 
   return (
@@ -45,9 +49,13 @@ export default function OrderTable() {
         </TableHeader>
         <TableBody>
           {orders.map((order) => (
-            <TableRow key={order.id} className="group">
-              <TableCell className="font-medium">{order.id}</TableCell>
-              <TableCell>{order.title}</TableCell>
+            <TableRow
+              key={order.id}
+              className="group cursor-pointer hover:bg-muted/50"
+              onClick={() => onRowClick?.(order)}
+            >
+              <TableCell className="font-medium">{order.shortId}</TableCell>
+              <TableCell className="max-w-[200px] truncate">{order.title}</TableCell>
               <TableCell>{order.client}</TableCell>
               <TableCell>{order.tech}</TableCell>
               <TableCell>
@@ -74,6 +82,13 @@ export default function OrderTable() {
               </TableCell>
             </TableRow>
           ))}
+          {orders.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                Nenhuma ordem de serviço encontrada.
+              </TableCell>
+            </TableRow>
+          )}
         </TableBody>
       </Table>
     </div>
