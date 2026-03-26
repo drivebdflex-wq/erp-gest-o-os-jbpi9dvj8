@@ -9,6 +9,7 @@ DO $$ BEGIN
         'draft',
         'pending',
         'scheduled',
+        'deslocamento',
         'in_progress',
         'paused',
         'in_audit',
@@ -18,6 +19,12 @@ DO $$ BEGIN
     );
 EXCEPTION
     WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+    ALTER TYPE service_order_status ADD VALUE IF NOT EXISTS 'deslocamento';
+EXCEPTION
+    WHEN OTHERS THEN null;
 END $$;
 
 DO $$ BEGIN
@@ -436,11 +443,6 @@ CREATE INDEX IF NOT EXISTS idx_clients_document ON clients(document);
 -- OPERATIONAL EXAMPLES (SEED DATA)
 -- ==========================================
 
--- Seed data is best handled in application logic or separate seed files to prevent duplicate key errors 
--- when the schema script is executed multiple times, but keeping them as requested with ON CONFLICT where possible
--- Or we just leave them since the user only requested idempotent ENUM creations, 
--- but I'll wrap seed inserts in ON CONFLICT to make the whole script fully idempotent if ran multiple times
-
 INSERT INTO roles (id, name, description) 
 VALUES ('11111111-1111-1111-1111-111111111111', 'Administrator', 'Full system access')
 ON CONFLICT (name) DO NOTHING;
@@ -457,7 +459,6 @@ INSERT INTO clients (id, name, document, email, phone, address)
 VALUES ('33333333-3333-3333-3333-333333333333', 'Acme Corporation', '12.345.678/0001-90', 'contact@acme.com', '555-0199', '123 Business Avenue')
 ON CONFLICT (document) DO NOTHING;
 
--- Since technicians don't have a strict unique constraint on seed data fields, we use DO NOTHING on ID via conflict
 INSERT INTO technicians (id, user_id, specialty)
 VALUES ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'General Maintenance')
 ON CONFLICT (id) DO NOTHING;
@@ -477,4 +478,3 @@ VALUES (
     -46.6333
 )
 ON CONFLICT (id) DO NOTHING;
-

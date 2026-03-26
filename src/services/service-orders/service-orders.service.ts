@@ -29,10 +29,8 @@ let mockOrders: ServiceOrder[] = [
 
 export class ServiceOrdersService {
   static async createServiceOrder(data: CreateServiceOrderDTO): Promise<ServiceOrder> {
-    console.log('DATA RECEBIDA:', data)
-
     if (!data.client_id) {
-      throw new Error('client_id é obrigatório')
+      throw new Error('client_id is mandatory')
     }
 
     if (!data.description) {
@@ -86,14 +84,23 @@ export class ServiceOrdersService {
   ): Promise<ServiceOrder> {
     const order = await this.getServiceOrderById(id)
 
-    if (order.status === 'pending' && status !== 'in_progress') {
-      throw new Error('Invalid Transition: pending can only move to in_progress')
+    const validTransitions: Record<string, string[]> = {
+      draft: ['pending'],
+      pending: ['scheduled', 'cancelled'],
+      scheduled: ['deslocamento', 'cancelled'],
+      deslocamento: ['in_progress', 'cancelled'],
+      in_progress: ['paused', 'in_audit', 'cancelled'],
+      paused: ['in_progress', 'cancelled'],
+      in_audit: ['completed', 'rejected'],
+      rejected: ['in_progress'],
+      completed: [],
+      cancelled: [],
     }
-    if (order.status === 'in_progress' && status !== 'completed') {
-      throw new Error('Invalid Transition: in_progress can only move to completed')
-    }
-    if (order.status === 'completed') {
-      throw new Error('Invalid Transition: completed orders cannot change status')
+
+    const allowedNext = validTransitions[order.status] || []
+
+    if (!allowedNext.includes(status)) {
+      throw new Error(`Invalid status transition from '${order.status}' to '${status}'.`)
     }
 
     const updates: Partial<ServiceOrder> = { status }
@@ -113,7 +120,6 @@ export class ServiceOrdersService {
       const finishedAt = now
       const startedAt = new Date(order.started_at)
 
-      updates.finished_at = finishedAt.toISOString()
       updates.total_duration_minutes = Math.floor(
         (finishedAt.getTime() - startedAt.getTime()) / 60000,
       )
@@ -126,6 +132,10 @@ export class ServiceOrdersService {
     id: string,
     updates: Partial<ServiceOrder>,
   ): Promise<ServiceOrder> {
+    if ('client_id' in updates && !updates.client_id) {
+      throw new Error('Validation Error: client_id is mandatory and cannot be null.')
+    }
+
     if (isMock) {
       const index = mockOrders.findIndex((o) => o.id === id)
       if (index === -1) throw new Error('Not Found: Service order not found')

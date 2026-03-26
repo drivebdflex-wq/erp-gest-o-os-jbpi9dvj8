@@ -14,13 +14,14 @@ import type { ServiceOrder, CreateServiceOrderDTO } from '../repositories/types/
 
 const VALID_TRANSITIONS: Record<ServiceOrderStatus, ServiceOrderStatus[]> = {
   draft: ['pending'],
-  pending: ['scheduled', 'in_progress', 'cancelled'],
-  scheduled: ['in_progress', 'cancelled'],
-  in_progress: ['paused', 'completed', 'cancelled', 'in_audit'],
+  pending: ['scheduled', 'cancelled'],
+  scheduled: ['deslocamento', 'cancelled'],
+  deslocamento: ['in_progress', 'cancelled'],
+  in_progress: ['paused', 'in_audit', 'cancelled'],
   paused: ['in_progress', 'cancelled'],
   in_audit: ['completed', 'rejected'],
   completed: [],
-  rejected: ['pending'],
+  rejected: ['in_progress'],
   cancelled: [],
 }
 
@@ -97,10 +98,8 @@ export class ServiceOrdersService {
   }
 
   static async create(data: CreateServiceOrderDTO, userId: string = 'system') {
-    console.log('DATA RECEBIDA:', data)
-
     if (!data.client_id) {
-      throw new BusinessError('client_id é obrigatório')
+      throw new BusinessError('client_id is mandatory')
     }
 
     const client = await ClientsRepository.findById(data.client_id)
@@ -137,6 +136,10 @@ export class ServiceOrdersService {
       throw new BusinessError(
         `Forbidden: Cannot modify a service order that is already ${order.status}`,
       )
+    }
+
+    if ('client_id' in updates && !updates.client_id) {
+      throw new BusinessError('client_id is mandatory and cannot be null')
     }
 
     await this.checkAuthorization(order, userId)

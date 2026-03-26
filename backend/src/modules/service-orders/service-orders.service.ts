@@ -12,10 +12,8 @@ export class ServiceOrdersService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async create(createDto: CreateServiceOrderDto) {
-    console.log('DATA RECEBIDA:', createDto)
-
     if (!createDto.client_id) {
-      throw new BadRequestException('client_id é obrigatório')
+      throw new BadRequestException('client_id is mandatory')
     }
 
     const { data, error } = await this.supabaseService
@@ -66,15 +64,23 @@ export class ServiceOrdersService {
     const order = await this.findOne(id)
 
     const validTransitions: Record<string, string[]> = {
-      pending: ['in_progress'],
-      in_progress: ['completed'],
+      draft: ['pending'],
+      pending: ['scheduled', 'cancelled'],
+      scheduled: ['deslocamento', 'cancelled'],
+      deslocamento: ['in_progress', 'cancelled'],
+      in_progress: ['paused', 'in_audit', 'cancelled'],
+      paused: ['in_progress', 'cancelled'],
+      in_audit: ['completed', 'rejected'],
+      rejected: ['in_progress'],
+      completed: [],
+      cancelled: [],
     }
 
     const allowedNext = validTransitions[order.status] || []
 
     if (!allowedNext.includes(newStatus)) {
       throw new BadRequestException(
-        `Invalid status transition from '${order.status}' to '${newStatus}'. Allowed transitions are: pending -> in_progress -> completed.`,
+        `Invalid status transition from '${order.status}' to '${newStatus}'. Allowed transitions are: ${allowedNext.join(', ')}.`,
       )
     }
 

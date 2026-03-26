@@ -11,7 +11,18 @@ import { ClientsRepository } from '@/services/repositories/clients.repository'
 import { TechniciansRepository, UsersRepository } from '@/services/repositories/users.repository'
 
 export type Role = 'admin' | 'tech'
-export type OSStatus = 'Pendente' | 'Em Execução' | 'Finalizada'
+export type OSStatus =
+  | 'Rascunho'
+  | 'Pendente'
+  | 'Agendado'
+  | 'Em Deslocamento'
+  | 'Em Execução'
+  | 'Pausado'
+  | 'Em Auditoria'
+  | 'Finalizada'
+  | 'Rejeitada'
+  | 'Cancelada'
+
 export type OSPriority = 'Alta' | 'Média' | 'Baixa'
 
 export interface Order {
@@ -39,12 +50,26 @@ interface AppState {
 
 function mapStatus(s: string): OSStatus {
   switch (s) {
+    case 'draft':
+      return 'Rascunho'
     case 'pending':
       return 'Pendente'
+    case 'scheduled':
+      return 'Agendado'
+    case 'deslocamento':
+      return 'Em Deslocamento'
     case 'in_progress':
       return 'Em Execução'
+    case 'paused':
+      return 'Pausado'
+    case 'in_audit':
+      return 'Em Auditoria'
     case 'completed':
       return 'Finalizada'
+    case 'rejected':
+      return 'Rejeitada'
+    case 'cancelled':
+      return 'Cancelada'
     default:
       return 'Pendente'
   }
@@ -52,12 +77,26 @@ function mapStatus(s: string): OSStatus {
 
 function mapStatusToDb(s: OSStatus): string {
   switch (s) {
+    case 'Rascunho':
+      return 'draft'
     case 'Pendente':
       return 'pending'
+    case 'Agendado':
+      return 'scheduled'
+    case 'Em Deslocamento':
+      return 'deslocamento'
     case 'Em Execução':
       return 'in_progress'
+    case 'Pausado':
+      return 'paused'
+    case 'Em Auditoria':
+      return 'in_audit'
     case 'Finalizada':
       return 'completed'
+    case 'Rejeitada':
+      return 'rejected'
+    case 'Cancelada':
+      return 'cancelled'
     default:
       return 'pending'
   }

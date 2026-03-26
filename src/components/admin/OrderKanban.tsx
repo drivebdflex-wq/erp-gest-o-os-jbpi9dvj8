@@ -3,7 +3,16 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
-const columns: OSStatus[] = ['Pendente', 'Em Execução', 'Finalizada']
+const columns: OSStatus[] = [
+  'Pendente',
+  'Agendado',
+  'Em Deslocamento',
+  'Em Execução',
+  'Pausado',
+  'Em Auditoria',
+  'Rejeitada',
+  'Finalizada',
+]
 
 interface OrderKanbanProps {
   onCardClick?: (order: Order) => void

@@ -1,4 +1,14 @@
-export type ServiceOrderStatus = 'pending' | 'in_progress' | 'completed'
+export type ServiceOrderStatus =
+  | 'draft'
+  | 'pending'
+  | 'scheduled'
+  | 'deslocamento'
+  | 'in_progress'
+  | 'paused'
+  | 'in_audit'
+  | 'completed'
+  | 'rejected'
+  | 'cancelled'
 
 export interface ServiceOrder {
   id: string
@@ -8,9 +18,9 @@ export interface ServiceOrder {
   priority: string
   description: string
   scheduled_at?: string
+  started_at?: string
   created_at: string
   updated_at: string
-  // Extendable fields for UI features
   customer_signature_url?: string
   sla_status?: string
   total_duration_minutes?: number

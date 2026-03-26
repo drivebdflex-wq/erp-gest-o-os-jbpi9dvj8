@@ -122,27 +122,95 @@ export default function TechExecution() {
 
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="p-6">
-          <div className="flex gap-4 justify-center">
+          <div className="flex gap-4 justify-center flex-wrap">
             {order.status === 'pending' && (
-              <Button size="lg" onClick={() => handleStatusChange('in_progress')} className="w-40">
-                <Play className="mr-2 h-5 w-5" /> Iniciar OS
+              <Button
+                size="lg"
+                onClick={() => handleStatusChange('scheduled')}
+                className="w-40 bg-blue-600 hover:bg-blue-700"
+              >
+                Agendar
+              </Button>
+            )}
+
+            {order.status === 'scheduled' && (
+              <Button
+                size="lg"
+                onClick={() => handleStatusChange('deslocamento')}
+                className="w-48 bg-purple-600 hover:bg-purple-700"
+              >
+                Iniciar Deslocamento
+              </Button>
+            )}
+
+            {order.status === 'deslocamento' && (
+              <Button size="lg" onClick={() => handleStatusChange('in_progress')} className="w-48">
+                <Play className="mr-2 h-5 w-5" /> Iniciar Execução
               </Button>
             )}
 
             {order.status === 'in_progress' && (
+              <>
+                <Button
+                  size="lg"
+                  onClick={() => handleStatusChange('paused')}
+                  className="w-40 bg-yellow-600 hover:bg-yellow-700"
+                >
+                  Pausar
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => handleStatusChange('in_audit')}
+                  className="w-48 bg-indigo-600 hover:bg-indigo-700"
+                >
+                  Enviar p/ Auditoria
+                </Button>
+              </>
+            )}
+
+            {order.status === 'paused' && (
               <Button
                 size="lg"
-                onClick={() => handleStatusChange('completed')}
-                className="w-40 bg-green-600 hover:bg-green-700"
+                onClick={() => handleStatusChange('in_progress')}
+                className="w-48 bg-blue-600 hover:bg-blue-700"
               >
-                <CheckCircle2 className="mr-2 h-5 w-5" /> Finalizar
+                <Play className="mr-2 h-5 w-5" /> Retomar
+              </Button>
+            )}
+
+            {order.status === 'in_audit' && (
+              <>
+                <Button
+                  size="lg"
+                  onClick={() => handleStatusChange('completed')}
+                  className="w-48 bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle2 className="mr-2 h-5 w-5" /> Aprovar (Finalizar)
+                </Button>
+                <Button
+                  size="lg"
+                  onClick={() => handleStatusChange('rejected')}
+                  className="w-40 bg-red-600 hover:bg-red-700"
+                >
+                  Rejeitar
+                </Button>
+              </>
+            )}
+
+            {order.status === 'rejected' && (
+              <Button
+                size="lg"
+                onClick={() => handleStatusChange('in_progress')}
+                className="w-48 bg-yellow-600 hover:bg-yellow-700"
+              >
+                <Play className="mr-2 h-5 w-5" /> Retomar Execução
               </Button>
             )}
           </div>
 
           <div className="mt-4 text-sm text-center text-muted-foreground">
-            A transição de status segue rigorosamente a regra: Pendente &rarr; Em Execução &rarr;
-            Finalizada.
+            A transição de status segue rigorosamente a regra: Pendente &rarr; Agendado &rarr;
+            Deslocamento &rarr; Em Execução &rarr; (Pausado / Auditoria) &rarr; Finalizada.
           </div>
         </CardContent>
       </Card>
