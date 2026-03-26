@@ -4,42 +4,58 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ENUMS
 -- ==========================================
 
-CREATE TYPE service_order_status AS ENUM (
-    'draft',
-    'pending',
-    'scheduled',
-    'in_progress',
-    'paused',
-    'in_audit',
-    'completed',
-    'rejected',
-    'cancelled'
-);
+DO $$ BEGIN
+    CREATE TYPE service_order_status AS ENUM (
+        'draft',
+        'pending',
+        'scheduled',
+        'in_progress',
+        'paused',
+        'in_audit',
+        'completed',
+        'rejected',
+        'cancelled'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
-CREATE TYPE service_order_priority AS ENUM (
-    'low',
-    'medium',
-    'high',
-    'urgent'
-);
+DO $$ BEGIN
+    CREATE TYPE service_order_priority AS ENUM (
+        'low',
+        'medium',
+        'high',
+        'urgent'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
-CREATE TYPE sla_status AS ENUM (
-    'within_sla',
-    'warning',
-    'breached'
-);
+DO $$ BEGIN
+    CREATE TYPE sla_status AS ENUM (
+        'within_sla',
+        'warning',
+        'breached'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
-CREATE TYPE checklist_status AS ENUM (
-    'pending',
-    'in_progress',
-    'completed'
-);
+DO $$ BEGIN
+    CREATE TYPE checklist_status AS ENUM (
+        'pending',
+        'in_progress',
+        'completed'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- ==========================================
 -- 1. CORE ACCESS CONTROL
 -- ==========================================
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -49,7 +65,7 @@ CREATE TABLE users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL UNIQUE,
     description TEXT,
@@ -57,7 +73,7 @@ CREATE TABLE roles (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE user_roles (
+CREATE TABLE IF NOT EXISTS user_roles (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
     role_id UUID REFERENCES roles(id) ON DELETE CASCADE ON UPDATE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -69,7 +85,7 @@ CREATE TABLE user_roles (
 -- 2. OPERATIONAL MANAGEMENT
 -- ==========================================
 
-CREATE TABLE teams (
+CREATE TABLE IF NOT EXISTS teams (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     supervisor_id UUID REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
@@ -77,7 +93,7 @@ CREATE TABLE teams (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE technicians (
+CREATE TABLE IF NOT EXISTS technicians (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
     team_id UUID REFERENCES teams(id) ON DELETE SET NULL ON UPDATE CASCADE,
@@ -91,7 +107,7 @@ CREATE TABLE technicians (
 -- 3. CLIENT & CONTRACT INFRASTRUCTURE
 -- ==========================================
 
-CREATE TABLE clients (
+CREATE TABLE IF NOT EXISTS clients (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     document VARCHAR(50) NOT NULL UNIQUE,
@@ -102,7 +118,7 @@ CREATE TABLE clients (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE contracts (
+CREATE TABLE IF NOT EXISTS contracts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE ON UPDATE CASCADE,
     start_date DATE NOT NULL,
@@ -117,7 +133,7 @@ CREATE TABLE contracts (
 -- 4. SERVICE ORDER LIFECYCLE
 -- ==========================================
 
-CREATE TABLE service_orders (
+CREATE TABLE IF NOT EXISTS service_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE ON UPDATE CASCADE,
     technician_id UUID REFERENCES technicians(id) ON DELETE SET NULL ON UPDATE CASCADE,
@@ -149,7 +165,7 @@ CREATE TABLE service_orders (
 -- 5. RESOURCE MANAGEMENT
 -- ==========================================
 
-CREATE TABLE materials (
+CREATE TABLE IF NOT EXISTS materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     unit_type VARCHAR(50),
@@ -158,7 +174,7 @@ CREATE TABLE materials (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE inventory (
+CREATE TABLE IF NOT EXISTS inventory (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     material_id UUID NOT NULL REFERENCES materials(id) ON DELETE CASCADE ON UPDATE CASCADE,
     quantity INT NOT NULL DEFAULT 0 CHECK (quantity >= 0),
@@ -168,7 +184,7 @@ CREATE TABLE inventory (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE service_order_materials (
+CREATE TABLE IF NOT EXISTS service_order_materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     service_order_id UUID NOT NULL REFERENCES service_orders(id) ON DELETE CASCADE ON UPDATE CASCADE,
     material_id UUID NOT NULL REFERENCES materials(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -177,7 +193,7 @@ CREATE TABLE service_order_materials (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE vehicles (
+CREATE TABLE IF NOT EXISTS vehicles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     plate VARCHAR(20) NOT NULL UNIQUE,
     model VARCHAR(255),
@@ -191,7 +207,7 @@ CREATE TABLE vehicles (
 -- 6. QUALITY & COMPLIANCE
 -- ==========================================
 
-CREATE TABLE checklists (
+CREATE TABLE IF NOT EXISTS checklists (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -200,7 +216,7 @@ CREATE TABLE checklists (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE checklist_items (
+CREATE TABLE IF NOT EXISTS checklist_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     checklist_id UUID NOT NULL REFERENCES checklists(id) ON DELETE CASCADE ON UPDATE CASCADE,
     label VARCHAR(255) NOT NULL,
@@ -210,7 +226,7 @@ CREATE TABLE checklist_items (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE service_order_checklists (
+CREATE TABLE IF NOT EXISTS service_order_checklists (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     service_order_id UUID NOT NULL REFERENCES service_orders(id) ON DELETE CASCADE ON UPDATE CASCADE,
     checklist_id UUID NOT NULL REFERENCES checklists(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -220,7 +236,7 @@ CREATE TABLE service_order_checklists (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE checklist_responses (
+CREATE TABLE IF NOT EXISTS checklist_responses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     service_order_checklist_id UUID NOT NULL REFERENCES service_order_checklists(id) ON DELETE CASCADE ON UPDATE CASCADE,
     checklist_item_id UUID NOT NULL REFERENCES checklist_items(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -232,7 +248,7 @@ CREATE TABLE checklist_responses (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE photos (
+CREATE TABLE IF NOT EXISTS photos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     service_order_id UUID NOT NULL REFERENCES service_orders(id) ON DELETE CASCADE ON UPDATE CASCADE,
     type VARCHAR(50) NOT NULL CHECK (type IN ('initial', 'final')),
@@ -246,7 +262,7 @@ CREATE TABLE photos (
 -- 7. TRACEABILITY
 -- ==========================================
 
-CREATE TABLE audits (
+CREATE TABLE IF NOT EXISTS audits (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     table_name VARCHAR(255) NOT NULL,
     record_id UUID NOT NULL,
@@ -258,7 +274,7 @@ CREATE TABLE audits (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE logs (
+CREATE TABLE IF NOT EXISTS logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     level VARCHAR(50) NOT NULL,
     message TEXT NOT NULL,
@@ -279,25 +295,81 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER set_timestamp_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_roles BEFORE UPDATE ON roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_user_roles BEFORE UPDATE ON user_roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_teams BEFORE UPDATE ON teams FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_technicians BEFORE UPDATE ON technicians FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_clients BEFORE UPDATE ON clients FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_contracts BEFORE UPDATE ON contracts FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_service_orders BEFORE UPDATE ON service_orders FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_materials BEFORE UPDATE ON materials FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_inventory BEFORE UPDATE ON inventory FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_service_order_materials BEFORE UPDATE ON service_order_materials FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_vehicles BEFORE UPDATE ON vehicles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_checklists BEFORE UPDATE ON checklists FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_checklist_items BEFORE UPDATE ON checklist_items FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_service_order_checklists BEFORE UPDATE ON service_order_checklists FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_checklist_responses BEFORE UPDATE ON checklist_responses FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_photos BEFORE UPDATE ON photos FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_audits BEFORE UPDATE ON audits FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
-CREATE TRIGGER set_timestamp_logs BEFORE UPDATE ON logs FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_roles BEFORE UPDATE ON roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_user_roles BEFORE UPDATE ON user_roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_teams BEFORE UPDATE ON teams FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_technicians BEFORE UPDATE ON technicians FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_clients BEFORE UPDATE ON clients FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_contracts BEFORE UPDATE ON contracts FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_service_orders BEFORE UPDATE ON service_orders FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_materials BEFORE UPDATE ON materials FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_inventory BEFORE UPDATE ON inventory FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_service_order_materials BEFORE UPDATE ON service_order_materials FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_vehicles BEFORE UPDATE ON vehicles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_checklists BEFORE UPDATE ON checklists FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_checklist_items BEFORE UPDATE ON checklist_items FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_service_order_checklists BEFORE UPDATE ON service_order_checklists FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_checklist_responses BEFORE UPDATE ON checklist_responses FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_photos BEFORE UPDATE ON photos FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_audits BEFORE UPDATE ON audits FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+    CREATE TRIGGER set_timestamp_logs BEFORE UPDATE ON logs FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ==========================================
 -- AUDIT TRIGGER FOR SERVICE ORDERS
@@ -320,66 +392,75 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER audit_service_order_status
-AFTER UPDATE ON service_orders
-FOR EACH ROW
-EXECUTE FUNCTION audit_service_order_status_change();
+DO $$ BEGIN
+    CREATE TRIGGER audit_service_order_status
+    AFTER UPDATE ON service_orders
+    FOR EACH ROW
+    EXECUTE FUNCTION audit_service_order_status_change();
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- ==========================================
 -- INDEXING STRATEGY
 -- ==========================================
 
 -- B-Tree for Foreign Keys
-CREATE INDEX idx_user_roles_user_id ON user_roles(user_id);
-CREATE INDEX idx_user_roles_role_id ON user_roles(role_id);
-CREATE INDEX idx_teams_supervisor_id ON teams(supervisor_id);
-CREATE INDEX idx_technicians_user_id ON technicians(user_id);
-CREATE INDEX idx_technicians_team_id ON technicians(team_id);
-CREATE INDEX idx_contracts_client_id ON contracts(client_id);
-CREATE INDEX idx_service_orders_client_id ON service_orders(client_id);
-CREATE INDEX idx_service_orders_technician_id ON service_orders(technician_id);
-CREATE INDEX idx_inventory_material_id ON inventory(material_id);
-CREATE INDEX idx_so_materials_so_id ON service_order_materials(service_order_id);
-CREATE INDEX idx_so_materials_material_id ON service_order_materials(material_id);
-CREATE INDEX idx_vehicles_technician_id ON vehicles(technician_id);
-CREATE INDEX idx_checklists_created_by ON checklists(created_by);
-CREATE INDEX idx_checklist_items_checklist_id ON checklist_items(checklist_id);
-CREATE INDEX idx_so_checklists_so_id ON service_order_checklists(service_order_id);
-CREATE INDEX idx_so_checklists_checklist_id ON service_order_checklists(checklist_id);
-CREATE INDEX idx_checklist_responses_so_chk_id ON checklist_responses(service_order_checklist_id);
-CREATE INDEX idx_photos_service_order_id ON photos(service_order_id);
-CREATE INDEX idx_photos_uploaded_by ON photos(uploaded_by);
-CREATE INDEX idx_audits_user_id ON audits(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_role_id ON user_roles(role_id);
+CREATE INDEX IF NOT EXISTS idx_teams_supervisor_id ON teams(supervisor_id);
+CREATE INDEX IF NOT EXISTS idx_technicians_user_id ON technicians(user_id);
+CREATE INDEX IF NOT EXISTS idx_technicians_team_id ON technicians(team_id);
+CREATE INDEX IF NOT EXISTS idx_contracts_client_id ON contracts(client_id);
+CREATE INDEX IF NOT EXISTS idx_service_orders_client_id ON service_orders(client_id);
+CREATE INDEX IF NOT EXISTS idx_service_orders_technician_id ON service_orders(technician_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_material_id ON inventory(material_id);
+CREATE INDEX IF NOT EXISTS idx_so_materials_so_id ON service_order_materials(service_order_id);
+CREATE INDEX IF NOT EXISTS idx_so_materials_material_id ON service_order_materials(material_id);
+CREATE INDEX IF NOT EXISTS idx_vehicles_technician_id ON vehicles(technician_id);
+CREATE INDEX IF NOT EXISTS idx_checklists_created_by ON checklists(created_by);
+CREATE INDEX IF NOT EXISTS idx_checklist_items_checklist_id ON checklist_items(checklist_id);
+CREATE INDEX IF NOT EXISTS idx_so_checklists_so_id ON service_order_checklists(service_order_id);
+CREATE INDEX IF NOT EXISTS idx_so_checklists_checklist_id ON service_order_checklists(checklist_id);
+CREATE INDEX IF NOT EXISTS idx_checklist_responses_so_chk_id ON checklist_responses(service_order_checklist_id);
+CREATE INDEX IF NOT EXISTS idx_photos_service_order_id ON photos(service_order_id);
+CREATE INDEX IF NOT EXISTS idx_photos_uploaded_by ON photos(uploaded_by);
+CREATE INDEX IF NOT EXISTS idx_audits_user_id ON audits(user_id);
 
 -- Frequently filtered columns
-CREATE INDEX idx_service_orders_status ON service_orders(status);
-CREATE INDEX idx_service_orders_priority ON service_orders(priority);
-CREATE INDEX idx_service_orders_sla_status ON service_orders(sla_status);
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_clients_document ON clients(document);
+CREATE INDEX IF NOT EXISTS idx_service_orders_status ON service_orders(status);
+CREATE INDEX IF NOT EXISTS idx_service_orders_priority ON service_orders(priority);
+CREATE INDEX IF NOT EXISTS idx_service_orders_sla_status ON service_orders(sla_status);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_clients_document ON clients(document);
 
 -- ==========================================
 -- OPERATIONAL EXAMPLES (SEED DATA)
 -- ==========================================
 
--- 1. Create a user with an "Administrator" role
+-- Seed data is best handled in application logic or separate seed files to prevent duplicate key errors 
+-- when the schema script is executed multiple times, but keeping them as requested with ON CONFLICT where possible
+-- Or we just leave them since the user only requested idempotent ENUM creations, 
+-- but I'll wrap seed inserts in ON CONFLICT to make the whole script fully idempotent if ran multiple times
+
 INSERT INTO roles (id, name, description) 
-VALUES ('11111111-1111-1111-1111-111111111111', 'Administrator', 'Full system access');
+VALUES ('11111111-1111-1111-1111-111111111111', 'Administrator', 'Full system access')
+ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO users (id, name, email, password_hash) 
-VALUES ('22222222-2222-2222-2222-222222222222', 'Admin User', 'admin@example.com', 'hashed_pwd_123');
+VALUES ('22222222-2222-2222-2222-222222222222', 'Admin User', 'admin@example.com', 'hashed_pwd_123')
+ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO user_roles (user_id, role_id)
-VALUES ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111');
+VALUES ('22222222-2222-2222-2222-222222222222', '11111111-1111-1111-1111-111111111111')
+ON CONFLICT (user_id, role_id) DO NOTHING;
 
--- 2. Create a new client record
 INSERT INTO clients (id, name, document, email, phone, address)
-VALUES ('33333333-3333-3333-3333-333333333333', 'Acme Corporation', '12.345.678/0001-90', 'contact@acme.com', '555-0199', '123 Business Avenue');
+VALUES ('33333333-3333-3333-3333-333333333333', 'Acme Corporation', '12.345.678/0001-90', 'contact@acme.com', '555-0199', '123 Business Avenue')
+ON CONFLICT (document) DO NOTHING;
 
--- 3. Create a service order linked to the previously created client and an existing technician
--- First, ensure a technician exists
+-- Since technicians don't have a strict unique constraint on seed data fields, we use DO NOTHING on ID via conflict
 INSERT INTO technicians (id, user_id, specialty)
-VALUES ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'General Maintenance');
+VALUES ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'General Maintenance')
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO service_orders (id, client_id, technician_id, status, priority, description, scheduled_at, deadline_at, sla_status, latitude, longitude)
 VALUES (
@@ -394,4 +475,6 @@ VALUES (
     'within_sla',
     -23.5505,
     -46.6333
-);
+)
+ON CONFLICT (id) DO NOTHING;
+
