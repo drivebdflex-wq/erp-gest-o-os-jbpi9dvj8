@@ -28,8 +28,14 @@ let mockOrders: ServiceOrder[] = [
 
 export class ServiceOrdersService {
   static async createServiceOrder(data: CreateServiceOrderDTO): Promise<ServiceOrder> {
-    if (!data.client_id || !data.description) {
-      throw new Error('Validation Error: client_id and description are required.')
+    console.log('DATA RECEBIDA:', data)
+
+    if (!data.client_id) {
+      throw new Error('client_id é obrigatório')
+    }
+
+    if (!data.description) {
+      throw new Error('Validation Error: description is required.')
     }
 
     const newOrder: ServiceOrder = {

@@ -97,8 +97,10 @@ export class ServiceOrdersService {
   }
 
   static async create(data: CreateServiceOrderDTO, userId: string = 'system') {
+    console.log('DATA RECEBIDA:', data)
+
     if (!data.client_id) {
-      throw new BusinessError('Cliente não encontrado')
+      throw new BusinessError('client_id é obrigatório')
     }
 
     const client = await ClientsRepository.findById(data.client_id)

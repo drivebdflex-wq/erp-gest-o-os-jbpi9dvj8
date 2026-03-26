@@ -12,6 +12,12 @@ export class ServiceOrdersService {
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async create(createDto: CreateServiceOrderDto) {
+    console.log('DATA RECEBIDA:', createDto)
+
+    if (!createDto.client_id) {
+      throw new BadRequestException('client_id é obrigatório')
+    }
+
     const { data, error } = await this.supabaseService
       .getClient()
       .from('service_orders')
