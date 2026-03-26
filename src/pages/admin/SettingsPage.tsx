@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, Building2, Clock, Key, ListChecks } from 'lucide-react'
+import { Users, Building2, Clock, Key, ListChecks, Mail } from 'lucide-react'
 
 // Settings Components
 import UsersSettings from '@/components/admin/settings/UsersSettings'
@@ -7,6 +7,7 @@ import CompanySettings from '@/components/admin/settings/CompanySettings'
 import SLASettings from '@/components/admin/settings/SLASettings'
 import IntegrationSettings from '@/components/admin/settings/IntegrationSettings'
 import ChecklistBuilder from '@/components/admin/settings/ChecklistBuilder'
+import ReportSchedulesSettings from '@/components/admin/settings/ReportSchedulesSettings'
 
 export default function SettingsPage() {
   return (
@@ -14,7 +15,7 @@ export default function SettingsPage() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Configurações do Sistema</h2>
         <p className="text-sm text-muted-foreground">
-          Gerencie usuários, políticas de SLA, integrações e templates.
+          Gerencie usuários, políticas de SLA, integrações, templates e relatórios.
         </p>
       </div>
 
@@ -45,6 +46,12 @@ export default function SettingsPage() {
             <ListChecks className="h-4 w-4" /> Checklists
           </TabsTrigger>
           <TabsTrigger
+            value="reports"
+            className="justify-start gap-2 px-4 py-2 w-full data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md"
+          >
+            <Mail className="h-4 w-4" /> Relatórios
+          </TabsTrigger>
+          <TabsTrigger
             value="integrations"
             className="justify-start gap-2 px-4 py-2 w-full data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md"
           >
@@ -64,6 +71,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="checklists" className="m-0 border-none p-0 outline-none">
             <ChecklistBuilder />
+          </TabsContent>
+          <TabsContent value="reports" className="m-0 border-none p-0 outline-none">
+            <ReportSchedulesSettings />
           </TabsContent>
           <TabsContent value="integrations" className="m-0 border-none p-0 outline-none">
             <IntegrationSettings />
