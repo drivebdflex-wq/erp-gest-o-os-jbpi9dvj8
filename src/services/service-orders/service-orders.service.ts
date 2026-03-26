@@ -21,6 +21,7 @@ let mockOrders: ServiceOrder[] = [
     priority: 'medium',
     description: 'Elevator system routine check.',
     scheduled_at: new Date().toISOString(),
+    started_at: new Date(Date.now() - 3600000).toISOString(),
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -95,7 +96,30 @@ export class ServiceOrdersService {
       throw new Error('Invalid Transition: completed orders cannot change status')
     }
 
-    return this.updateServiceOrder(id, { status })
+    const updates: Partial<ServiceOrder> = { status }
+    const now = new Date()
+
+    if (status === 'in_progress') {
+      if (!order.started_at) {
+        updates.started_at = now.toISOString()
+      }
+    } else if (status === 'completed') {
+      if (!order.started_at) {
+        throw new Error(
+          'Integrity Error: Cannot complete service order without a started_at timestamp.',
+        )
+      }
+
+      const finishedAt = now
+      const startedAt = new Date(order.started_at)
+
+      updates.finished_at = finishedAt.toISOString()
+      updates.total_duration_minutes = Math.floor(
+        (finishedAt.getTime() - startedAt.getTime()) / 60000,
+      )
+    }
+
+    return this.updateServiceOrder(id, updates)
   }
 
   static async updateServiceOrder(

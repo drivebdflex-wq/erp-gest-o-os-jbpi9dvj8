@@ -203,7 +203,7 @@ export class ServiceOrdersService {
       updates.last_resumed_at = now.toISOString()
     }
 
-    if (newStatus === 'paused' || newStatus === 'completed') {
+    if (newStatus === 'paused') {
       if (order.last_resumed_at) {
         const start = new Date(order.last_resumed_at).getTime()
         const end = now.getTime()
@@ -211,17 +211,24 @@ export class ServiceOrdersService {
         const sessionMinutes = Math.floor(Math.max(0, totalMs) / 60000)
         updates.total_duration_minutes = (order.total_duration_minutes || 0) + sessionMinutes
       }
-
-      if (newStatus === 'paused') {
-        updates.paused_at = now.toISOString()
-        updates.last_resumed_at = null
-      }
+      updates.paused_at = now.toISOString()
+      updates.last_resumed_at = null
     }
 
     if (newStatus === 'completed') {
+      if (!order.started_at) {
+        throw new BusinessError(
+          'Integrity Error: Cannot complete service order without a started_at timestamp.',
+        )
+      }
+
       await ServiceOrdersService.validateFinalization(order)
+
       updates.finished_at = now.toISOString()
       updates.last_resumed_at = null
+
+      const startedAt = new Date(order.started_at).getTime()
+      updates.total_duration_minutes = Math.floor((now.getTime() - startedAt) / 60000)
 
       if (order.deadline_at) {
         const deadline = new Date(order.deadline_at).getTime()

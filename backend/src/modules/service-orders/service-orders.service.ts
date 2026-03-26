@@ -79,11 +79,26 @@ export class ServiceOrdersService {
     }
 
     const updateData: any = { status: newStatus }
+    const now = new Date()
 
     if (newStatus === 'in_progress') {
-      updateData.started_at = new Date().toISOString()
+      if (!order.started_at) {
+        updateData.started_at = now.toISOString()
+      }
     } else if (newStatus === 'completed') {
-      updateData.finished_at = new Date().toISOString()
+      if (!order.started_at) {
+        throw new BadRequestException(
+          'Integrity Error: Cannot complete service order without a started_at timestamp.',
+        )
+      }
+
+      const finishedAt = now
+      const startedAt = new Date(order.started_at)
+
+      updateData.finished_at = finishedAt.toISOString()
+      updateData.total_duration_minutes = Math.floor(
+        (finishedAt.getTime() - startedAt.getTime()) / 60000,
+      )
     }
 
     const { data, error } = await this.supabaseService
