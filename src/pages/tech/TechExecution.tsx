@@ -14,11 +14,25 @@ import {
 import { PhotosRepository } from '@/services/repositories/auxiliary.repository'
 import { ChecklistsService } from '@/services/business/checklists.service'
 import { CheckCircle2, Play, Camera, PenTool, ClipboardList, Box, Check } from 'lucide-react'
+import useFinanceStore from '@/stores/useFinanceStore'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 export default function TechExecution() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
+
+  const { inventory, consumeMaterial } = useFinanceStore()
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('')
+  const [consumeQty, setConsumeQty] = useState<number>(1)
 
   const [order, setOrder] = useState<ServiceOrder | null>(null)
   const [loading, setLoading] = useState(true)
@@ -35,10 +49,8 @@ export default function TechExecution() {
     try {
       const data = await ServiceOrdersService.getServiceOrderById(id)
       setOrder(data)
-
       const allSoChecklists = await ServiceOrderChecklistsRepository.findAll()
       setChecklists(allSoChecklists.filter((c) => c.service_order_id === id))
-
       const allPhotos = await PhotosRepository.findAll()
       setPhotos(allPhotos.filter((p) => p.related_entity_id === id))
     } catch (error) {
@@ -67,7 +79,6 @@ export default function TechExecution() {
     try {
       const items = await ChecklistItemsRepository.findAll()
       const reqItems = items.filter((i) => i.is_required)
-
       for (const item of reqItems) {
         await ChecklistsService.addResponse({
           service_order_checklist_id: soChecklistId,
@@ -76,7 +87,7 @@ export default function TechExecution() {
           response_number: 100,
         })
       }
-      toast({ title: 'Sucesso', description: 'Checklist preenchido e completado' })
+      toast({ title: 'Sucesso', description: 'Checklist preenchido' })
       loadOrderData()
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
@@ -90,7 +101,7 @@ export default function TechExecution() {
       storage_url: `https://img.usecurling.com/p/400/300?q=maintenance&color=gray&dpr=1&seed=${Math.random()}`,
       uploaded_by: 'tech-user-id',
     })
-    toast({ title: 'Foto Adicionada', description: `Foto ${type} salva com sucesso.` })
+    toast({ title: 'Foto Adicionada', description: `Foto salva com sucesso.` })
     loadOrderData()
   }
 
@@ -100,6 +111,32 @@ export default function TechExecution() {
     })
     toast({ title: 'Assinatura Coletada', description: 'Assinatura salva com sucesso.' })
     loadOrderData()
+  }
+
+  const handleConsume = () => {
+    if (!order?.contract_id) {
+      toast({
+        title: 'Aviso',
+        description: 'Esta OS não possui contrato vinculado para apropriação de custos.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (!selectedMaterial) {
+      toast({ title: 'Aviso', description: 'Selecione um material.', variant: 'destructive' })
+      return
+    }
+    try {
+      consumeMaterial(selectedMaterial, consumeQty, order.contract_id, order.id)
+      toast({
+        title: 'Material Consumido',
+        description: 'Estoque atualizado e custo gerado no contrato.',
+      })
+      setSelectedMaterial('')
+      setConsumeQty(1)
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
   }
 
   if (loading) return <div className="p-8 text-center">Carregando...</div>
@@ -132,7 +169,6 @@ export default function TechExecution() {
                 Agendar
               </Button>
             )}
-
             {order.status === 'scheduled' && (
               <Button
                 size="lg"
@@ -142,13 +178,11 @@ export default function TechExecution() {
                 Iniciar Deslocamento
               </Button>
             )}
-
             {order.status === 'deslocamento' && (
               <Button size="lg" onClick={() => handleStatusChange('in_progress')} className="w-48">
                 <Play className="mr-2 h-5 w-5" /> Iniciar Execução
               </Button>
             )}
-
             {order.status === 'in_progress' && (
               <>
                 <Button
@@ -167,7 +201,6 @@ export default function TechExecution() {
                 </Button>
               </>
             )}
-
             {order.status === 'paused' && (
               <Button
                 size="lg"
@@ -177,7 +210,6 @@ export default function TechExecution() {
                 <Play className="mr-2 h-5 w-5" /> Retomar
               </Button>
             )}
-
             {order.status === 'in_audit' && (
               <>
                 <Button
@@ -196,7 +228,6 @@ export default function TechExecution() {
                 </Button>
               </>
             )}
-
             {order.status === 'rejected' && (
               <Button
                 size="lg"
@@ -207,30 +238,15 @@ export default function TechExecution() {
               </Button>
             )}
           </div>
-
-          <div className="mt-4 text-sm text-center text-muted-foreground">
-            A transição de status segue rigorosamente a regra: Pendente &rarr; Agendado &rarr;
-            Deslocamento &rarr; Em Execução &rarr; (Pausado / Auditoria) &rarr; Finalizada.
-          </div>
         </CardContent>
       </Card>
 
       <Tabs defaultValue="checklist" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="details">Detalhes</TabsTrigger>
-          <TabsTrigger value="checklist">
-            Checklist
-            {checklists.every((c) => c.status === 'completed') && checklists.length > 0 && (
-              <Check className="w-3 h-3 ml-1 text-green-500" />
-            )}
-          </TabsTrigger>
+          <TabsTrigger value="checklist">Checklist</TabsTrigger>
           <TabsTrigger value="materials">Materiais</TabsTrigger>
-          <TabsTrigger value="photos">
-            Fotos & Ass.
-            {order.customer_signature_url && photos.length >= 2 && (
-              <Check className="w-3 h-3 ml-1 text-green-500" />
-            )}
-          </TabsTrigger>
+          <TabsTrigger value="photos">Fotos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details" className="mt-4">
@@ -284,16 +300,54 @@ export default function TechExecution() {
               </CardContent>
             </Card>
           ))}
-          {checklists.length === 0 && (
-            <p className="text-muted-foreground">Nenhum checklist vinculado.</p>
-          )}
         </TabsContent>
 
         <TabsContent value="materials" className="mt-4">
           <Card>
-            <CardContent className="pt-6 flex flex-col items-center justify-center text-center p-12 text-muted-foreground">
-              <Box className="h-12 w-12 mb-4 opacity-50" />
-              <p>Módulo de controle de materiais.</p>
+            <CardHeader>
+              <CardTitle>Consumo de Materiais do Estoque</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4 items-end">
+                <div className="flex-1 w-full space-y-2">
+                  <Label>Material Disponível</Label>
+                  <Select value={selectedMaterial} onValueChange={setSelectedMaterial}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {inventory
+                        .filter((i) => i.quantity > 0)
+                        .map((i) => (
+                          <SelectItem key={i.id} value={i.id}>
+                            {i.materialName} ({i.quantity} disp.)
+                          </SelectItem>
+                        ))}
+                      {inventory.filter((i) => i.quantity > 0).length === 0 && (
+                        <SelectItem value="none" disabled>
+                          Estoque vazio
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="w-full sm:w-24 space-y-2">
+                  <Label>Qtd</Label>
+                  <Input
+                    type="number"
+                    value={consumeQty}
+                    onChange={(e) => setConsumeQty(Number(e.target.value))}
+                    min={1}
+                  />
+                </div>
+                <Button onClick={handleConsume} className="w-full sm:w-auto mt-2 sm:mt-0">
+                  <Box className="w-4 h-4 mr-2" /> Consumir
+                </Button>
+              </div>
+              <div className="text-xs text-muted-foreground mt-4 border-t pt-4">
+                * O consumo de material desconta automaticamente a quantidade no estoque financeiro
+                e apropria o custo da peça no contrato atual desta OS.
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -328,7 +382,6 @@ export default function TechExecution() {
                   <Camera className="w-4 h-4 mr-2" /> Foto Final
                 </Button>
               </div>
-
               <div className="grid grid-cols-2 gap-4 mt-4">
                 {photos.map((p) => (
                   <div
@@ -341,7 +394,7 @@ export default function TechExecution() {
                       className="object-cover w-full h-full"
                     />
                     <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1 text-xs text-white text-center">
-                      {p.related_entity_type.replace('service_order_', '')}
+                      {p.related_entity_type}
                     </div>
                   </div>
                 ))}

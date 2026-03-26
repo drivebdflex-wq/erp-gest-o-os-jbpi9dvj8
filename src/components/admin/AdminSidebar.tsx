@@ -3,7 +3,6 @@ import {
   ClipboardList,
   Map as MapIcon,
   UserCheck,
-  Package,
   Truck,
   DollarSign,
   Settings,
@@ -40,9 +39,18 @@ const navItems = [
   },
   { title: 'Mapa e Rotas', url: '/mapa', icon: MapIcon },
   { title: 'Auditoria', url: '/auditoria', icon: UserCheck },
-  { title: 'Estoque', url: '/estoque', icon: Package },
+  {
+    title: 'Financeiro',
+    icon: DollarSign,
+    subItems: [
+      { title: 'Dashboard', url: '/financeiro/dashboard' },
+      { title: 'Receitas', url: '/financeiro/receitas' },
+      { title: 'Compras', url: '/financeiro/compras' },
+      { title: 'Custos', url: '/financeiro/custos' },
+      { title: 'Estoque', url: '/financeiro/estoque' },
+    ],
+  },
   { title: 'Veículos', url: '/veiculos', icon: Truck },
-  { title: 'Financeiro', url: '/financeiro', icon: DollarSign },
   { title: 'Configurações', url: '/configs', icon: Settings },
 ]
 
