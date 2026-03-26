@@ -1,3 +1,4 @@
+import FinanceNav from '@/components/admin/finance/FinanceNav'
 import { useState } from 'react'
 import useFinanceStore from '@/stores/useFinanceStore'
 import useAppStore from '@/stores/useAppStore'
@@ -50,6 +51,7 @@ export default function RevenuesPage() {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      <FinanceNav />
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Receitas</h2>
@@ -72,22 +74,24 @@ export default function RevenuesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {revenues.map((r) => {
-              const c = contracts.find((c) => c.id === r.contractId)
-              return (
-                <TableRow key={r.id}>
-                  <TableCell className="font-medium">{c?.name || 'Desconhecido'}</TableCell>
-                  <TableCell>{new Date(r.date).toLocaleDateString()}</TableCell>
-                  <TableCell className="capitalize">{r.type}</TableCell>
-                  <TableCell>
-                    <Badge variant={r.status === 'recebido' ? 'default' : 'secondary'}>
-                      {r.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-mono">R$ {r.value.toFixed(2)}</TableCell>
-                </TableRow>
-              )
-            })}
+            {revenues
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .map((r) => {
+                const c = contracts.find((c) => c.id === r.contractId)
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-medium">{c?.name || 'Desconhecido'}</TableCell>
+                    <TableCell>{new Date(r.date).toLocaleDateString()}</TableCell>
+                    <TableCell className="capitalize">{r.type}</TableCell>
+                    <TableCell>
+                      <Badge variant={r.status === 'recebido' ? 'default' : 'secondary'}>
+                        {r.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">R$ {r.value.toFixed(2)}</TableCell>
+                  </TableRow>
+                )
+              })}
           </TableBody>
         </Table>
       </div>

@@ -7,7 +7,17 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart'
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts'
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+} from 'recharts'
 import useAppStore from '@/stores/useAppStore'
 
 export default function DashboardCharts() {
@@ -28,12 +38,11 @@ export default function DashboardCharts() {
     })
 
     if (within === 0 && warning === 0 && breached === 0 && orders.length === 0) {
-      return [] // Return empty if no orders match the filters
+      return []
     }
 
-    // Default to show something if active orders is 0 but we have finished ones (just so chart doesn't look broken)
     if (within === 0 && warning === 0 && breached === 0) {
-      within = 1 // Fallback just to show a green circle if no active orders are present in the filtered view
+      within = 1
     }
 
     return [
@@ -86,25 +95,27 @@ export default function DashboardCharts() {
         <CardContent>
           <ChartContainer config={slaConfig} className="h-[250px] w-full">
             {slaData.length > 0 ? (
-              <PieChart>
-                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                <Pie
-                  data={slaData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={2}
-                >
-                  {slaData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <ChartLegend content={<ChartLegendContent />} />
-              </PieChart>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                  <Pie
+                    data={slaData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={2}
+                  >
+                    {slaData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartLegend content={<ChartLegendContent />} />
+                </PieChart>
+              </ResponsiveContainer>
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                Sem dados para o filtro selecionado
+                Sem dados
               </div>
             )}
           </ChartContainer>
@@ -117,13 +128,15 @@ export default function DashboardCharts() {
         </CardHeader>
         <CardContent>
           <ChartContainer config={typeConfig} className="h-[250px] w-full">
-            <BarChart data={typeData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
-              <CartesianGrid vertical={false} strokeDasharray="3 3" />
-              <XAxis dataKey="name" tickLine={false} axisLine={false} />
-              <YAxis tickLine={false} axisLine={false} />
-              <ChartTooltip content={<ChartTooltipContent />} />
-              <Bar dataKey="avg" fill="var(--color-avg)" radius={[4, 4, 0, 0]} />
-            </BarChart>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={typeData} margin={{ top: 20, right: 0, left: -20, bottom: 0 }}>
+                <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                <YAxis tickLine={false} axisLine={false} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="avg" fill="var(--color-avg)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </ChartContainer>
         </CardContent>
       </Card>

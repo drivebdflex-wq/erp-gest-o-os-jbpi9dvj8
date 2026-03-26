@@ -31,6 +31,7 @@ export interface Cost {
     | 'equipamento'
     | 'outros'
     | 'material_os'
+    | 'administrativo'
   value: number
   date: string
   description: string
@@ -57,6 +58,14 @@ interface FinanceState {
 
 const FinanceContext = createContext<FinanceState | undefined>(undefined)
 
+const today = new Date()
+const formatD = (d: Date) => d.toISOString().split('T')[0]
+const d0 = formatD(today)
+const dPast1 = formatD(new Date(today.getTime() - 15 * 86400000))
+const dPast2 = formatD(new Date(today.getTime() - 45 * 86400000))
+const dFut1 = formatD(new Date(today.getTime() + 15 * 86400000))
+const dFut2 = formatD(new Date(today.getTime() + 45 * 86400000))
+
 export function FinanceProvider({ children }: { children: ReactNode }) {
   const [revenues, setRevenues] = useState<Revenue[]>([
     {
@@ -64,7 +73,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       contractId: '77777777-7777-7777-7777-777777777777',
       value: 25000,
       type: 'mensal',
-      date: '2023-10-01',
+      date: dPast1,
       status: 'recebido',
     },
     {
@@ -72,8 +81,32 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       contractId: 'contract-2',
       value: 150000,
       type: 'medição',
-      date: '2024-07-01',
+      date: dPast2,
       status: 'recebido',
+    },
+    {
+      id: 'r3',
+      contractId: '77777777-7777-7777-7777-777777777777',
+      value: 30000,
+      type: 'mensal',
+      date: dFut1,
+      status: 'previsto',
+    },
+    {
+      id: 'r4',
+      contractId: 'contract-3',
+      value: 5000,
+      type: 'mensal',
+      date: dPast1,
+      status: 'recebido',
+    },
+    {
+      id: 'r5',
+      contractId: 'contract-2',
+      value: 150000,
+      type: 'medição',
+      date: dFut2,
+      status: 'previsto',
     },
   ])
 
@@ -84,9 +117,19 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       supplier: 'Elétrica Brasil',
       type: 'material',
       value: 300,
-      date: '2023-10-02',
+      date: dPast1,
       materialName: 'Cabo UTP Cat6',
       quantity: 100,
+    },
+    {
+      id: 'p2',
+      contractId: '77777777-7777-7777-7777-777777777777',
+      supplier: 'Tech Info',
+      type: 'material',
+      value: 1500,
+      date: dPast2,
+      materialName: 'Roteador Wi-Fi',
+      quantity: 15,
     },
   ])
 
@@ -96,7 +139,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       contractId: '77777777-7777-7777-7777-777777777777',
       category: 'mão de obra',
       value: 5000,
-      date: '2023-10-05',
+      date: dPast1,
       description: 'Salários equipe',
     },
     {
@@ -104,15 +147,47 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       contractId: 'contract-2',
       category: 'equipamento',
       value: 200000,
-      date: '2024-06-15',
-      description: 'Compra de transformadores alta tensão',
+      date: dPast2,
+      description: 'Compra de transformadores',
+    },
+    {
+      id: 'c3',
+      contractId: 'contract-3',
+      category: 'equipamento',
+      value: 12000,
+      date: dPast1,
+      description: 'Reparo compressor',
+    },
+    {
+      id: 'c4',
+      contractId: '77777777-7777-7777-7777-777777777777',
+      category: 'administrativo',
+      value: 2000,
+      date: dPast1,
+      description: 'Software ERP e Licenças',
+    },
+    {
+      id: 'c5',
+      contractId: '77777777-7777-7777-7777-777777777777',
+      category: 'material_os',
+      value: 2500,
+      date: dPast1,
+      description: 'Cabos e conectores',
+    },
+    {
+      id: 'c6',
+      contractId: '77777777-7777-7777-7777-777777777777',
+      category: 'mão de obra',
+      value: 5000,
+      date: dFut1,
+      description: 'Salários previstos',
     },
   ])
 
   const [inventory, setInventory] = useState<InventoryItem[]>([
     { id: 'i1', materialName: 'Cabo UTP Cat6', quantity: 100, unitCost: 3, totalCost: 300 },
     { id: 'i2', materialName: 'Conector RJ45', quantity: 500, unitCost: 1, totalCost: 500 },
-    { id: 'i3', materialName: 'Roteador Wi-Fi', quantity: 15, unitCost: 150, totalCost: 2250 },
+    { id: 'i3', materialName: 'Roteador Wi-Fi', quantity: 15, unitCost: 100, totalCost: 1500 },
   ])
 
   const addRevenue = useCallback((r: Omit<Revenue, 'id'>) => {

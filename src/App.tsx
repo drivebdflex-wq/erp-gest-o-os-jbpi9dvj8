@@ -21,6 +21,9 @@ import FinanceDashboard from './pages/admin/finance/FinanceDashboard'
 import RevenuesPage from './pages/admin/finance/RevenuesPage'
 import PurchasesPage from './pages/admin/finance/PurchasesPage'
 import CostsPage from './pages/admin/finance/CostsPage'
+import DREPage from './pages/admin/finance/DREPage'
+import CashFlowPage from './pages/admin/finance/CashFlowPage'
+import TechFinancePage from './pages/admin/finance/TechFinancePage'
 
 import TechQueue from './pages/tech/TechQueue'
 import TechExecution from './pages/tech/TechExecution'
@@ -49,6 +52,9 @@ const App = () => (
               <Route path="/financeiro/compras" element={<PurchasesPage />} />
               <Route path="/financeiro/custos" element={<CostsPage />} />
               <Route path="/financeiro/estoque" element={<InventoryPage />} />
+              <Route path="/financeiro/dre" element={<DREPage />} />
+              <Route path="/financeiro/fluxo-caixa" element={<CashFlowPage />} />
+              <Route path="/financeiro/tecnicos" element={<TechFinancePage />} />
 
               <Route
                 path="/veiculos"

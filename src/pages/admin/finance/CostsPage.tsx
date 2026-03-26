@@ -1,3 +1,4 @@
+import FinanceNav from '@/components/admin/finance/FinanceNav'
 import { useState } from 'react'
 import useFinanceStore from '@/stores/useFinanceStore'
 import useAppStore from '@/stores/useAppStore'
@@ -49,9 +50,10 @@ export default function CostsPage() {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      <FinanceNav />
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Custos Operacionais</h2>
+          <h2 className="text-2xl font-bold tracking-tight">Custos Operacionais e Despesas</h2>
           <p className="text-sm text-muted-foreground">
             Registre despesas manuais e apropriação de custos por contrato.
           </p>
@@ -73,20 +75,24 @@ export default function CostsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {costs.map((c) => {
-              const contract = contracts.find((ct) => ct.id === c.contractId)
-              return (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{contract?.name || 'Desconhecido'}</TableCell>
-                  <TableCell>{new Date(c.date).toLocaleDateString()}</TableCell>
-                  <TableCell className="capitalize">{c.category.replace('_', ' ')}</TableCell>
-                  <TableCell className="text-muted-foreground text-xs">{c.description}</TableCell>
-                  <TableCell className="text-right font-mono text-destructive">
-                    R$ {c.value.toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              )
-            })}
+            {costs
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .map((c) => {
+                const contract = contracts.find((ct) => ct.id === c.contractId)
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">
+                      {contract?.name || 'Desconhecido'}
+                    </TableCell>
+                    <TableCell>{new Date(c.date).toLocaleDateString()}</TableCell>
+                    <TableCell className="capitalize">{c.category.replace('_', ' ')}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">{c.description}</TableCell>
+                    <TableCell className="text-right font-mono text-destructive">
+                      R$ {c.value.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
           </TableBody>
         </Table>
       </div>
@@ -127,6 +133,7 @@ export default function CostsPage() {
                     <SelectItem value="combustível">Combustível</SelectItem>
                     <SelectItem value="terceirizado">Terceirizado</SelectItem>
                     <SelectItem value="equipamento">Equipamento</SelectItem>
+                    <SelectItem value="administrativo">Administrativo</SelectItem>
                     <SelectItem value="outros">Outros</SelectItem>
                   </SelectContent>
                 </Select>

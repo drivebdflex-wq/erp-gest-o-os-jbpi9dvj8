@@ -1,3 +1,4 @@
+import FinanceNav from '@/components/admin/finance/FinanceNav'
 import { useState } from 'react'
 import useFinanceStore from '@/stores/useFinanceStore'
 import useAppStore from '@/stores/useAppStore'
@@ -52,6 +53,7 @@ export default function PurchasesPage() {
 
   return (
     <div className="space-y-4 animate-fade-in">
+      <FinanceNav />
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Compras</h2>
@@ -76,18 +78,20 @@ export default function PurchasesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {purchases.map((p) => {
-              const c = contracts.find((c) => c.id === p.contractId)
-              return (
-                <TableRow key={p.id}>
-                  <TableCell className="font-medium">{c?.name || 'Desconhecido'}</TableCell>
-                  <TableCell>{new Date(p.date).toLocaleDateString()}</TableCell>
-                  <TableCell>{p.supplier}</TableCell>
-                  <TableCell className="capitalize">{p.type}</TableCell>
-                  <TableCell className="text-right font-mono">R$ {p.value.toFixed(2)}</TableCell>
-                </TableRow>
-              )
-            })}
+            {purchases
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .map((p) => {
+                const c = contracts.find((c) => c.id === p.contractId)
+                return (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-medium">{c?.name || 'Desconhecido'}</TableCell>
+                    <TableCell>{new Date(p.date).toLocaleDateString()}</TableCell>
+                    <TableCell>{p.supplier}</TableCell>
+                    <TableCell className="capitalize">{p.type}</TableCell>
+                    <TableCell className="text-right font-mono">R$ {p.value.toFixed(2)}</TableCell>
+                  </TableRow>
+                )
+              })}
             {purchases.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
