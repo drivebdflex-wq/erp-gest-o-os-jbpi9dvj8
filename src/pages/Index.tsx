@@ -1,5 +1,6 @@
 import DashboardCards from '@/components/admin/DashboardCards'
 import DashboardCharts from '@/components/admin/DashboardCharts'
+import DashboardFilters from '@/components/admin/DashboardFilters'
 import KanbanSummary from '@/components/admin/KanbanSummary'
 import TechnicianLeaderboard from '@/components/admin/TechnicianLeaderboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,9 +9,9 @@ import { AlertTriangle, Clock, ShieldAlert } from 'lucide-react'
 import useAppStore from '@/stores/useAppStore'
 
 export default function Index() {
-  const { orders } = useAppStore()
+  const { filteredOrders: orders } = useAppStore()
 
-  const alerts = []
+  const alerts: any[] = []
   const now = new Date().getTime()
 
   orders.forEach((o) => {
@@ -54,16 +55,9 @@ export default function Index() {
     alerts.push({
       id: 'mock-1',
       type: 'stuck',
-      title: 'OS 8A9B2C estagnada',
-      message: "Há mais de 24h em 'Pendente'",
-      tech: 'Carlos Silva',
-    })
-    alerts.push({
-      id: 'mock-2',
-      type: 'warning',
-      title: 'OS 1D2E3F perto do prazo',
-      message: 'SLA expira em breve',
-      tech: 'Não Atribuído',
+      title: 'Sem alertas críticos',
+      message: 'A operação está fluindo perfeitamente.',
+      tech: 'Sistema',
     })
   }
 
@@ -75,6 +69,8 @@ export default function Index() {
           Monitoramento em tempo real de contratos, serviços e projetos.
         </p>
       </div>
+
+      <DashboardFilters />
 
       <DashboardCards />
 
@@ -93,7 +89,7 @@ export default function Index() {
                 <ShieldAlert className="h-5 w-5 text-warning" />
                 Alertas Inteligentes
               </CardTitle>
-              <Badge variant="secondary">{alerts.length}</Badge>
+              <Badge variant="secondary">{alerts[0]?.id === 'mock-1' ? '0' : alerts.length}</Badge>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">

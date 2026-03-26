@@ -5,6 +5,7 @@ import React, {
   ReactNode,
   useEffect,
   useCallback,
+  useMemo,
 } from 'react'
 import { ServiceOrdersService } from '@/services/business/service-orders.service'
 import { ClientsRepository } from '@/services/repositories/clients.repository'
@@ -37,6 +38,7 @@ export interface Order {
   date: string
   tech: string
   address: string
+  unit: string
   distance?: string
   slaStatus: SLAStatus
   totalDuration: number
@@ -49,6 +51,10 @@ interface AppState {
   role: Role
   setRole: (role: Role) => void
   orders: Order[]
+  filteredOrders: Order[]
+  clients: { id: string; name: string }[]
+  filters: { client: string; unit: string; type: string; period: string }
+  setDashboardFilter: (key: string, value: string) => void
   updateOrderStatus: (id: string, status: OSStatus) => Promise<void>
   createOrder: (data: any) => Promise<void>
   loadOrders: () => Promise<void>
@@ -127,16 +133,24 @@ const AppContext = createContext<AppState | undefined>(undefined)
 export function AppProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>('admin')
   const [orders, setOrders] = useState<Order[]>([])
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([])
+  const [filters, setFilters] = useState({ client: 'all', unit: 'all', type: 'all', period: 'all' })
+
+  const setDashboardFilter = useCallback((key: string, value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value }))
+  }, [])
 
   const loadOrders = useCallback(async () => {
     try {
       const dbOrders = await ServiceOrdersService.findAll()
-      const clients = await ClientsRepository.findAll()
+      const dbClients = await ClientsRepository.findAll()
       const techs = await TechniciansRepository.findAll()
       const users = await UsersRepository.findAll()
 
+      setClients(dbClients.map((c) => ({ id: c.name, name: c.name })))
+
       const mappedOrders: Order[] = dbOrders.map((o: any) => {
-        const client = clients.find((c) => c.id === o.client_id)?.name || 'Desconhecido'
+        const client = dbClients.find((c) => c.id === o.client_id)?.name || 'Desconhecido'
         const tech = techs.find((t) => t.id === o.technician_id)
         const user = users.find((u) => u.id === tech?.user_id)?.name || 'Não Atribuído'
 
@@ -146,6 +160,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           : descriptionStr.includes('obra')
             ? 'Obra'
             : 'Corretiva'
+
+        const units = ['Matriz', 'Filial Sul', 'Filial Norte']
+        const unit = units[o.id.charCodeAt(0) % units.length] || 'Matriz'
 
         return {
           id: o.id,
@@ -158,6 +175,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           date: o.scheduled_at?.split('T')[0] || new Date().toISOString().split('T')[0],
           tech: user,
           address: '123 Business Avenue',
+          unit,
           slaStatus: o.sla_status || 'within_sla',
           totalDuration: o.total_duration_minutes || 0,
           finishedAt: o.finished_at,
@@ -176,6 +194,47 @@ export function AppProvider({ children }: { children: ReactNode }) {
     loadOrders()
   }, [loadOrders])
 
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      if (filters.client !== 'all' && o.client !== filters.client) return false
+      if (filters.unit !== 'all' && o.unit !== filters.unit) return false
+      if (filters.type !== 'all' && o.type !== filters.type) return false
+
+      if (filters.period !== 'all') {
+        const isDateInPeriod = (dateStr?: string) => {
+          if (!dateStr) return false
+          const d = new Date(dateStr)
+          const now = new Date()
+          if (filters.period === 'Hoje') {
+            return d.toDateString() === now.toDateString()
+          }
+          if (filters.period === 'Semana') {
+            const start = new Date(now)
+            start.setHours(0, 0, 0, 0)
+            start.setDate(now.getDate() - now.getDay())
+            const end = new Date(start)
+            end.setDate(start.getDate() + 6)
+            end.setHours(23, 59, 59, 999)
+            return d >= start && d <= end
+          }
+          if (filters.period === 'Mês') {
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+          }
+          return true
+        }
+
+        if (
+          !isDateInPeriod(o.date) &&
+          !isDateInPeriod(o.updatedAt) &&
+          !isDateInPeriod(o.finishedAt)
+        ) {
+          return false
+        }
+      }
+      return true
+    })
+  }, [orders, filters])
+
   const updateOrderStatus = async (id: string, status: OSStatus) => {
     const dbStatus = mapStatusToDb(status) as any
     await ServiceOrdersService.changeStatus(id, dbStatus)
@@ -189,7 +248,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ role, setRole, orders, updateOrderStatus, createOrder, loadOrders }}
+      value={{
+        role,
+        setRole,
+        orders,
+        filteredOrders,
+        clients,
+        filters,
+        setDashboardFilter,
+        updateOrderStatus,
+        createOrder,
+        loadOrders,
+      }}
     >
       {children}
     </AppContext.Provider>

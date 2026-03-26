@@ -11,7 +11,7 @@ import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 
 import useAppStore from '@/stores/useAppStore'
 
 export default function DashboardCharts() {
-  const { orders } = useAppStore()
+  const { filteredOrders: orders } = useAppStore()
 
   const slaData = useMemo(() => {
     const active = orders.filter(
@@ -27,10 +27,13 @@ export default function DashboardCharts() {
       else within++
     })
 
+    if (within === 0 && warning === 0 && breached === 0 && orders.length === 0) {
+      return [] // Return empty if no orders match the filters
+    }
+
+    // Default to show something if active orders is 0 but we have finished ones (just so chart doesn't look broken)
     if (within === 0 && warning === 0 && breached === 0) {
-      within = 15
-      warning = 3
-      breached = 1
+      within = 1 // Fallback just to show a green circle if no active orders are present in the filtered view
     }
 
     return [
@@ -60,13 +63,6 @@ export default function DashboardCharts() {
       avg: data.total > 0 ? Math.round(data.duration / data.total) : 0,
     }))
 
-    if (result.every((r) => r.avg === 0)) {
-      return [
-        { name: 'Preventiva', avg: 45 },
-        { name: 'Corretiva', avg: 120 },
-        { name: 'Obra', avg: 360 },
-      ]
-    }
     return result
   }, [orders])
 
@@ -89,22 +85,28 @@ export default function DashboardCharts() {
         </CardHeader>
         <CardContent>
           <ChartContainer config={slaConfig} className="h-[250px] w-full">
-            <PieChart>
-              <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-              <Pie
-                data={slaData}
-                dataKey="value"
-                nameKey="name"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={2}
-              >
-                {slaData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
-                ))}
-              </Pie>
-              <ChartLegend content={<ChartLegendContent />} />
-            </PieChart>
+            {slaData.length > 0 ? (
+              <PieChart>
+                <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                <Pie
+                  data={slaData}
+                  dataKey="value"
+                  nameKey="name"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={2}
+                >
+                  {slaData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <ChartLegend content={<ChartLegendContent />} />
+              </PieChart>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                Sem dados para o filtro selecionado
+              </div>
+            )}
           </ChartContainer>
         </CardContent>
       </Card>

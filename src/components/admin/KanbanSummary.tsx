@@ -3,7 +3,7 @@ import useAppStore from '@/stores/useAppStore'
 import { Clock, Calendar, Truck, PlayCircle, ShieldCheck } from 'lucide-react'
 
 export default function KanbanSummary() {
-  const { orders } = useAppStore()
+  const { filteredOrders: orders } = useAppStore()
 
   const stages = [
     {

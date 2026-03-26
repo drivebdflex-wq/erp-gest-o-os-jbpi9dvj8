@@ -3,7 +3,7 @@ import { CheckCircle2, AlertCircle, ClipboardList, Clock } from 'lucide-react'
 import useAppStore from '@/stores/useAppStore'
 
 export default function DashboardCards() {
-  const { orders } = useAppStore()
+  const { filteredOrders: orders } = useAppStore()
 
   const openOrders = orders.filter(
     (o) => !['Finalizada', 'Cancelada', 'Rejeitada'].includes(o.status),
