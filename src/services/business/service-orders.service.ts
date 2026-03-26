@@ -7,6 +7,7 @@ import {
   TechniciansRepository,
   TeamsRepository,
 } from '../repositories/users.repository'
+import { ClientsRepository } from '../repositories/clients.repository'
 import { BusinessError } from './errors'
 import type { ServiceOrderStatus, SLAStatus } from '../repositories/types/common'
 import type { ServiceOrder, CreateServiceOrderDTO } from '../repositories/types/service-orders'
@@ -96,6 +97,22 @@ export class ServiceOrdersService {
   }
 
   static async create(data: CreateServiceOrderDTO, userId: string = 'system') {
+    if (!data.client_id) {
+      throw new BusinessError('Cliente não encontrado')
+    }
+
+    const client = await ClientsRepository.findById(data.client_id)
+    if (!client) {
+      throw new BusinessError('Cliente não encontrado')
+    }
+
+    if (data.technician_id) {
+      const technician = await TechniciansRepository.findById(data.technician_id)
+      if (!technician) {
+        throw new BusinessError('Técnico não encontrado')
+      }
+    }
+
     const created = await ServiceOrdersRepository.create(data as any)
     await AuditsRepository.create({
       table_name: 'service_orders',
@@ -121,6 +138,20 @@ export class ServiceOrdersService {
     }
 
     await this.checkAuthorization(order, userId)
+
+    if (updates.client_id !== undefined) {
+      const client = await ClientsRepository.findById(updates.client_id)
+      if (!client) {
+        throw new BusinessError('Cliente não encontrado')
+      }
+    }
+
+    if (updates.technician_id !== undefined && updates.technician_id !== null) {
+      const technician = await TechniciansRepository.findById(updates.technician_id)
+      if (!technician) {
+        throw new BusinessError('Técnico não encontrado')
+      }
+    }
 
     const updated = await ServiceOrdersRepository.update(orderId, updates)
 
