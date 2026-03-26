@@ -1,43 +1,56 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Target, ClipboardList, Users, DollarSign } from 'lucide-react'
+import { CheckCircle2, AlertCircle, ClipboardList, Clock } from 'lucide-react'
 import useAppStore from '@/stores/useAppStore'
 
 export default function DashboardCards() {
   const { orders } = useAppStore()
-  const activeOrders = orders.filter(
-    (o) => o.status !== 'Finalizada' && o.status !== 'Reprovada',
+
+  const openOrders = orders.filter(
+    (o) => !['Finalizada', 'Cancelada', 'Rejeitada'].includes(o.status),
   ).length
-  const completedOrders = orders.filter((o) => o.status === 'Finalizada').length
-  const slaPercentage = Math.round((completedOrders / (orders.length || 1)) * 100) || 94
+
+  const inProgressOrders = orders.filter((o) => o.status === 'Em Execução').length
+
+  const todayStr = new Date().toISOString().split('T')[0]
+  const finishedToday = orders.filter(
+    (o) =>
+      o.status === 'Finalizada' &&
+      (o.finishedAt?.startsWith(todayStr) || o.updatedAt?.startsWith(todayStr)),
+  ).length
+
+  const slaBreached = orders.filter(
+    (o) =>
+      !['Finalizada', 'Cancelada', 'Rejeitada'].includes(o.status) && o.slaStatus === 'breached',
+  ).length
 
   const cards = [
     {
-      title: 'SLA Cumprido',
-      value: `${slaPercentage}%`,
-      description: '+2% desde ontem',
-      icon: Target,
-      trend: 'up',
-    },
-    {
-      title: 'OS Abertas/Andamento',
-      value: activeOrders.toString(),
-      description: '12 pendentes de despacho',
+      title: 'Total Abertas',
+      value: openOrders.toString(),
+      description: 'Não finalizadas',
       icon: ClipboardList,
-      trend: 'neutral',
+      color: 'text-primary',
     },
     {
-      title: 'Técnicos em Campo',
-      value: '24/28',
-      description: '4 em pausa/deslocamento',
-      icon: Users,
-      trend: 'up',
+      title: 'Em Execução',
+      value: inProgressOrders.toString(),
+      description: 'Atividade no momento',
+      icon: Clock,
+      color: 'text-blue-500',
     },
     {
-      title: 'Custo Total (Mês)',
-      value: 'R$ 142.5K',
-      description: '-5% em materiais',
-      icon: DollarSign,
-      trend: 'down',
+      title: 'Concluídas Hoje',
+      value: finishedToday.toString(),
+      description: 'Baixadas no dia',
+      icon: CheckCircle2,
+      color: 'text-success',
+    },
+    {
+      title: 'SLA Estourado',
+      value: slaBreached.toString(),
+      description: 'Atrasadas',
+      icon: AlertCircle,
+      color: 'text-destructive',
     },
   ]
 
@@ -53,7 +66,7 @@ export default function DashboardCards() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {card.title}
             </CardTitle>
-            <card.icon className="h-4 w-4 text-primary" />
+            <card.icon className={`h-4 w-4 ${card.color}`} />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{card.value}</div>

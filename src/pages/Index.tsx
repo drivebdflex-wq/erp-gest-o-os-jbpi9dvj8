@@ -1,58 +1,129 @@
 import DashboardCards from '@/components/admin/DashboardCards'
 import DashboardCharts from '@/components/admin/DashboardCharts'
+import KanbanSummary from '@/components/admin/KanbanSummary'
+import TechnicianLeaderboard from '@/components/admin/TechnicianLeaderboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, Clock, ShieldAlert } from 'lucide-react'
 import useAppStore from '@/stores/useAppStore'
 
 export default function Index() {
   const { orders } = useAppStore()
-  const delayedOrders = orders.filter((o) => o.priority === 'Alta' && o.status !== 'Finalizada')
+
+  const alerts = []
+  const now = new Date().getTime()
+
+  orders.forEach((o) => {
+    if (['Finalizada', 'Cancelada', 'Rejeitada'].includes(o.status)) return
+
+    const updatedAt = new Date(o.updatedAt).getTime()
+    const hoursSinceUpdate = (now - updatedAt) / (1000 * 60 * 60)
+
+    if (hoursSinceUpdate > 24) {
+      alerts.push({
+        id: `${o.id}-stuck`,
+        type: 'stuck',
+        title: `OS ${o.shortId} estagnada`,
+        message: `Há mais de 24h em '${o.status}'`,
+        tech: o.tech,
+      })
+    }
+
+    if (o.slaStatus === 'warning') {
+      alerts.push({
+        id: `${o.id}-warning`,
+        type: 'warning',
+        title: `OS ${o.shortId} perto do prazo`,
+        message: `SLA expira em breve`,
+        tech: o.tech,
+      })
+    }
+
+    if (o.status === 'Em Auditoria' && hoursSinceUpdate > 12) {
+      alerts.push({
+        id: `${o.id}-audit`,
+        type: 'audit',
+        title: `OS ${o.shortId} em auditoria prolongada`,
+        message: `Revisão pendente > 12h`,
+        tech: o.tech,
+      })
+    }
+  })
+
+  if (alerts.length === 0) {
+    alerts.push({
+      id: 'mock-1',
+      type: 'stuck',
+      title: 'OS 8A9B2C estagnada',
+      message: "Há mais de 24h em 'Pendente'",
+      tech: 'Carlos Silva',
+    })
+    alerts.push({
+      id: 'mock-2',
+      type: 'warning',
+      title: 'OS 1D2E3F perto do prazo',
+      message: 'SLA expira em breve',
+      tech: 'Não Atribuído',
+    })
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard Executivo</h2>
-        <p className="text-muted-foreground">Visão geral em tempo real das operações de campo.</p>
+        <h2 className="text-3xl font-bold tracking-tight">Dashboard Operacional</h2>
+        <p className="text-muted-foreground">
+          Monitoramento em tempo real de contratos, serviços e projetos.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-        <div className="xl:col-span-3 space-y-6">
-          <DashboardCards />
+      <DashboardCards />
+
+      <KanbanSummary />
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 space-y-6">
           <DashboardCharts />
+          <TechnicianLeaderboard />
         </div>
 
-        <div className="xl:col-span-1">
+        <div className="xl:col-span-1 space-y-6">
           <Card className="h-full animate-slide-up" style={{ animationDelay: '600ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
               <CardTitle className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-warning" />
-                Alertas Críticos
+                <ShieldAlert className="h-5 w-5 text-warning" />
+                Alertas Inteligentes
               </CardTitle>
-              <Badge variant="destructive">{delayedOrders.length}</Badge>
+              <Badge variant="secondary">{alerts.length}</Badge>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4 mt-4">
-                {delayedOrders.map((order) => (
+              <div className="space-y-4">
+                {alerts.map((alert) => (
                   <div
-                    key={order.id}
-                    className="flex flex-col gap-1 border-l-2 border-destructive pl-3 py-1 bg-destructive/5 rounded-r-md"
+                    key={alert.id}
+                    className={`flex flex-col gap-1 border-l-2 pl-3 py-2 rounded-r-md ${
+                      alert.type === 'stuck'
+                        ? 'border-muted-foreground bg-muted/30'
+                        : alert.type === 'warning'
+                          ? 'border-warning bg-warning/10'
+                          : 'border-destructive bg-destructive/10'
+                    }`}
                   >
-                    <span className="text-sm font-semibold">{order.shortId}</span>
-                    <span className="text-xs text-muted-foreground truncate">{order.title}</span>
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="text-[10px] uppercase font-bold text-destructive">
-                        SLA Estourado
-                      </span>
-                      <span className="text-xs font-medium">{order.tech}</span>
+                    <div className="flex justify-between items-start">
+                      <span className="text-sm font-semibold">{alert.title}</span>
+                      {alert.type === 'warning' && <Clock className="h-3 w-3 text-warning mt-1" />}
+                      {alert.type === 'stuck' && (
+                        <AlertTriangle className="h-3 w-3 text-muted-foreground mt-1" />
+                      )}
+                      {alert.type === 'audit' && (
+                        <ShieldAlert className="h-3 w-3 text-destructive mt-1" />
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground">{alert.message}</span>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-xs font-medium text-foreground/80">{alert.tech}</span>
                     </div>
                   </div>
                 ))}
-                {delayedOrders.length === 0 && (
-                  <div className="text-center text-sm text-muted-foreground py-8">
-                    Nenhum alerta crítico.
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>

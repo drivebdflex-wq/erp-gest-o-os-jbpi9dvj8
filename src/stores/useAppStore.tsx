@@ -6,9 +6,10 @@ import React, {
   useEffect,
   useCallback,
 } from 'react'
-import { ServiceOrdersService } from '@/services/service-orders/service-orders.service'
+import { ServiceOrdersService } from '@/services/business/service-orders.service'
 import { ClientsRepository } from '@/services/repositories/clients.repository'
 import { TechniciansRepository, UsersRepository } from '@/services/repositories/users.repository'
+import type { SLAStatus } from '@/services/repositories/types/common'
 
 export type Role = 'admin' | 'tech'
 export type OSStatus =
@@ -37,6 +38,11 @@ export interface Order {
   tech: string
   address: string
   distance?: string
+  slaStatus: SLAStatus
+  totalDuration: number
+  finishedAt?: string
+  updatedAt: string
+  type: 'Preventiva' | 'Corretiva' | 'Obra'
 }
 
 interface AppState {
@@ -124,7 +130,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const loadOrders = useCallback(async () => {
     try {
-      const dbOrders = await ServiceOrdersService.getServiceOrders()
+      const dbOrders = await ServiceOrdersService.findAll()
       const clients = await ClientsRepository.findAll()
       const techs = await TechniciansRepository.findAll()
       const users = await UsersRepository.findAll()
@@ -133,6 +139,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const client = clients.find((c) => c.id === o.client_id)?.name || 'Desconhecido'
         const tech = techs.find((t) => t.id === o.technician_id)
         const user = users.find((u) => u.id === tech?.user_id)?.name || 'Não Atribuído'
+
+        const descriptionStr = (o.description || '').toLowerCase()
+        const type = descriptionStr.includes('preventiva')
+          ? 'Preventiva'
+          : descriptionStr.includes('obra')
+            ? 'Obra'
+            : 'Corretiva'
 
         return {
           id: o.id,
@@ -145,6 +158,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           date: o.scheduled_at?.split('T')[0] || new Date().toISOString().split('T')[0],
           tech: user,
           address: '123 Business Avenue',
+          slaStatus: o.sla_status || 'within_sla',
+          totalDuration: o.total_duration_minutes || 0,
+          finishedAt: o.finished_at,
+          updatedAt: o.updated_at || o.created_at || new Date().toISOString(),
+          type,
         }
       })
 
@@ -160,12 +178,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateOrderStatus = async (id: string, status: OSStatus) => {
     const dbStatus = mapStatusToDb(status) as any
-    await ServiceOrdersService.updateServiceOrderStatus(id, dbStatus)
+    await ServiceOrdersService.changeStatus(id, dbStatus)
     await loadOrders()
   }
 
   const createOrder = async (data: any) => {
-    await ServiceOrdersService.createServiceOrder(data)
+    await ServiceOrdersService.create(data)
     await loadOrders()
   }
 
