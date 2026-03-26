@@ -3,13 +3,32 @@ import DashboardCharts from '@/components/admin/DashboardCharts'
 import DashboardFilters from '@/components/admin/DashboardFilters'
 import KanbanSummary from '@/components/admin/KanbanSummary'
 import TechnicianLeaderboard from '@/components/admin/TechnicianLeaderboard'
+import PrintableReport from '@/components/admin/PrintableReport'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { AlertTriangle, Clock, ShieldAlert } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertTriangle,
+  Clock,
+  ShieldAlert,
+  Download,
+  FileText,
+  Table as TableIcon,
+} from 'lucide-react'
 import useAppStore from '@/stores/useAppStore'
+import { exportOrdersToCSV } from '@/lib/export'
 
 export default function Index() {
   const { filteredOrders: orders } = useAppStore()
+
+  const handleExportCSV = () => exportOrdersToCSV(orders)
+  const handleExportPDF = () => window.print()
 
   const alerts: any[] = []
   const now = new Date().getTime()
@@ -62,69 +81,98 @@ export default function Index() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-bold tracking-tight">Dashboard Operacional</h2>
-        <p className="text-muted-foreground">
-          Monitoramento em tempo real de contratos, serviços e projetos.
-        </p>
-      </div>
+    <>
+      <div className="space-y-6 print:hidden">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-3xl font-bold tracking-tight">Dashboard Operacional</h2>
+            <p className="text-muted-foreground">
+              Monitoramento em tempo real de contratos, serviços e projetos.
+            </p>
+          </div>
 
-      <DashboardFilters />
-
-      <DashboardCards />
-
-      <KanbanSummary />
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 space-y-6">
-          <DashboardCharts />
-          <TechnicianLeaderboard />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="w-full sm:w-auto">
+                <Download className="w-4 h-4 mr-2" />
+                Exportar Relatório
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportPDF} className="cursor-pointer">
+                <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
+                Exportar em PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportCSV} className="cursor-pointer">
+                <TableIcon className="w-4 h-4 mr-2 text-muted-foreground" />
+                Exportar em CSV
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
-        <div className="xl:col-span-1 space-y-6">
-          <Card className="h-full animate-slide-up" style={{ animationDelay: '600ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-              <CardTitle className="flex items-center gap-2">
-                <ShieldAlert className="h-5 w-5 text-warning" />
-                Alertas Inteligentes
-              </CardTitle>
-              <Badge variant="secondary">{alerts[0]?.id === 'mock-1' ? '0' : alerts.length}</Badge>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {alerts.map((alert) => (
-                  <div
-                    key={alert.id}
-                    className={`flex flex-col gap-1 border-l-2 pl-3 py-2 rounded-r-md ${
-                      alert.type === 'stuck'
-                        ? 'border-muted-foreground bg-muted/30'
-                        : alert.type === 'warning'
-                          ? 'border-warning bg-warning/10'
-                          : 'border-destructive bg-destructive/10'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <span className="text-sm font-semibold">{alert.title}</span>
-                      {alert.type === 'warning' && <Clock className="h-3 w-3 text-warning mt-1" />}
-                      {alert.type === 'stuck' && (
-                        <AlertTriangle className="h-3 w-3 text-muted-foreground mt-1" />
-                      )}
-                      {alert.type === 'audit' && (
-                        <ShieldAlert className="h-3 w-3 text-destructive mt-1" />
-                      )}
+        <DashboardFilters />
+
+        <DashboardCards />
+
+        <KanbanSummary />
+
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2 space-y-6">
+            <DashboardCharts />
+            <TechnicianLeaderboard />
+          </div>
+
+          <div className="xl:col-span-1 space-y-6">
+            <Card className="h-full animate-slide-up" style={{ animationDelay: '600ms' }}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <ShieldAlert className="h-5 w-5 text-warning" />
+                  Alertas Inteligentes
+                </CardTitle>
+                <Badge variant="secondary">
+                  {alerts[0]?.id === 'mock-1' ? '0' : alerts.length}
+                </Badge>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {alerts.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className={`flex flex-col gap-1 border-l-2 pl-3 py-2 rounded-r-md ${
+                        alert.type === 'stuck'
+                          ? 'border-muted-foreground bg-muted/30'
+                          : alert.type === 'warning'
+                            ? 'border-warning bg-warning/10'
+                            : 'border-destructive bg-destructive/10'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <span className="text-sm font-semibold">{alert.title}</span>
+                        {alert.type === 'warning' && (
+                          <Clock className="h-3 w-3 text-warning mt-1" />
+                        )}
+                        {alert.type === 'stuck' && (
+                          <AlertTriangle className="h-3 w-3 text-muted-foreground mt-1" />
+                        )}
+                        {alert.type === 'audit' && (
+                          <ShieldAlert className="h-3 w-3 text-destructive mt-1" />
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{alert.message}</span>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="text-xs font-medium text-foreground/80">{alert.tech}</span>
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">{alert.message}</span>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-xs font-medium text-foreground/80">{alert.tech}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+
+      <PrintableReport />
+    </>
   )
 }
