@@ -1,14 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -17,105 +15,67 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useToast } from '@/hooks/use-toast'
+import { Textarea } from '@/components/ui/textarea'
 import useAppStore from '@/stores/useAppStore'
-import { ClientsRepository } from '@/services/repositories/clients.repository'
-import { TechniciansRepository, UsersRepository } from '@/services/repositories/users.repository'
+import { toast } from '@/hooks/use-toast'
 
-interface CreateOrderDialogProps {
+export default function CreateOrderDialog({
+  open,
+  onOpenChange,
+}: {
   open: boolean
   onOpenChange: (open: boolean) => void
-}
+}) {
+  const { clients, contracts, createOrder } = useAppStore()
+  const [formData, setFormData] = useState<any>({ priority: 'Média', status: 'Pendente' })
 
-export default function CreateOrderDialog({ open, onOpenChange }: CreateOrderDialogProps) {
-  const { createOrder } = useAppStore()
-  const { toast } = useToast()
-
-  const [clients, setClients] = useState<any[]>([])
-  const [techs, setTechs] = useState<any[]>([])
-
-  const [clientId, setClientId] = useState('')
-  const [techId, setTechId] = useState('none')
-  const [priority, setPriority] = useState('medium')
-  const [description, setDescription] = useState('')
-  const [scheduledAt, setScheduledAt] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (open) {
-      loadData()
-    }
-  }, [open])
-
-  async function loadData() {
+  const handleSave = async () => {
     try {
-      const cls = await ClientsRepository.findAll()
-      const ts = await TechniciansRepository.findAll()
-      const us = await UsersRepository.findAll()
-
-      setClients(cls)
-      setTechs(
-        ts.map((t) => {
-          const u = us.find((user) => user.id === t.user_id)
-          return { id: t.id, name: u?.name || 'Desconhecido' }
-        }),
-      )
-    } catch (e) {
-      console.error(e)
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!clientId || !description) {
-      toast({
-        title: 'Atenção',
-        description: 'Preencha todos os campos obrigatórios.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    setLoading(true)
-    try {
+      if (!formData.description || !formData.clientId) {
+        toast({ title: 'Aviso', description: 'Preencha título e cliente.', variant: 'destructive' })
+        return
+      }
       await createOrder({
-        client_id: clientId,
-        technician_id: techId === 'none' ? null : techId,
-        priority: priority,
-        description,
-        scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : undefined,
-        status: 'pending',
+        description: formData.description,
+        client_id: formData.clientId,
+        contract_id: formData.contractId,
+        priority:
+          formData.priority === 'Média' ? 'medium' : formData.priority === 'Alta' ? 'high' : 'low',
       })
-      toast({ title: 'Sucesso', description: 'Ordem de serviço criada com sucesso!' })
+      toast({ title: 'Sucesso', description: 'OS criada com sucesso.' })
       onOpenChange(false)
-
-      // Reset form
-      setClientId('')
-      setTechId('none')
-      setPriority('medium')
-      setDescription('')
-      setScheduledAt('')
-    } catch (error: any) {
-      toast({ title: 'Erro ao Criar OS', description: error.message, variant: 'destructive' })
-    } finally {
-      setLoading(false)
+      setFormData({ priority: 'Média', status: 'Pendente' })
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Nova Ordem de Serviço</DialogTitle>
-            <DialogDescription>Crie uma nova OS e atribua a um técnico de campo.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="client">Cliente *</Label>
-              <Select value={clientId} onValueChange={setClientId}>
-                <SelectTrigger id="client">
-                  <SelectValue placeholder="Selecione um cliente" />
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Nova Ordem de Serviço</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Título / Descrição</Label>
+            <Textarea
+              placeholder="Descreva o problema ou solicitação..."
+              value={formData.description || ''}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Cliente</Label>
+              <Select
+                value={formData.clientId || ''}
+                onValueChange={(v) =>
+                  setFormData({ ...formData, clientId: v, contractId: undefined })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
                   {clients.map((c) => (
@@ -126,69 +86,56 @@ export default function CreateOrderDialog({ open, onOpenChange }: CreateOrderDia
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="tech">Técnico Responsável</Label>
-              <Select value={techId} onValueChange={setTechId}>
-                <SelectTrigger id="tech">
-                  <SelectValue placeholder="Sem atribuição" />
+            <div className="space-y-2">
+              <Label>Contrato Vinculado</Label>
+              <Select
+                disabled={!formData.clientId}
+                value={formData.contractId || 'none'}
+                onValueChange={(v) =>
+                  setFormData({ ...formData, contractId: v === 'none' ? undefined : v })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Opcional..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Sem atribuição (Fila)</SelectItem>
-                  {techs.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="none">Avulso / Sem Contrato</SelectItem>
+                  {contracts
+                    .filter((c) => c.clientId === formData.clientId)
+                    .map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="priority">Prioridade</Label>
-                <Select value={priority} onValueChange={setPriority}>
-                  <SelectTrigger id="priority">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Baixa</SelectItem>
-                    <SelectItem value="medium">Média</SelectItem>
-                    <SelectItem value="high">Alta</SelectItem>
-                    <SelectItem value="urgent">Urgente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="date">Data Agendada</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={scheduledAt}
-                  onChange={(e) => setScheduledAt(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="desc">Descrição do Serviço *</Label>
-              <Input
-                id="desc"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Ex: Manutenção preventiva..."
-              />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Prioridade</Label>
+              <Select
+                value={formData.priority || 'Média'}
+                onValueChange={(v) => setFormData({ ...formData, priority: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Baixa">Baixa</SelectItem>
+                  <SelectItem value="Média">Média</SelectItem>
+                  <SelectItem value="Alta">Alta</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Salvando...' : 'Criar OS'}
-            </Button>
-          </DialogFooter>
-        </form>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave}>Criar OS</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

@@ -10,7 +10,7 @@ import { Filter } from 'lucide-react'
 import { useMemo } from 'react'
 
 export default function DashboardFilters() {
-  const { filters, setDashboardFilter, clients, orders } = useAppStore()
+  const { filters, setDashboardFilter, clients, orders, contracts } = useAppStore()
 
   const units = useMemo(() => {
     const u = new Set(orders.map((o) => o.unit))
@@ -18,14 +18,14 @@ export default function DashboardFilters() {
   }, [orders])
 
   return (
-    <div className="bg-card p-4 rounded-lg border shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:flex xl:flex-row gap-4 xl:items-center animate-fade-in">
-      <div className="flex items-center gap-2 text-muted-foreground xl:mr-2">
+    <div className="bg-card p-4 rounded-lg border shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-center animate-fade-in w-full">
+      <div className="flex items-center gap-2 text-muted-foreground mr-2 col-span-1 sm:col-span-2 md:col-span-1">
         <Filter className="w-4 h-4" />
-        <span className="text-sm font-medium">Filtros:</span>
+        <span className="text-sm font-medium">Filtros Operacionais:</span>
       </div>
 
       <Select value={filters.client} onValueChange={(v) => setDashboardFilter('client', v)}>
-        <SelectTrigger className="w-full xl:w-[200px]">
+        <SelectTrigger className="w-full">
           <SelectValue placeholder="Cliente" />
         </SelectTrigger>
         <SelectContent>
@@ -38,22 +38,25 @@ export default function DashboardFilters() {
         </SelectContent>
       </Select>
 
-      <Select value={filters.unit} onValueChange={(v) => setDashboardFilter('unit', v)}>
-        <SelectTrigger className="w-full xl:w-[200px]">
-          <SelectValue placeholder="Unidade" />
+      <Select
+        value={filters.contract || 'all'}
+        onValueChange={(v) => setDashboardFilter('contract', v)}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Contrato" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Todas as Unidades</SelectItem>
-          {units.map((u) => (
-            <SelectItem key={u} value={u}>
-              {u}
+          <SelectItem value="all">Todos os Contratos</SelectItem>
+          {contracts.map((c) => (
+            <SelectItem key={c.id} value={c.name}>
+              {c.name}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
 
       <Select value={filters.type} onValueChange={(v) => setDashboardFilter('type', v)}>
-        <SelectTrigger className="w-full xl:w-[180px]">
+        <SelectTrigger className="w-full">
           <SelectValue placeholder="Tipo de Serviço" />
         </SelectTrigger>
         <SelectContent>
@@ -65,7 +68,7 @@ export default function DashboardFilters() {
       </Select>
 
       <Select value={filters.period} onValueChange={(v) => setDashboardFilter('period', v)}>
-        <SelectTrigger className="w-full xl:w-[180px]">
+        <SelectTrigger className="w-full">
           <SelectValue placeholder="Período" />
         </SelectTrigger>
         <SelectContent>

@@ -2,6 +2,7 @@ import DashboardCards from '@/components/admin/DashboardCards'
 import DashboardCharts from '@/components/admin/DashboardCharts'
 import DashboardFilters from '@/components/admin/DashboardFilters'
 import KanbanSummary from '@/components/admin/KanbanSummary'
+import ContractWidgets from '@/components/admin/ContractWidgets'
 import TechnicianLeaderboard from '@/components/admin/TechnicianLeaderboard'
 import PrintableReport from '@/components/admin/PrintableReport'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -116,6 +117,8 @@ export default function Index() {
         <DashboardCards />
 
         <KanbanSummary />
+
+        <ContractWidgets />
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 space-y-6">

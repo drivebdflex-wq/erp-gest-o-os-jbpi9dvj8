@@ -8,6 +8,8 @@ import { AppProvider } from './stores/useAppStore'
 // Pages
 import Index from './pages/Index'
 import WorkOrders from './pages/admin/WorkOrders'
+import ContractsMaintenance from './pages/admin/ContractsMaintenance'
+import ContractsWorks from './pages/admin/ContractsWorks'
 import MapPage from './pages/admin/MapPage'
 import AuditPage from './pages/admin/AuditPage'
 import InventoryPage from './pages/admin/InventoryPage'
@@ -28,6 +30,8 @@ const App = () => (
             {/* Admin Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/ordens" element={<WorkOrders />} />
+            <Route path="/contratos/manutencao" element={<ContractsMaintenance />} />
+            <Route path="/contratos/obras" element={<ContractsWorks />} />
             <Route path="/mapa" element={<MapPage />} />
             <Route path="/auditoria" element={<AuditPage />} />
             <Route path="/estoque" element={<InventoryPage />} />

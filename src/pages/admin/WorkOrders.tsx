@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Plus, List, Kanban } from 'lucide-react'
 import OrderTable from '@/components/admin/OrderTable'
 import OrderKanban from '@/components/admin/OrderKanban'
 import CreateOrderDialog from '@/components/admin/CreateOrderDialog'
 import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog'
+import DashboardFilters from '@/components/admin/DashboardFilters'
 import { Order } from '@/stores/useAppStore'
 
 export default function WorkOrders() {
@@ -34,13 +34,12 @@ export default function WorkOrders() {
         </Button>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2 w-full max-w-sm">
-          <Input placeholder="Filtrar OS..." className="bg-background" />
-          <Button variant="secondary">Filtros</Button>
+      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+        <div className="flex-1 w-full max-w-5xl">
+          <DashboardFilters />
         </div>
 
-        <Tabs value={view} onValueChange={setView} className="w-[200px]">
+        <Tabs value={view} onValueChange={setView} className="w-full xl:w-[200px] shrink-0">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="list">
               <List className="h-4 w-4 mr-2" />

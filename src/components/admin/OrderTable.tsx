@@ -29,7 +29,7 @@ interface OrderTableProps {
 }
 
 export default function OrderTable({ onRowClick }: OrderTableProps) {
-  const { orders } = useAppStore()
+  const { filteredOrders: orders } = useAppStore()
 
   return (
     <div className="rounded-md border bg-card">
@@ -38,7 +38,7 @@ export default function OrderTable({ onRowClick }: OrderTableProps) {
           <TableRow>
             <TableHead className="w-[100px]">ID</TableHead>
             <TableHead>Título</TableHead>
-            <TableHead>Cliente</TableHead>
+            <TableHead>Contrato/Cliente</TableHead>
             <TableHead>Técnico</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Prioridade</TableHead>
@@ -54,7 +54,12 @@ export default function OrderTable({ onRowClick }: OrderTableProps) {
             >
               <TableCell className="font-medium">{order.shortId}</TableCell>
               <TableCell className="max-w-[200px] truncate">{order.title}</TableCell>
-              <TableCell>{order.client}</TableCell>
+              <TableCell>
+                <div className="font-medium text-xs text-primary">
+                  {order.contractName || 'Sem Contrato'}
+                </div>
+                <div className="text-muted-foreground text-xs">{order.client}</div>
+              </TableCell>
               <TableCell>{order.tech}</TableCell>
               <TableCell>
                 <Badge className={getStatusColor(order.status)} variant="secondary">
@@ -83,7 +88,7 @@ export default function OrderTable({ onRowClick }: OrderTableProps) {
           {orders.length === 0 && (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                Nenhuma ordem de serviço encontrada.
+                Nenhuma ordem de serviço encontrada para os filtros aplicados.
               </TableCell>
             </TableRow>
           )}

@@ -9,6 +9,7 @@ const MOCK_SERVICE_ORDERS: ServiceOrder[] = [
   {
     id: '55555555-5555-5555-5555-555555555555',
     client_id: '33333333-3333-3333-3333-333333333333',
+    contract_id: '77777777-7777-7777-7777-777777777777',
     technician_id: 'tech-record-1',
     status: 'pending',
     priority: 'high',
@@ -26,6 +27,7 @@ const MOCK_SERVICE_ORDERS: ServiceOrder[] = [
   {
     id: '66666666-6666-6666-6666-666666666666',
     client_id: '33333333-3333-3333-3333-333333333333',
+    contract_id: 'contract-2',
     technician_id: 'tech-record-1',
     status: 'in_progress',
     priority: 'medium',

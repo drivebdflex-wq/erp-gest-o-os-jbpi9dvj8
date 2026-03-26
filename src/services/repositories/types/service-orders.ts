@@ -3,6 +3,7 @@ import { ID, Timestamps, ServiceOrderStatus, ServiceOrderPriority, SLAStatus } f
 export interface ServiceOrder extends Timestamps {
   id: ID
   client_id: ID
+  contract_id?: ID | null
   technician_id?: ID | null
   status: ServiceOrderStatus
   priority: ServiceOrderPriority
@@ -22,6 +23,7 @@ export interface ServiceOrder extends Timestamps {
 
 export interface CreateServiceOrderDTO {
   client_id: ID
+  contract_id?: ID | null
   technician_id?: ID | null
   status?: ServiceOrderStatus
   priority?: ServiceOrderPriority
