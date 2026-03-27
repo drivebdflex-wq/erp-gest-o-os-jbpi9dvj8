@@ -36,8 +36,10 @@ const navItems = [
     icon: Users,
     subItems: [
       { title: 'Dashboard Operacional', url: '/operacional/dashboard' },
-      { title: 'Técnicos', url: '/operacional/tecnicos' },
+      { title: 'Painel do Supervisor', url: '/operacional/painel' },
+      { title: 'Agenda & Escalas', url: '/operacional/agenda' },
       { title: 'Equipes', url: '/operacional/equipes' },
+      { title: 'Técnicos', url: '/operacional/tecnicos' },
       { title: 'Indicadores', url: '/operacional/indicadores' },
       { title: 'Eventos / Disciplina', url: '/operacional/eventos' },
       { title: 'Feedback & PDI', url: '/operacional/feedback' },

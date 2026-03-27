@@ -32,7 +32,12 @@ import { Checkbox } from '@/components/ui/checkbox'
 export default function TeamsPage() {
   const { teams, technicians, addTeam } = useOperationalStore()
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState<any>({ members: [], active: true })
+  const [form, setForm] = useState<any>({
+    members: [],
+    active: true,
+    shift_start: '08:00',
+    shift_end: '18:00',
+  })
 
   const handleSave = () => {
     if (!form.name || !form.supervisor_id || !form.start_date) return
@@ -43,9 +48,11 @@ export default function TeamsPage() {
       start_date: form.start_date,
       end_date: form.end_date,
       active: form.active,
+      shift_start: form.shift_start,
+      shift_end: form.shift_end,
     })
     setOpen(false)
-    setForm({ members: [], active: true })
+    setForm({ members: [], active: true, shift_start: '08:00', shift_end: '18:00' })
   }
 
   const handleMemberChange = (techId: string, checked: boolean) => {
@@ -63,7 +70,7 @@ export default function TeamsPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Equipes Dinâmicas</h2>
           <p className="text-sm text-muted-foreground">
-            Organize e gerencie a composição dos times.
+            Organize e gerencie a composição e escalas dos times.
           </p>
         </div>
         <Button onClick={() => setOpen(true)}>
@@ -78,6 +85,7 @@ export default function TeamsPage() {
               <TableHead>Nome da Equipe</TableHead>
               <TableHead>Supervisor</TableHead>
               <TableHead className="text-center">Membros</TableHead>
+              <TableHead>Turno (Escala)</TableHead>
               <TableHead>Início</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
@@ -91,6 +99,15 @@ export default function TeamsPage() {
                   <TableCell>{supervisor?.name || 'Desconhecido'}</TableCell>
                   <TableCell className="text-center">
                     <Badge variant="secondary">{t.members.length} membros</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {t.shift_start && t.shift_end ? (
+                      <Badge variant="outline">
+                        {t.shift_start} - {t.shift_end}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Livre</span>
+                    )}
                   </TableCell>
                   <TableCell>{new Date(t.start_date).toLocaleDateString()}</TableCell>
                   <TableCell>
@@ -108,7 +125,7 @@ export default function TeamsPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Criar Equipe</DialogTitle>
+            <DialogTitle>Criar Equipe e Definir Escala</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-2 gap-4 py-4">
             <div className="space-y-2 col-span-2">
@@ -136,7 +153,23 @@ export default function TeamsPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Data de Início</Label>
+              <Label>Início do Turno</Label>
+              <Input
+                type="time"
+                value={form.shift_start || ''}
+                onChange={(e) => setForm({ ...form, shift_start: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Fim do Turno</Label>
+              <Input
+                type="time"
+                value={form.shift_end || ''}
+                onChange={(e) => setForm({ ...form, shift_end: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de Criação</Label>
               <Input
                 type="date"
                 onChange={(e) => setForm({ ...form, start_date: e.target.value })}

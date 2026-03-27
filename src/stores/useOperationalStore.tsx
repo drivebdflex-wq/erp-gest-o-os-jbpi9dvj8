@@ -20,6 +20,8 @@ export interface OpTeam {
   start_date: string
   end_date?: string
   active?: boolean
+  shift_start?: string
+  shift_end?: string
 }
 
 export interface OpEvent {
@@ -119,6 +121,18 @@ export function OperationalProvider({ children }: { children: ReactNode }) {
       members: ['tech-record-1', 't2'],
       start_date: '2023-01-01',
       active: true,
+      shift_start: '08:00',
+      shift_end: '18:00',
+    },
+    {
+      id: 'team-beta',
+      name: 'Equipe Beta',
+      supervisor_id: 't2',
+      members: ['t3'],
+      start_date: '2023-06-01',
+      active: true,
+      shift_start: '12:00',
+      shift_end: '22:00',
     },
   ])
 
