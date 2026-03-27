@@ -7,14 +7,25 @@ import {
   TrendingDown,
   DollarSign,
   Target,
-  AlertCircle,
   Activity,
   OctagonAlert,
+  AlertCircle,
 } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { useNavigate } from 'react-router-dom'
 
 export default function FinanceDashboard() {
-  const { contracts, orders } = useAppStore()
+  const { contracts } = useAppStore()
   const { revenues, costs } = useFinanceStore()
+  const navigate = useNavigate()
 
   const data = contracts
     .map((contract) => {
@@ -84,19 +95,6 @@ export default function FinanceDashboard() {
     }
   })
 
-  const topTechs = Array.from(new Set(orders.map((o) => o.tech)))
-    .map((tech) => {
-      const techOrders = orders.filter((o) => o.tech === tech && o.status === 'Finalizada')
-      const totalOS = techOrders.length
-      const avgTime =
-        totalOS > 0
-          ? Math.round(techOrders.reduce((sum, o) => sum + (o.totalDuration || 0), 0) / totalOS)
-          : 0
-      return { tech, totalOS, avgTime }
-    })
-    .sort((a, b) => b.totalOS - a.totalOS)
-    .slice(0, 3)
-
   return (
     <div className="space-y-6 animate-fade-in pb-10">
       <FinanceNav />
@@ -150,66 +148,80 @@ export default function FinanceDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="lg:col-span-3 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Top Contratos (Mais Rentáveis)</CardTitle>
+              <CardTitle>Desempenho Financeiro por Contrato</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {data
-                .filter((d) => d.profit > 0)
-                .slice(0, 3)
-                .map((d) => (
-                  <div
-                    key={d.id}
-                    className="flex items-center justify-between border-b pb-2 last:border-0"
-                  >
-                    <div>
-                      <p className="font-medium">{d.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Margem: {d.margin.toFixed(1)}%
-                      </p>
-                    </div>
-                    <div className="text-success font-bold">+ R$ {d.profit.toFixed(2)}</div>
-                  </div>
-                ))}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Planejamento vs Realidade de Equipe</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {data
-                .filter((d) => d.plannedTechs || d.plannedHours)
-                .slice(0, 3)
-                .map((d) => (
-                  <div
-                    key={`team-${d.id}`}
-                    className="flex items-center justify-between border-b pb-2 last:border-0"
-                  >
-                    <div>
-                      <p className="font-medium text-sm">{d.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Planejado: {d.plannedTechs} técnicos, {d.plannedHours}h
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs font-medium">Orçamento Equipe:</p>
-                      <p className="font-bold text-sm">
-                        R$ {d.estimatedTeamCost?.toFixed(2) || '0.00'}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Contrato</TableHead>
+                    <TableHead className="text-right">Receita Total</TableHead>
+                    <TableHead className="text-right">Despesa Total</TableHead>
+                    <TableHead className="text-right">Lucro</TableHead>
+                    <TableHead className="text-right">Margem %</TableHead>
+                    <TableHead className="text-center">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.map((d) => (
+                    <TableRow
+                      key={d.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => navigate(`/financeiro/contrato/${d.id}`)}
+                    >
+                      <TableCell className="font-medium">{d.name}</TableCell>
+                      <TableCell className="text-right text-success">
+                        R$ {d.totalRev.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right text-destructive">
+                        R$ {d.totalCost.toFixed(2)}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right font-bold ${d.profit >= 0 ? 'text-primary' : 'text-destructive'}`}
+                      >
+                        R$ {d.profit.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">{d.margin.toFixed(1)}%</TableCell>
+                      <TableCell className="text-center">
+                        {d.profit < 0 ? (
+                          <Badge variant="destructive">Prejuízo</Badge>
+                        ) : d.margin < 10 ? (
+                          <Badge
+                            variant="secondary"
+                            className="bg-yellow-500 text-white hover:bg-yellow-600"
+                          >
+                            Alerta
+                          </Badge>
+                        ) : d.margin < 15 ? (
+                          <Badge
+                            variant="secondary"
+                            className="bg-yellow-500 text-white hover:bg-yellow-600"
+                          >
+                            Atenção
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="default"
+                            className="bg-success text-success-foreground hover:bg-success/80"
+                          >
+                            Saudável
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </div>
 
         <div className="space-y-6">
-          <Card className="border-border">
+          <Card className="border-border h-full">
             <CardHeader className="bg-muted/50 pb-4">
               <CardTitle className="flex items-center gap-2 text-foreground text-lg">
                 <AlertCircle className="h-5 w-5" /> Centro de Governança
@@ -226,12 +238,12 @@ export default function FinanceDashboard() {
                     a.type === 'critical'
                       ? 'bg-destructive/10 border-destructive shadow-sm'
                       : a.type === 'warning'
-                        ? 'bg-warning/10 border-warning/20'
+                        ? 'bg-yellow-500/10 border-yellow-500/30'
                         : 'bg-orange-500/10 border-orange-500/30'
                   }`}
                 >
                   <div
-                    className={`flex items-center gap-2 font-bold text-sm mb-1 ${a.type === 'critical' ? 'text-destructive' : a.type === 'warning' ? 'text-warning' : 'text-orange-600'}`}
+                    className={`flex items-center gap-2 font-bold text-sm mb-1 ${a.type === 'critical' ? 'text-destructive' : a.type === 'warning' ? 'text-yellow-600' : 'text-orange-600'}`}
                   >
                     {a.type === 'critical' ? (
                       <OctagonAlert className="h-4 w-4" />

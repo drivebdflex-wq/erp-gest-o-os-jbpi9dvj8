@@ -18,6 +18,7 @@ import SettingsPage from './pages/admin/SettingsPage'
 import NotFound from './pages/NotFound'
 
 import FinanceDashboard from './pages/admin/finance/FinanceDashboard'
+import ContractFinanceDetail from './pages/admin/finance/ContractFinanceDetail'
 import RevenuesPage from './pages/admin/finance/RevenuesPage'
 import PurchasesPage from './pages/admin/finance/PurchasesPage'
 import CostsPage from './pages/admin/finance/CostsPage'
@@ -48,6 +49,7 @@ const App = () => (
 
               {/* Financeiro */}
               <Route path="/financeiro/dashboard" element={<FinanceDashboard />} />
+              <Route path="/financeiro/contrato/:id" element={<ContractFinanceDetail />} />
               <Route path="/financeiro/receitas" element={<RevenuesPage />} />
               <Route path="/financeiro/compras" element={<PurchasesPage />} />
               <Route path="/financeiro/custos" element={<CostsPage />} />

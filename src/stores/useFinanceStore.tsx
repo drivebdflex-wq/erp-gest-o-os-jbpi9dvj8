@@ -7,6 +7,7 @@ export interface Revenue {
   type: 'mensal' | 'medição' | 'extra'
   date: string
   status: 'previsto' | 'recebido'
+  isFixed?: boolean
 }
 
 export interface Purchase {
@@ -36,6 +37,7 @@ export interface Cost {
   value: number
   date: string
   description: string
+  origin?: 'compra' | 'os' | 'manual'
 }
 
 export interface InventoryItem {
@@ -80,6 +82,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       type: 'mensal',
       date: dPast1,
       status: 'recebido',
+      isFixed: true,
     },
     {
       id: 'r2',
@@ -88,6 +91,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       type: 'medição',
       date: dPast2,
       status: 'recebido',
+      isFixed: false,
     },
     {
       id: 'r3',
@@ -96,6 +100,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       type: 'mensal',
       date: dFut1,
       status: 'previsto',
+      isFixed: true,
     },
     {
       id: 'r4',
@@ -104,6 +109,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       type: 'mensal',
       date: dPast1,
       status: 'recebido',
+      isFixed: true,
     },
     {
       id: 'r5',
@@ -112,6 +118,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       type: 'medição',
       date: dFut2,
       status: 'previsto',
+      isFixed: false,
     },
   ])
 
@@ -159,6 +166,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       value: 5000,
       date: dPast1,
       description: 'Salários equipe',
+      origin: 'manual',
     },
     {
       id: 'c2',
@@ -167,6 +175,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       value: 200000,
       date: dPast2,
       description: 'Compra de transformadores',
+      origin: 'manual',
     },
     {
       id: 'c3',
@@ -175,6 +184,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       value: 12000,
       date: dPast1,
       description: 'Reparo compressor',
+      origin: 'manual',
     },
     {
       id: 'c4',
@@ -183,6 +193,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       value: 2000,
       date: dPast1,
       description: 'Software ERP e Licenças',
+      origin: 'manual',
     },
     {
       id: 'c5',
@@ -191,6 +202,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       value: 2500,
       date: dPast1,
       description: 'Cabos e conectores',
+      origin: 'os',
     },
     {
       id: 'c6',
@@ -199,6 +211,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       value: 5000,
       date: dFut1,
       description: 'Salários previstos',
+      origin: 'manual',
     },
   ])
 
@@ -262,6 +275,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
               value: p.value,
               date: new Date().toISOString().split('T')[0],
               description: `Serviço liberado de ${p.supplier}`,
+              origin: 'compra',
             })
           }
         }
@@ -287,6 +301,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         value: costValue,
         date: new Date().toISOString().split('T')[0],
         description: `Consumo OS ${osId.split('-')[0]}: ${quantity}x ${item.materialName}`,
+        origin: 'os',
       })
 
       setInventory((prev) =>
