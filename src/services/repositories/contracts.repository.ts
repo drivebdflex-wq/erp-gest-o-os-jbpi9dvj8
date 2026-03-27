@@ -19,6 +19,13 @@ export interface DbContract {
   preventive_frequency?: string
   sla_default?: number
   attachment_url?: string
+  budget_labor?: number
+  budget_material?: number
+  budget_fuel?: number
+  budget_others?: number
+  planned_techs?: number
+  planned_hours?: number
+  estimated_team_cost?: number
   created_at?: string
   updated_at?: string
 }
@@ -42,6 +49,12 @@ const MOCK_CONTRACTS: DbContract[] = [
     has_preventive: true,
     preventive_frequency: 'Mensal',
     sla_default: 24,
+    budget_labor: 6000,
+    budget_material: 3000,
+    budget_fuel: 1000,
+    planned_techs: 2,
+    planned_hours: 160,
+    estimated_team_cost: 5000,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -58,6 +71,11 @@ const MOCK_CONTRACTS: DbContract[] = [
     allows_corrective: false,
     has_preventive: false,
     sla_default: 48,
+    budget_labor: 50000,
+    budget_material: 120000,
+    planned_techs: 5,
+    planned_hours: 800,
+    estimated_team_cost: 45000,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -75,6 +93,8 @@ const MOCK_CONTRACTS: DbContract[] = [
     has_preventive: true,
     preventive_frequency: 'Trimestral',
     sla_default: 12,
+    budget_labor: 2000,
+    budget_material: 1000,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },

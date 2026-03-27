@@ -54,15 +54,17 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{contract ? 'Editar Contrato' : 'Novo Contrato'}</DialogTitle>
         </DialogHeader>
         <Tabs defaultValue="geral">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6 text-xs">
             <TabsTrigger value="geral">Geral</TabsTrigger>
             <TabsTrigger value="finance">Financeiro</TabsTrigger>
             <TabsTrigger value="ops">Operacional</TabsTrigger>
+            <TabsTrigger value="orcamento">Orçamento</TabsTrigger>
+            <TabsTrigger value="equipe">Equipe</TabsTrigger>
             <TabsTrigger value="docs">Anexos</TabsTrigger>
           </TabsList>
 
@@ -215,6 +217,86 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
                   value={formData.slaDefault || ''}
                   onChange={(e) =>
                     setFormData({ ...formData, slaDefault: parseInt(e.target.value, 10) })
+                  }
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="orcamento" className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Teto Mão de Obra (R$)</Label>
+                <Input
+                  type="number"
+                  value={formData.budgetLabor || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, budgetLabor: parseFloat(e.target.value) })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Teto Materiais (R$)</Label>
+                <Input
+                  type="number"
+                  value={formData.budgetMaterial || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, budgetMaterial: parseFloat(e.target.value) })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Teto Combustível (R$)</Label>
+                <Input
+                  type="number"
+                  value={formData.budgetFuel || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, budgetFuel: parseFloat(e.target.value) })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Outros Custos (R$)</Label>
+                <Input
+                  type="number"
+                  value={formData.budgetOthers || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, budgetOthers: parseFloat(e.target.value) })
+                  }
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="equipe" className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Quantidade de Técnicos Planejada</Label>
+                <Input
+                  type="number"
+                  value={formData.plannedTechs || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, plannedTechs: parseInt(e.target.value, 10) })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Horas Previstas / Mês</Label>
+                <Input
+                  type="number"
+                  value={formData.plannedHours || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, plannedHours: parseFloat(e.target.value) })
+                  }
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>Custo Estimado de Equipe (R$)</Label>
+                <Input
+                  type="number"
+                  value={formData.estimatedTeamCost || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, estimatedTeamCost: parseFloat(e.target.value) })
                   }
                 />
               </div>

@@ -80,6 +80,13 @@ export interface Contract {
   preventiveFrequency?: string
   slaDefault?: number
   attachmentUrl?: string
+  budgetLabor?: number
+  budgetMaterial?: number
+  budgetFuel?: number
+  budgetOthers?: number
+  plannedTechs?: number
+  plannedHours?: number
+  estimatedTeamCost?: number
 }
 
 export interface Order {
@@ -117,6 +124,7 @@ interface AppState {
   createOrder: (data: any) => Promise<void>
   saveContract: (data: any) => Promise<void>
   loadOrders: () => Promise<void>
+  generatePreventives: (contractId: string) => Promise<void>
 }
 
 const AppContext = createContext<AppState | undefined>(undefined)
@@ -170,6 +178,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           preventiveFrequency: c.preventive_frequency,
           slaDefault: c.sla_default,
           attachmentUrl: c.attachment_url,
+          budgetLabor: c.budget_labor,
+          budgetMaterial: c.budget_material,
+          budgetFuel: c.budget_fuel,
+          budgetOthers: c.budget_others,
+          plannedTechs: c.planned_techs,
+          plannedHours: c.planned_hours,
+          estimatedTeamCost: c.estimated_team_cost,
         }
       })
       setContracts(mappedContracts)
@@ -270,6 +285,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await loadOrders()
   }
 
+  const generatePreventives = async (contractId: string) => {
+    const contract = contracts.find((c) => c.id === contractId)
+    if (!contract || !contract.hasPreventive) return
+
+    const baseDate = new Date()
+    if (contract.preventiveFrequency === 'Mensal') baseDate.setMonth(baseDate.getMonth() + 1)
+    else if (contract.preventiveFrequency === 'Trimestral')
+      baseDate.setMonth(baseDate.getMonth() + 3)
+    else if (contract.preventiveFrequency === 'Anual')
+      baseDate.setFullYear(baseDate.getFullYear() + 1)
+
+    await ServiceOrdersService.create({
+      client_id: contract.clientId,
+      contract_id: contract.id,
+      description: `Manutenção Preventiva Automática (${contract.preventiveFrequency}) - ${contract.name}`,
+      priority: 'medium',
+      status: 'scheduled',
+      scheduled_at: baseDate.toISOString(),
+    })
+    await loadOrders()
+  }
+
   const saveContract = async (data: any) => {
     const dbData = {
       client_id: data.clientId,
@@ -288,6 +325,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       preventive_frequency: data.preventiveFrequency,
       sla_default: data.slaDefault,
       attachment_url: data.attachmentUrl,
+      budget_labor: data.budgetLabor,
+      budget_material: data.budgetMaterial,
+      budget_fuel: data.budgetFuel,
+      budget_others: data.budgetOthers,
+      planned_techs: data.plannedTechs,
+      planned_hours: data.plannedHours,
+      estimated_team_cost: data.estimatedTeamCost,
     }
     if (data.id) {
       await ContractsRepository.update(data.id, dbData)
@@ -312,6 +356,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         createOrder,
         saveContract,
         loadOrders,
+        generatePreventives,
       }}
     >
       {children}

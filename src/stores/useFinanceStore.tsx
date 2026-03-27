@@ -19,6 +19,7 @@ export interface Purchase {
   invoiceUrl?: string
   materialName?: string
   quantity?: number
+  status: 'solicitado' | 'aprovado' | 'reprovado' | 'liberado'
 }
 
 export interface Cost {
@@ -51,7 +52,11 @@ interface FinanceState {
   costs: Cost[]
   inventory: InventoryItem[]
   addRevenue: (r: Omit<Revenue, 'id'>) => void
-  addPurchase: (p: Omit<Purchase, 'id'>) => void
+  addPurchase: (p: Omit<Purchase, 'id' | 'status'>) => void
+  updatePurchaseStatus: (
+    id: string,
+    status: 'solicitado' | 'aprovado' | 'reprovado' | 'liberado',
+  ) => void
   addCost: (c: Omit<Cost, 'id'>) => void
   consumeMaterial: (inventoryId: string, quantity: number, contractId: string, osId: string) => void
 }
@@ -120,6 +125,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       date: dPast1,
       materialName: 'Cabo UTP Cat6',
       quantity: 100,
+      status: 'liberado',
     },
     {
       id: 'p2',
@@ -130,6 +136,18 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       date: dPast2,
       materialName: 'Roteador Wi-Fi',
       quantity: 15,
+      status: 'liberado',
+    },
+    {
+      id: 'p3',
+      contractId: 'contract-2',
+      supplier: 'Ferramentas Express',
+      type: 'material',
+      value: 5000,
+      date: d0,
+      materialName: 'Brocas e Discos',
+      quantity: 50,
+      status: 'solicitado',
     },
   ])
 
@@ -198,46 +216,58 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setCosts((prev) => [...prev, { ...c, id: Math.random().toString() }])
   }, [])
 
-  const addPurchase = useCallback(
-    (p: Omit<Purchase, 'id'>) => {
-      const newPurchase = { ...p, id: Math.random().toString() }
-      setPurchases((prev) => [...prev, newPurchase])
+  const addPurchase = useCallback((p: Omit<Purchase, 'id' | 'status'>) => {
+    const newPurchase: Purchase = { ...p, id: Math.random().toString(), status: 'solicitado' }
+    setPurchases((prev) => [...prev, newPurchase])
+  }, [])
 
-      if (p.type === 'material' && p.materialName && p.quantity) {
-        const unitCost = p.value / p.quantity
-        setInventory((prev) => {
-          const existing = prev.find((i) => i.materialName === p.materialName)
-          if (existing) {
-            const newQty = existing.quantity + p.quantity!
-            const newTotalCost = existing.totalCost + p.value
-            const newUnitCost = newTotalCost / newQty
-            return prev.map((i) =>
-              i.id === existing.id
-                ? { ...i, quantity: newQty, totalCost: newTotalCost, unitCost: newUnitCost }
-                : i,
-            )
-          } else {
-            return [
-              ...prev,
-              {
-                id: Math.random().toString(),
-                materialName: p.materialName!,
-                quantity: p.quantity!,
-                unitCost,
-                totalCost: p.value,
-              },
-            ]
+  const updatePurchaseStatus = useCallback(
+    (id: string, status: 'solicitado' | 'aprovado' | 'reprovado' | 'liberado') => {
+      setPurchases((prev) => {
+        const p = prev.find((x) => x.id === id)
+        if (!p) return prev
+
+        // If transitioning to 'liberado', we inject the cost and inventory
+        if (status === 'liberado' && p.status !== 'liberado') {
+          if (p.type === 'material' && p.materialName && p.quantity) {
+            const unitCost = p.value / p.quantity
+            setInventory((invPrev) => {
+              const existing = invPrev.find((i) => i.materialName === p.materialName)
+              if (existing) {
+                const newQty = existing.quantity + p.quantity!
+                const newTotalCost = existing.totalCost + p.value
+                const newUnitCost = newTotalCost / newQty
+                return invPrev.map((i) =>
+                  i.id === existing.id
+                    ? { ...i, quantity: newQty, totalCost: newTotalCost, unitCost: newUnitCost }
+                    : i,
+                )
+              } else {
+                return [
+                  ...invPrev,
+                  {
+                    id: Math.random().toString(),
+                    materialName: p.materialName!,
+                    quantity: p.quantity!,
+                    unitCost,
+                    totalCost: p.value,
+                  },
+                ]
+              }
+            })
+          } else if (p.type === 'serviço') {
+            addCost({
+              contractId: p.contractId,
+              category: 'terceirizado',
+              value: p.value,
+              date: new Date().toISOString().split('T')[0],
+              description: `Serviço liberado de ${p.supplier}`,
+            })
           }
-        })
-      } else if (p.type === 'serviço') {
-        addCost({
-          contractId: p.contractId,
-          category: 'terceirizado',
-          value: p.value,
-          date: p.date,
-          description: `Serviço de ${p.supplier}`,
-        })
-      }
+        }
+
+        return prev.map((x) => (x.id === id ? { ...x, status } : x))
+      })
     },
     [addCost],
   )
@@ -283,6 +313,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         inventory,
         addRevenue,
         addPurchase,
+        updatePurchaseStatus,
         addCost,
         consumeMaterial,
       }}
