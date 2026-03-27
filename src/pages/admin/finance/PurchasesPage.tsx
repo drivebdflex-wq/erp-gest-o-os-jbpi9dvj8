@@ -1,6 +1,7 @@
 import FinanceNav from '@/components/admin/finance/FinanceNav'
 import { useState, useMemo } from 'react'
 import useFinanceStore from '@/stores/useFinanceStore'
+import useInventoryStore from '@/stores/useInventoryStore'
 import useAppStore from '@/stores/useAppStore'
 import {
   Table,
@@ -35,6 +36,7 @@ import { toast } from '@/hooks/use-toast'
 
 export default function PurchasesPage() {
   const { purchases, addPurchase, updatePurchaseStatus, revenues, costs } = useFinanceStore()
+  const { products, addMovement } = useInventoryStore()
   const { contracts, role } = useAppStore()
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState<any>({ type: 'material', exceptionAuth: false })
@@ -62,6 +64,8 @@ export default function PurchasesPage() {
       return
     }
 
+    const prod = products.find((p) => p.id === form.productId)
+
     addPurchase({
       contractId: form.contractId,
       supplier: form.supplier,
@@ -69,8 +73,9 @@ export default function PurchasesPage() {
       value: Number(form.value),
       date: form.date,
       invoiceUrl: form.invoiceUrl,
-      materialName: form.materialName,
-      quantity: Number(form.quantity),
+      materialName: prod?.name,
+      productId: form.productId,
+      quantity: Number(form.quantity || 0),
     })
     setOpen(false)
     setForm({ type: 'material', exceptionAuth: false })
@@ -146,6 +151,15 @@ export default function PurchasesPage() {
                       size="sm"
                       onClick={() => {
                         updatePurchaseStatus(p.id, 'liberado')
+                        if (p.type === 'material' && p.productId) {
+                          addMovement({
+                            type: 'entrada',
+                            origin: 'compra',
+                            product_id: p.productId,
+                            quantity: p.quantity!,
+                            destination_location: 'central',
+                          })
+                        }
                         toast({
                           title: 'Recurso Liberado',
                           description: 'Estoque ou custos operacionais foram atualizados.',
@@ -279,11 +293,22 @@ export default function PurchasesPage() {
             {form.type === 'material' && (
               <div className="grid grid-cols-2 gap-4 bg-secondary/50 p-3 rounded-md border border-border">
                 <div className="space-y-2">
-                  <Label>Nome do Material</Label>
-                  <Input
-                    value={form.materialName || ''}
-                    onChange={(e) => setForm({ ...form, materialName: e.target.value })}
-                  />
+                  <Label>Produto</Label>
+                  <Select
+                    value={form.productId}
+                    onValueChange={(v) => setForm({ ...form, productId: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {products.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Quantidade</Label>

@@ -1,4 +1,5 @@
 import FinanceNav from '@/components/admin/finance/FinanceNav'
+import useInventoryStore from '@/stores/useInventoryStore'
 import useFinanceStore from '@/stores/useFinanceStore'
 import {
   Table,
@@ -11,20 +12,26 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function InventoryPage() {
-  const { inventory, purchases } = useFinanceStore()
+  const { products, balances } = useInventoryStore()
+  const { purchases } = useFinanceStore()
 
-  const analysisData = inventory.map((item) => {
+  const analysisData = products.map((item) => {
+    const totalQty = balances
+      .filter((b) => b.product_id === item.id)
+      .reduce((sum, b) => sum + b.quantity, 0)
     const purchasedQty = purchases
-      .filter((p) => p.type === 'material' && p.materialName === item.materialName)
+      .filter((p) => p.type === 'material' && p.productId === item.id)
       .reduce((sum, p) => sum + (p.quantity || 0), 0)
-    const utilizedQty = purchasedQty - item.quantity
+
+    const utilizedQty = purchasedQty - totalQty
     const lossQty = utilizedQty > 0 ? Math.ceil(utilizedQty * 0.05) : 0 // mock 5% loss/deviation
     return {
       ...item,
+      totalQty,
       purchasedQty,
       utilizedQty,
       lossQty,
-      lossValue: lossQty * item.unitCost,
+      lossValue: lossQty * item.average_cost,
     }
   })
 
@@ -32,9 +39,9 @@ export default function InventoryPage() {
     <div className="space-y-6 animate-fade-in">
       <FinanceNav />
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Estoque & Análise</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Estoque & Análise (Visão Financeira)</h2>
         <p className="text-sm text-muted-foreground">
-          Posição de materiais, desvios e custos unitários atualizados automaticamente.
+          Custos, desvios e valores totais mantidos em estoque.
         </p>
       </div>
 
@@ -49,30 +56,30 @@ export default function InventoryPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Material</TableHead>
-                  <TableHead className="text-right">Qtd Disponível</TableHead>
-                  <TableHead className="text-right">Custo Unitário</TableHead>
+                  <TableHead className="text-right">Qtd Disponível (Global)</TableHead>
+                  <TableHead className="text-right">Custo Unitário (Médio)</TableHead>
                   <TableHead className="text-right">Custo Total</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {inventory.map((item) => (
+                {analysisData.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-semibold">{item.materialName}</TableCell>
+                    <TableCell className="font-semibold">{item.name}</TableCell>
                     <TableCell className="text-right font-mono font-medium">
-                      {item.quantity}
+                      {item.totalQty}
                     </TableCell>
                     <TableCell className="text-right font-mono text-muted-foreground">
-                      R$ {item.unitCost.toFixed(2)}
+                      R$ {item.average_cost.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-mono">
-                      R$ {item.totalCost.toFixed(2)}
+                      R$ {(item.totalQty * item.average_cost).toFixed(2)}
                     </TableCell>
                   </TableRow>
                 ))}
-                {inventory.length === 0 && (
+                {analysisData.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                      Nenhum material no estoque.
+                      Nenhum material cadastrado.
                     </TableCell>
                   </TableRow>
                 )}
@@ -96,7 +103,7 @@ export default function InventoryPage() {
               <TableBody>
                 {analysisData.map((item) => (
                   <TableRow key={item.id}>
-                    <TableCell className="font-semibold">{item.materialName}</TableCell>
+                    <TableCell className="font-semibold">{item.name}</TableCell>
                     <TableCell className="text-right font-mono">{item.purchasedQty}</TableCell>
                     <TableCell className="text-right font-mono text-primary">
                       {item.utilizedQty}

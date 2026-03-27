@@ -7,6 +7,7 @@ import { AppProvider } from './stores/useAppStore'
 import { FinanceProvider } from './stores/useFinanceStore'
 import { NotificationProvider } from './stores/useNotificationStore'
 import { FleetProvider } from './stores/useFleetStore'
+import { InventoryProvider } from './stores/useInventoryStore'
 
 // Pages
 import Index from './pages/Index'
@@ -15,7 +16,6 @@ import ContractsMaintenance from './pages/admin/ContractsMaintenance'
 import ContractsWorks from './pages/admin/ContractsWorks'
 import MapPage from './pages/admin/MapPage'
 import AuditPage from './pages/admin/AuditPage'
-import InventoryPage from './pages/admin/InventoryPage'
 import SettingsPage from './pages/admin/SettingsPage'
 import NotFound from './pages/NotFound'
 
@@ -27,6 +27,7 @@ import CostsPage from './pages/admin/finance/CostsPage'
 import DREPage from './pages/admin/finance/DREPage'
 import CashFlowPage from './pages/admin/finance/CashFlowPage'
 import TechFinancePage from './pages/admin/finance/TechFinancePage'
+import FinanceInventoryPage from './pages/admin/finance/InventoryPage'
 
 import FleetDashboard from './pages/admin/fleet/FleetDashboard'
 import VehiclesPage from './pages/admin/fleet/VehiclesPage'
@@ -36,6 +37,14 @@ import MaintenancePage from './pages/admin/fleet/MaintenancePage'
 import RefuelingPage from './pages/admin/fleet/RefuelingPage'
 import FleetHistoryPage from './pages/admin/fleet/FleetHistoryPage'
 
+import InventoryDashboard from './pages/admin/inventory/InventoryDashboard'
+import ProductsPage from './pages/admin/inventory/ProductsPage'
+import CentralWarehousePage from './pages/admin/inventory/CentralWarehousePage'
+import VehicleStockPage from './pages/admin/inventory/VehicleStockPage'
+import MovementsPage from './pages/admin/inventory/MovementsPage'
+import RequisitionsPage from './pages/admin/inventory/RequisitionsPage'
+import PhysicalInventoryPage from './pages/admin/inventory/PhysicalInventoryPage'
+
 import TechQueue from './pages/tech/TechQueue'
 import TechExecution from './pages/tech/TechExecution'
 
@@ -44,65 +53,76 @@ const App = () => (
     <NotificationProvider>
       <FinanceProvider>
         <FleetProvider>
-          <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <Routes>
-                <Route element={<Layout />}>
-                  {/* Admin Routes */}
-                  <Route path="/" element={<Index />} />
-                  <Route path="/ordens" element={<WorkOrders />} />
-                  <Route path="/contratos/manutencao" element={<ContractsMaintenance />} />
-                  <Route path="/contratos/obras" element={<ContractsWorks />} />
-                  <Route path="/mapa" element={<MapPage />} />
-                  <Route path="/auditoria" element={<AuditPage />} />
-                  <Route path="/configs" element={<SettingsPage />} />
+          <InventoryProvider>
+            <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <Routes>
+                  <Route element={<Layout />}>
+                    {/* Admin Routes */}
+                    <Route path="/" element={<Index />} />
+                    <Route path="/ordens" element={<WorkOrders />} />
+                    <Route path="/contratos/manutencao" element={<ContractsMaintenance />} />
+                    <Route path="/contratos/obras" element={<ContractsWorks />} />
+                    <Route path="/mapa" element={<MapPage />} />
+                    <Route path="/auditoria" element={<AuditPage />} />
+                    <Route path="/configs" element={<SettingsPage />} />
 
-                  {/* Financeiro */}
-                  <Route path="/financeiro/dashboard" element={<FinanceDashboard />} />
-                  <Route path="/financeiro/contrato/:id" element={<ContractFinanceDetail />} />
-                  <Route path="/financeiro/receitas" element={<RevenuesPage />} />
-                  <Route path="/financeiro/compras" element={<PurchasesPage />} />
-                  <Route path="/financeiro/custos" element={<CostsPage />} />
-                  <Route path="/financeiro/estoque" element={<InventoryPage />} />
-                  <Route path="/financeiro/dre" element={<DREPage />} />
-                  <Route path="/financeiro/fluxo-caixa" element={<CashFlowPage />} />
-                  <Route path="/financeiro/tecnicos" element={<TechFinancePage />} />
+                    {/* Estoque */}
+                    <Route path="/estoque/dashboard" element={<InventoryDashboard />} />
+                    <Route path="/estoque/produtos" element={<ProductsPage />} />
+                    <Route path="/estoque/almoxarifado" element={<CentralWarehousePage />} />
+                    <Route path="/estoque/veiculos" element={<VehicleStockPage />} />
+                    <Route path="/estoque/movimentacoes" element={<MovementsPage />} />
+                    <Route path="/estoque/requisicoes" element={<RequisitionsPage />} />
+                    <Route path="/estoque/inventario" element={<PhysicalInventoryPage />} />
 
-                  {/* Frotas */}
-                  <Route path="/frotas/dashboard" element={<FleetDashboard />} />
-                  <Route path="/veiculos" element={<VehiclesPage />} />
-                  <Route path="/veiculos/:id" element={<VehicleDetailPage />} />
-                  <Route path="/frotas/motoristas" element={<DriversPage />} />
-                  <Route path="/frotas/manutencoes" element={<MaintenancePage />} />
-                  <Route path="/frotas/abastecimentos" element={<RefuelingPage />} />
-                  <Route path="/frotas/historico" element={<FleetHistoryPage />} />
+                    {/* Financeiro */}
+                    <Route path="/financeiro/dashboard" element={<FinanceDashboard />} />
+                    <Route path="/financeiro/contrato/:id" element={<ContractFinanceDetail />} />
+                    <Route path="/financeiro/receitas" element={<RevenuesPage />} />
+                    <Route path="/financeiro/compras" element={<PurchasesPage />} />
+                    <Route path="/financeiro/custos" element={<CostsPage />} />
+                    <Route path="/financeiro/estoque" element={<FinanceInventoryPage />} />
+                    <Route path="/financeiro/dre" element={<DREPage />} />
+                    <Route path="/financeiro/fluxo-caixa" element={<CashFlowPage />} />
+                    <Route path="/financeiro/tecnicos" element={<TechFinancePage />} />
 
-                  {/* Tech Routes */}
-                  <Route path="/tech" element={<TechQueue />} />
-                  <Route path="/tech/execucao/:id" element={<TechExecution />} />
-                  <Route
-                    path="/tech/rotas"
-                    element={
-                      <div className="p-8 text-center text-muted-foreground mt-20">
-                        Mapa de Rotas Mobile
-                      </div>
-                    }
-                  />
-                  <Route
-                    path="/tech/perfil"
-                    element={
-                      <div className="p-8 text-center text-muted-foreground mt-20">
-                        Perfil do Técnico
-                      </div>
-                    }
-                  />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </TooltipProvider>
-          </BrowserRouter>
+                    {/* Frotas */}
+                    <Route path="/frotas/dashboard" element={<FleetDashboard />} />
+                    <Route path="/veiculos" element={<VehiclesPage />} />
+                    <Route path="/veiculos/:id" element={<VehicleDetailPage />} />
+                    <Route path="/frotas/motoristas" element={<DriversPage />} />
+                    <Route path="/frotas/manutencoes" element={<MaintenancePage />} />
+                    <Route path="/frotas/abastecimentos" element={<RefuelingPage />} />
+                    <Route path="/frotas/historico" element={<FleetHistoryPage />} />
+
+                    {/* Tech Routes */}
+                    <Route path="/tech" element={<TechQueue />} />
+                    <Route path="/tech/execucao/:id" element={<TechExecution />} />
+                    <Route
+                      path="/tech/rotas"
+                      element={
+                        <div className="p-8 text-center text-muted-foreground mt-20">
+                          Mapa de Rotas Mobile
+                        </div>
+                      }
+                    />
+                    <Route
+                      path="/tech/perfil"
+                      element={
+                        <div className="p-8 text-center text-muted-foreground mt-20">
+                          Perfil do Técnico
+                        </div>
+                      }
+                    />
+                  </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </TooltipProvider>
+            </BrowserRouter>
+          </InventoryProvider>
         </FleetProvider>
       </FinanceProvider>
     </NotificationProvider>

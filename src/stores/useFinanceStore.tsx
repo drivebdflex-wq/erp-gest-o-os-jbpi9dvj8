@@ -19,6 +19,7 @@ export interface Purchase {
   date: string
   invoiceUrl?: string
   materialName?: string
+  productId?: string
   quantity?: number
   status: 'solicitado' | 'aprovado' | 'reprovado' | 'liberado'
 }
@@ -40,19 +41,10 @@ export interface Cost {
   origin?: 'compra' | 'os' | 'manual'
 }
 
-export interface InventoryItem {
-  id: string
-  materialName: string
-  quantity: number
-  unitCost: number
-  totalCost: number
-}
-
 interface FinanceState {
   revenues: Revenue[]
   purchases: Purchase[]
   costs: Cost[]
-  inventory: InventoryItem[]
   addRevenue: (r: Omit<Revenue, 'id'>) => void
   addPurchase: (p: Omit<Purchase, 'id' | 'status'>) => void
   updatePurchaseStatus: (
@@ -60,7 +52,6 @@ interface FinanceState {
     status: 'solicitado' | 'aprovado' | 'reprovado' | 'liberado',
   ) => void
   addCost: (c: Omit<Cost, 'id'>) => void
-  consumeMaterial: (inventoryId: string, quantity: number, contractId: string, osId: string) => void
 }
 
 const FinanceContext = createContext<FinanceState | undefined>(undefined)
@@ -131,6 +122,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       value: 300,
       date: dPast1,
       materialName: 'Cabo UTP Cat6',
+      productId: 'p1',
       quantity: 100,
       status: 'liberado',
     },
@@ -142,6 +134,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       value: 1500,
       date: dPast2,
       materialName: 'Roteador Wi-Fi',
+      productId: 'p3',
       quantity: 15,
       status: 'liberado',
     },
@@ -152,7 +145,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       type: 'material',
       value: 5000,
       date: d0,
-      materialName: 'Brocas e Discos',
+      materialName: 'Conector RJ45',
+      productId: 'p2',
       quantity: 50,
       status: 'solicitado',
     },
@@ -204,21 +198,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       description: 'Cabos e conectores',
       origin: 'os',
     },
-    {
-      id: 'c6',
-      contractId: '77777777-7777-7777-7777-777777777777',
-      category: 'mão de obra',
-      value: 5000,
-      date: dFut1,
-      description: 'Salários previstos',
-      origin: 'manual',
-    },
-  ])
-
-  const [inventory, setInventory] = useState<InventoryItem[]>([
-    { id: 'i1', materialName: 'Cabo UTP Cat6', quantity: 100, unitCost: 3, totalCost: 300 },
-    { id: 'i2', materialName: 'Conector RJ45', quantity: 500, unitCost: 1, totalCost: 500 },
-    { id: 'i3', materialName: 'Roteador Wi-Fi', quantity: 15, unitCost: 100, totalCost: 1500 },
   ])
 
   const addRevenue = useCallback((r: Omit<Revenue, 'id'>) => {
@@ -240,35 +219,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         const p = prev.find((x) => x.id === id)
         if (!p) return prev
 
-        // If transitioning to 'liberado', we inject the cost and inventory
         if (status === 'liberado' && p.status !== 'liberado') {
-          if (p.type === 'material' && p.materialName && p.quantity) {
-            const unitCost = p.value / p.quantity
-            setInventory((invPrev) => {
-              const existing = invPrev.find((i) => i.materialName === p.materialName)
-              if (existing) {
-                const newQty = existing.quantity + p.quantity!
-                const newTotalCost = existing.totalCost + p.value
-                const newUnitCost = newTotalCost / newQty
-                return invPrev.map((i) =>
-                  i.id === existing.id
-                    ? { ...i, quantity: newQty, totalCost: newTotalCost, unitCost: newUnitCost }
-                    : i,
-                )
-              } else {
-                return [
-                  ...invPrev,
-                  {
-                    id: Math.random().toString(),
-                    materialName: p.materialName!,
-                    quantity: p.quantity!,
-                    unitCost,
-                    totalCost: p.value,
-                  },
-                ]
-              }
-            })
-          } else if (p.type === 'serviço') {
+          if (p.type === 'serviço') {
             addCost({
               contractId: p.contractId,
               category: 'terceirizado',
@@ -286,51 +238,16 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     [addCost],
   )
 
-  const consumeMaterial = useCallback(
-    (inventoryId: string, quantity: number, contractId: string, osId: string) => {
-      const item = inventory.find((i) => i.id === inventoryId)
-      if (!item) throw new Error('Material não encontrado no estoque')
-      if (item.quantity < quantity)
-        throw new Error(`Estoque insuficiente. Disponível: ${item.quantity}`)
-
-      const costValue = quantity * item.unitCost
-
-      addCost({
-        contractId,
-        category: 'material_os',
-        value: costValue,
-        date: new Date().toISOString().split('T')[0],
-        description: `Consumo OS ${osId.split('-')[0]}: ${quantity}x ${item.materialName}`,
-        origin: 'os',
-      })
-
-      setInventory((prev) =>
-        prev.map((i) =>
-          i.id === inventoryId
-            ? {
-                ...i,
-                quantity: i.quantity - quantity,
-                totalCost: i.totalCost - costValue,
-              }
-            : i,
-        ),
-      )
-    },
-    [inventory, addCost],
-  )
-
   return (
     <FinanceContext.Provider
       value={{
         revenues,
         purchases,
         costs,
-        inventory,
         addRevenue,
         addPurchase,
         updatePurchaseStatus,
         addCost,
-        consumeMaterial,
       }}
     >
       {children}

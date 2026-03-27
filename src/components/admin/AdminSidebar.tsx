@@ -8,6 +8,7 @@ import {
   Settings,
   Handshake,
   ChevronRight,
+  Box,
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import {
@@ -40,6 +41,19 @@ const navItems = [
   { title: 'Mapa e Rotas', url: '/mapa', icon: MapIcon },
   { title: 'Auditoria', url: '/auditoria', icon: UserCheck },
   {
+    title: 'Estoque',
+    icon: Box,
+    subItems: [
+      { title: 'Dashboard', url: '/estoque/dashboard' },
+      { title: 'Produtos', url: '/estoque/produtos' },
+      { title: 'Almoxarifado Central', url: '/estoque/almoxarifado' },
+      { title: 'Estoque por Veículo', url: '/estoque/veiculos' },
+      { title: 'Movimentações', url: '/estoque/movimentacoes' },
+      { title: 'Requisições', url: '/estoque/requisicoes' },
+      { title: 'Inventário Físico', url: '/estoque/inventario' },
+    ],
+  },
+  {
     title: 'Financeiro',
     icon: DollarSign,
     subItems: [
@@ -47,7 +61,7 @@ const navItems = [
       { title: 'Receitas', url: '/financeiro/receitas' },
       { title: 'Compras', url: '/financeiro/compras' },
       { title: 'Custos', url: '/financeiro/custos' },
-      { title: 'Estoque', url: '/financeiro/estoque' },
+      { title: 'Estoque e Análise', url: '/financeiro/estoque' },
     ],
   },
   {

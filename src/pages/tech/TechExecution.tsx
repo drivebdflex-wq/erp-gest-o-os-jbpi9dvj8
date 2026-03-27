@@ -14,6 +14,7 @@ import {
 import { PhotosRepository } from '@/services/repositories/auxiliary.repository'
 import { ChecklistsService } from '@/services/business/checklists.service'
 import { CheckCircle2, Play, Camera, PenTool, ClipboardList, Box, Check } from 'lucide-react'
+import useInventoryStore from '@/stores/useInventoryStore'
 import useFinanceStore from '@/stores/useFinanceStore'
 import {
   Select,
@@ -30,7 +31,9 @@ export default function TechExecution() {
   const navigate = useNavigate()
   const { toast } = useToast()
 
-  const { inventory, consumeMaterial } = useFinanceStore()
+  const { products, balances, consumeForOS } = useInventoryStore()
+  const { addCost } = useFinanceStore()
+
   const [selectedMaterial, setSelectedMaterial] = useState<string>('')
   const [consumeQty, setConsumeQty] = useState<number>(1)
 
@@ -127,7 +130,18 @@ export default function TechExecution() {
       return
     }
     try {
-      consumeMaterial(selectedMaterial, consumeQty, order.contract_id, order.id)
+      consumeForOS(selectedMaterial, consumeQty, order.vehicle_id || undefined)
+
+      const prod = products.find((p) => p.id === selectedMaterial)
+      addCost({
+        contractId: order.contract_id,
+        category: 'material_os',
+        value: (prod?.average_cost || 0) * consumeQty,
+        date: new Date().toISOString().split('T')[0],
+        description: `Consumo OS ${order.id.split('-')[0]}: ${consumeQty}x ${prod?.name}`,
+        origin: 'os',
+      })
+
       toast({
         title: 'Material Consumido',
         description: 'Estoque atualizado e custo gerado no contrato.',
@@ -141,6 +155,10 @@ export default function TechExecution() {
 
   if (loading) return <div className="p-8 text-center">Carregando...</div>
   if (!order) return null
+
+  const availableProducts = products.filter((p) =>
+    balances.some((b) => b.product_id === p.id && b.quantity > 0),
+  )
 
   return (
     <div className="container max-w-4xl mx-auto p-4 space-y-6 animate-fade-in-up pb-20">
@@ -316,14 +334,23 @@ export default function TechExecution() {
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {inventory
-                        .filter((i) => i.quantity > 0)
-                        .map((i) => (
-                          <SelectItem key={i.id} value={i.id}>
-                            {i.materialName} ({i.quantity} disp.)
+                      {availableProducts.map((p) => {
+                        const vBal =
+                          balances.find(
+                            (b) => b.product_id === p.id && b.location_id === order.vehicle_id,
+                          )?.quantity || 0
+                        const cBal =
+                          balances.find(
+                            (b) => b.product_id === p.id && b.location_type === 'central',
+                          )?.quantity || 0
+                        const total = vBal + cBal
+                        return (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name} ({total} disp. - V:{vBal} C:{cBal})
                           </SelectItem>
-                        ))}
-                      {inventory.filter((i) => i.quantity > 0).length === 0 && (
+                        )
+                      })}
+                      {availableProducts.length === 0 && (
                         <SelectItem value="none" disabled>
                           Estoque vazio
                         </SelectItem>
@@ -345,8 +372,8 @@ export default function TechExecution() {
                 </Button>
               </div>
               <div className="text-xs text-muted-foreground mt-4 border-t pt-4">
-                * O consumo de material desconta automaticamente a quantidade no estoque financeiro
-                e apropria o custo da peça no contrato atual desta OS.
+                * O sistema tentará baixar primeiro o estoque do seu veículo, e caso falte, buscará
+                do almoxarifado central.
               </div>
             </CardContent>
           </Card>
