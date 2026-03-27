@@ -6,6 +6,7 @@ import Layout from './components/Layout'
 import { AppProvider } from './stores/useAppStore'
 import { FinanceProvider } from './stores/useFinanceStore'
 import { NotificationProvider } from './stores/useNotificationStore'
+import { FleetProvider } from './stores/useFleetStore'
 
 // Pages
 import Index from './pages/Index'
@@ -27,6 +28,14 @@ import DREPage from './pages/admin/finance/DREPage'
 import CashFlowPage from './pages/admin/finance/CashFlowPage'
 import TechFinancePage from './pages/admin/finance/TechFinancePage'
 
+import FleetDashboard from './pages/admin/fleet/FleetDashboard'
+import VehiclesPage from './pages/admin/fleet/VehiclesPage'
+import VehicleDetailPage from './pages/admin/fleet/VehicleDetailPage'
+import DriversPage from './pages/admin/fleet/DriversPage'
+import MaintenancePage from './pages/admin/fleet/MaintenancePage'
+import RefuelingPage from './pages/admin/fleet/RefuelingPage'
+import FleetHistoryPage from './pages/admin/fleet/FleetHistoryPage'
+
 import TechQueue from './pages/tech/TechQueue'
 import TechExecution from './pages/tech/TechExecution'
 
@@ -34,65 +43,67 @@ const App = () => (
   <AppProvider>
     <NotificationProvider>
       <FinanceProvider>
-        <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              <Route element={<Layout />}>
-                {/* Admin Routes */}
-                <Route path="/" element={<Index />} />
-                <Route path="/ordens" element={<WorkOrders />} />
-                <Route path="/contratos/manutencao" element={<ContractsMaintenance />} />
-                <Route path="/contratos/obras" element={<ContractsWorks />} />
-                <Route path="/mapa" element={<MapPage />} />
-                <Route path="/auditoria" element={<AuditPage />} />
-                <Route path="/configs" element={<SettingsPage />} />
+        <FleetProvider>
+          <BrowserRouter future={{ v7_startTransition: false, v7_relativeSplatPath: false }}>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                <Route element={<Layout />}>
+                  {/* Admin Routes */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/ordens" element={<WorkOrders />} />
+                  <Route path="/contratos/manutencao" element={<ContractsMaintenance />} />
+                  <Route path="/contratos/obras" element={<ContractsWorks />} />
+                  <Route path="/mapa" element={<MapPage />} />
+                  <Route path="/auditoria" element={<AuditPage />} />
+                  <Route path="/configs" element={<SettingsPage />} />
 
-                {/* Financeiro */}
-                <Route path="/financeiro/dashboard" element={<FinanceDashboard />} />
-                <Route path="/financeiro/contrato/:id" element={<ContractFinanceDetail />} />
-                <Route path="/financeiro/receitas" element={<RevenuesPage />} />
-                <Route path="/financeiro/compras" element={<PurchasesPage />} />
-                <Route path="/financeiro/custos" element={<CostsPage />} />
-                <Route path="/financeiro/estoque" element={<InventoryPage />} />
-                <Route path="/financeiro/dre" element={<DREPage />} />
-                <Route path="/financeiro/fluxo-caixa" element={<CashFlowPage />} />
-                <Route path="/financeiro/tecnicos" element={<TechFinancePage />} />
+                  {/* Financeiro */}
+                  <Route path="/financeiro/dashboard" element={<FinanceDashboard />} />
+                  <Route path="/financeiro/contrato/:id" element={<ContractFinanceDetail />} />
+                  <Route path="/financeiro/receitas" element={<RevenuesPage />} />
+                  <Route path="/financeiro/compras" element={<PurchasesPage />} />
+                  <Route path="/financeiro/custos" element={<CostsPage />} />
+                  <Route path="/financeiro/estoque" element={<InventoryPage />} />
+                  <Route path="/financeiro/dre" element={<DREPage />} />
+                  <Route path="/financeiro/fluxo-caixa" element={<CashFlowPage />} />
+                  <Route path="/financeiro/tecnicos" element={<TechFinancePage />} />
 
-                <Route
-                  path="/veiculos"
-                  element={
-                    <div className="p-8 text-center text-muted-foreground">
-                      Módulo de Veículos em Desenvolvimento
-                    </div>
-                  }
-                />
+                  {/* Frotas */}
+                  <Route path="/frotas/dashboard" element={<FleetDashboard />} />
+                  <Route path="/frotas/veiculos" element={<VehiclesPage />} />
+                  <Route path="/frotas/veiculos/:id" element={<VehicleDetailPage />} />
+                  <Route path="/frotas/motoristas" element={<DriversPage />} />
+                  <Route path="/frotas/manutencoes" element={<MaintenancePage />} />
+                  <Route path="/frotas/abastecimentos" element={<RefuelingPage />} />
+                  <Route path="/frotas/historico" element={<FleetHistoryPage />} />
 
-                {/* Tech Routes */}
-                <Route path="/tech" element={<TechQueue />} />
-                <Route path="/tech/execucao/:id" element={<TechExecution />} />
-                <Route
-                  path="/tech/rotas"
-                  element={
-                    <div className="p-8 text-center text-muted-foreground mt-20">
-                      Mapa de Rotas Mobile
-                    </div>
-                  }
-                />
-                <Route
-                  path="/tech/perfil"
-                  element={
-                    <div className="p-8 text-center text-muted-foreground mt-20">
-                      Perfil do Técnico
-                    </div>
-                  }
-                />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </TooltipProvider>
-        </BrowserRouter>
+                  {/* Tech Routes */}
+                  <Route path="/tech" element={<TechQueue />} />
+                  <Route path="/tech/execucao/:id" element={<TechExecution />} />
+                  <Route
+                    path="/tech/rotas"
+                    element={
+                      <div className="p-8 text-center text-muted-foreground mt-20">
+                        Mapa de Rotas Mobile
+                      </div>
+                    }
+                  />
+                  <Route
+                    path="/tech/perfil"
+                    element={
+                      <div className="p-8 text-center text-muted-foreground mt-20">
+                        Perfil do Técnico
+                      </div>
+                    }
+                  />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </TooltipProvider>
+          </BrowserRouter>
+        </FleetProvider>
       </FinanceProvider>
     </NotificationProvider>
   </AppProvider>

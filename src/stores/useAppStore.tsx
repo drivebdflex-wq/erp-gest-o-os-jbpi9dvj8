@@ -96,6 +96,7 @@ export interface Order {
   client: string
   contractId?: string
   contractName?: string
+  vehicleId?: string
   status: OSStatus
   dbStatus: string
   priority: OSPriority
@@ -211,6 +212,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           client,
           contractId: contract?.id,
           contractName: contract?.name,
+          vehicleId: o.vehicle_id,
           status: STATUS_MAP[o.status] || 'Pendente',
           dbStatus: o.status,
           priority: PRIORITY_MAP[o.priority] || 'Média',

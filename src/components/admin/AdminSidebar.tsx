@@ -50,7 +50,18 @@ const navItems = [
       { title: 'Estoque', url: '/financeiro/estoque' },
     ],
   },
-  { title: 'Veículos', url: '/veiculos', icon: Truck },
+  {
+    title: 'Frotas',
+    icon: Truck,
+    subItems: [
+      { title: 'Dashboard', url: '/frotas/dashboard' },
+      { title: 'Veículos', url: '/frotas/veiculos' },
+      { title: 'Motoristas', url: '/frotas/motoristas' },
+      { title: 'Manutenções', url: '/frotas/manutencoes' },
+      { title: 'Abastecimentos', url: '/frotas/abastecimentos' },
+      { title: 'Histórico', url: '/frotas/historico' },
+    ],
+  },
   { title: 'Configurações', url: '/configs', icon: Settings },
 ]
 

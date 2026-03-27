@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import useAppStore from '@/stores/useAppStore'
+import useFleetStore from '@/stores/useFleetStore'
 import { toast } from '@/hooks/use-toast'
 
 export default function CreateOrderDialog({
@@ -27,6 +28,7 @@ export default function CreateOrderDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const { clients, contracts, createOrder } = useAppStore()
+  const { vehicles } = useFleetStore()
   const [formData, setFormData] = useState<any>({ priority: 'Média', status: 'Pendente' })
 
   const handleSave = async () => {
@@ -39,6 +41,7 @@ export default function CreateOrderDialog({
         description: formData.description,
         client_id: formData.clientId,
         contract_id: formData.contractId,
+        vehicle_id: formData.vehicleId,
         priority:
           formData.priority === 'Média' ? 'medium' : formData.priority === 'Alta' ? 'high' : 'low',
       })
@@ -125,6 +128,27 @@ export default function CreateOrderDialog({
                   <SelectItem value="Baixa">Baixa</SelectItem>
                   <SelectItem value="Média">Média</SelectItem>
                   <SelectItem value="Alta">Alta</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Veículo (Opcional)</Label>
+              <Select
+                value={formData.vehicleId || 'none'}
+                onValueChange={(v) =>
+                  setFormData({ ...formData, vehicleId: v === 'none' ? undefined : v })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Nenhum" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {vehicles.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.plate} - {v.model}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

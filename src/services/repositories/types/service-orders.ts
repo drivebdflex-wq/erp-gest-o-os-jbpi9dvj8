@@ -5,6 +5,7 @@ export interface ServiceOrder extends Timestamps {
   client_id: ID
   contract_id?: ID | null
   technician_id?: ID | null
+  vehicle_id?: ID | null
   status: ServiceOrderStatus
   priority: ServiceOrderPriority
   description?: string
@@ -25,6 +26,7 @@ export interface CreateServiceOrderDTO {
   client_id: ID
   contract_id?: ID | null
   technician_id?: ID | null
+  vehicle_id?: ID | null
   status?: ServiceOrderStatus
   priority?: ServiceOrderPriority
   description?: string
