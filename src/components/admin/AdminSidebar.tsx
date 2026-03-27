@@ -9,6 +9,7 @@ import {
   Handshake,
   ChevronRight,
   Box,
+  Users,
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import {
@@ -30,6 +31,19 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Ordens de Serviço', url: '/ordens', icon: ClipboardList },
+  {
+    title: 'Operacional',
+    icon: Users,
+    subItems: [
+      { title: 'Dashboard Operacional', url: '/operacional/dashboard' },
+      { title: 'Técnicos', url: '/operacional/tecnicos' },
+      { title: 'Equipes', url: '/operacional/equipes' },
+      { title: 'Indicadores', url: '/operacional/indicadores' },
+      { title: 'Eventos / Disciplina', url: '/operacional/eventos' },
+      { title: 'Feedback & PDI', url: '/operacional/feedback' },
+      { title: 'Histórico', url: '/operacional/historico' },
+    ],
+  },
   {
     title: 'Contratos',
     icon: Handshake,
