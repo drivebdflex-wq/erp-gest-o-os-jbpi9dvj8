@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import useAppStore, { Order } from '@/stores/useAppStore'
 import useOperationalStore, { OpTeam } from '@/stores/useOperationalStore'
 import { Badge } from '@/components/ui/badge'
-import { Clock, CalendarIcon, LayoutTemplate, CalendarDays, CalendarRange } from 'lucide-react'
+import { Clock, CalendarIcon, LayoutTemplate, CalendarDays, CalendarRange, X } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import {
@@ -173,10 +173,25 @@ export default function OperationalAgendaPage() {
         team_id: teamId,
         technician_id: null,
         scheduled_at: dropDate.toISOString(),
+        status: 'scheduled',
       })
       toast({ title: 'OS escalada com sucesso' })
     } catch {
       toast({ title: 'Erro ao escalar OS', variant: 'destructive' })
+    }
+  }
+
+  const handleUnassign = async (id: string) => {
+    try {
+      await updateOrder(id, {
+        team_id: null,
+        technician_id: null,
+        scheduled_at: null,
+        status: 'pending',
+      })
+      toast({ title: 'OS Desvinculada', description: 'A OS retornou para a fila pendente.' })
+    } catch {
+      toast({ title: 'Erro ao desvincular', variant: 'destructive' })
     }
   }
 
@@ -373,9 +388,7 @@ export default function OperationalAgendaPage() {
               e.preventDefault()
               const id = e.dataTransfer.getData('orderId')
               if (id) {
-                await updateOrder(id, { team_id: null, technician_id: null }).catch(() =>
-                  toast({ title: 'Erro', variant: 'destructive' }),
-                )
+                await handleUnassign(id)
               }
             }}
           >
@@ -474,7 +487,7 @@ export default function OperationalAgendaPage() {
                           }}
                           onDragEnd={() => setDraggedOrder(null)}
                           className={cn(
-                            'absolute top-2 bottom-2 rounded-md border shadow-sm p-1.5 text-xs overflow-hidden flex flex-col transition-all hover:shadow-md cursor-grab active:cursor-grabbing min-w-[12px]',
+                            'group/card absolute top-2 bottom-2 rounded-md border shadow-sm p-1.5 text-xs overflow-hidden flex flex-col transition-all hover:shadow-md cursor-grab active:cursor-grabbing min-w-[12px]',
                             isConflict
                               ? 'bg-destructive/20 border-destructive text-destructive dark:text-red-400 ring-2 ring-destructive ring-offset-1 animate-pulse'
                               : getStatusStyles(o),
@@ -486,14 +499,14 @@ export default function OperationalAgendaPage() {
                             width: `${widthPct}%`,
                           }}
                         >
-                          <div className="font-bold truncate select-none">{o.shortId}</div>
+                          <div className="font-bold truncate select-none pr-4">{o.shortId}</div>
                           {widthPct > 5 && (
-                            <div className="truncate opacity-90 select-none hidden md:block">
+                            <div className="truncate opacity-90 select-none hidden md:block pr-4">
                               {o.title}
                             </div>
                           )}
                           {widthPct > 10 && (
-                            <div className="text-[10px] mt-auto font-medium select-none truncate">
+                            <div className="text-[10px] mt-auto font-medium select-none truncate pr-4">
                               {format(
                                 new Date(o.scheduledAt),
                                 view === 'daily' ? 'HH:mm' : 'dd/MM HH:mm',
@@ -505,6 +518,18 @@ export default function OperationalAgendaPage() {
                               )}
                             </div>
                           )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              handleUnassign(o.id)
+                            }}
+                            className="absolute top-1 right-1 opacity-0 group-hover/card:opacity-100 p-0.5 rounded-full bg-background/80 text-foreground hover:bg-destructive hover:text-destructive-foreground transition-all z-20"
+                            title="Desvincular e retornar à fila"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
                           <div
                             className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize flex items-center justify-center group/handle"
                             onPointerDown={(e) => {

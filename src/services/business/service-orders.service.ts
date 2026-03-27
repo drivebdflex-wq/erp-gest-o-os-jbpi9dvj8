@@ -14,8 +14,8 @@ import type { ServiceOrder, CreateServiceOrderDTO } from '../repositories/types/
 const VALID_TRANSITIONS: Record<ServiceOrderStatus, ServiceOrderStatus[]> = {
   draft: ['pending'],
   pending: ['scheduled', 'cancelled'],
-  scheduled: ['deslocamento', 'cancelled'],
-  deslocamento: ['in_progress', 'cancelled'],
+  scheduled: ['deslocamento', 'cancelled', 'pending'],
+  deslocamento: ['in_progress', 'cancelled', 'pending'],
   in_progress: ['paused', 'in_audit', 'cancelled'],
   paused: ['in_progress', 'cancelled'],
   in_audit: ['completed', 'rejected'],
@@ -49,11 +49,6 @@ export class ServiceOrdersService {
 
   static async create(data: CreateServiceOrderDTO, userId: string = 'system') {
     if (!data.client_id) throw new BusinessError('client_id is mandatory')
-    if (!data.technician_id && !data.team_id) {
-      throw new BusinessError(
-        'A responsible party (technician or team) is required to create an OS',
-      )
-    }
     const created = await ServiceOrdersRepository.create(data as any)
     await AuditsRepository.create({
       table_name: 'service_orders',
@@ -68,15 +63,6 @@ export class ServiceOrdersService {
   static async update(orderId: string, updates: Partial<ServiceOrder>, userId: string = 'system') {
     const order = await ServiceOrdersRepository.findById(orderId)
     if (!order) throw new BusinessError('Service order not found')
-
-    if (
-      'technician_id' in updates &&
-      'team_id' in updates &&
-      !updates.technician_id &&
-      !updates.team_id
-    ) {
-      throw new BusinessError('A responsible party (technician or team) is required')
-    }
 
     const updated = await ServiceOrdersRepository.update(orderId, updates)
     await AuditsRepository.create({

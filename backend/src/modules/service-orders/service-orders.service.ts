@@ -66,8 +66,8 @@ export class ServiceOrdersService {
     const validTransitions: Record<string, string[]> = {
       draft: ['pending'],
       pending: ['scheduled', 'cancelled'],
-      scheduled: ['deslocamento', 'cancelled'],
-      deslocamento: ['in_progress', 'cancelled'],
+      scheduled: ['deslocamento', 'cancelled', 'pending'],
+      deslocamento: ['in_progress', 'cancelled', 'pending'],
       in_progress: ['paused', 'in_audit', 'cancelled'],
       paused: ['in_progress', 'cancelled'],
       in_audit: ['completed', 'rejected'],
