@@ -27,13 +27,23 @@ import {
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import useAuthStore, { Permission } from '@/stores/useAuthStore'
 
-const navItems = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-  { title: 'Ordens de Serviço', url: '/ordens', icon: ClipboardList },
+type NavItem = {
+  title: string
+  url?: string
+  icon: any
+  permission?: Permission
+  subItems?: { title: string; url: string }[]
+}
+
+const navItems: NavItem[] = [
+  { title: 'Dashboard', url: '/', icon: LayoutDashboard, permission: 'view_dashboard' },
+  { title: 'Ordens de Serviço', url: '/ordens', icon: ClipboardList, permission: 'view_dashboard' },
   {
     title: 'Operacional',
     icon: Users,
+    permission: 'view_operational',
     subItems: [
       { title: 'Dashboard Operacional', url: '/operacional/dashboard' },
       { title: 'Painel do Supervisor', url: '/operacional/painel' },
@@ -49,16 +59,18 @@ const navItems = [
   {
     title: 'Contratos',
     icon: Handshake,
+    permission: 'manage_contracts',
     subItems: [
       { title: 'Manutenção', url: '/contratos/manutencao' },
       { title: 'Obras', url: '/contratos/obras' },
     ],
   },
-  { title: 'Mapa e Rotas', url: '/mapa', icon: MapIcon },
-  { title: 'Auditoria', url: '/auditoria', icon: UserCheck },
+  { title: 'Mapa e Rotas', url: '/mapa', icon: MapIcon, permission: 'view_operational' },
+  { title: 'Auditoria', url: '/auditoria', icon: UserCheck, permission: 'edit_service_order' },
   {
     title: 'Estoque',
     icon: Box,
+    permission: 'manage_stock',
     subItems: [
       { title: 'Dashboard', url: '/estoque/dashboard' },
       { title: 'Produtos', url: '/estoque/produtos' },
@@ -72,17 +84,22 @@ const navItems = [
   {
     title: 'Financeiro',
     icon: DollarSign,
+    permission: 'view_financial',
     subItems: [
       { title: 'Dashboard', url: '/financeiro/dashboard' },
       { title: 'Receitas', url: '/financeiro/receitas' },
       { title: 'Compras', url: '/financeiro/compras' },
       { title: 'Custos', url: '/financeiro/custos' },
       { title: 'Estoque e Análise', url: '/financeiro/estoque' },
+      { title: 'DRE', url: '/financeiro/dre' },
+      { title: 'Fluxo de Caixa', url: '/financeiro/fluxo-caixa' },
+      { title: 'Custo de Técnicos', url: '/financeiro/tecnicos' },
     ],
   },
   {
     title: 'Frotas',
     icon: Truck,
+    permission: 'manage_fleet',
     subItems: [
       { title: 'Dashboard', url: '/frotas/dashboard' },
       { title: 'Veículos', url: '/veiculos' },
@@ -92,17 +109,22 @@ const navItems = [
       { title: 'Histórico', url: '/frotas/historico' },
     ],
   },
-  { title: 'Configurações', url: '/configs', icon: Settings },
+  { title: 'Configurações', url: '/configs', icon: Settings, permission: 'manage_users' },
 ]
 
 export default function AdminSidebar() {
   const location = useLocation()
+  const { hasPermission } = useAuthStore()
+
+  const filteredNavItems = navItems.filter(
+    (item) => !item.permission || hasPermission(item.permission),
+  )
 
   return (
     <Sidebar variant="sidebar" className="border-r shadow-sm">
       <SidebarHeader className="flex items-center justify-center py-6">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
             <ClipboardList className="h-5 w-5" />
           </div>
           <span className="text-xl font-bold tracking-tight text-sidebar-foreground">
@@ -115,7 +137,7 @@ export default function AdminSidebar() {
           <SidebarGroupLabel>Menu Principal</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) =>
+              {filteredNavItems.map((item) =>
                 item.subItems ? (
                   <Collapsible key={item.title} defaultOpen className="group/collapsible">
                     <SidebarMenuItem>

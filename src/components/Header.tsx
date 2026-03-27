@@ -1,13 +1,13 @@
 import {
   Bell,
   Search,
-  LayoutDashboard,
-  Smartphone,
   CheckCheck,
   Clock,
   AlertCircle,
   Info,
   AlertTriangle,
+  LogOut,
+  User as UserIcon,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -23,31 +23,29 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import useAppStore from '@/stores/useAppStore'
+import useAuthStore from '@/stores/useAuthStore'
 import useNotificationStore from '@/stores/useNotificationStore'
 import { useNavigate } from 'react-router-dom'
-import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 
 export default function Header() {
-  const { role, setRole } = useAppStore()
+  const { currentUser, roles, logout } = useAuthStore()
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotificationStore()
   const navigate = useNavigate()
 
-  const handleRoleSwitch = (newRole: 'admin' | 'tech') => {
-    setRole(newRole)
-    navigate(newRole === 'admin' ? '/' : '/tech')
-    toast({
-      title: 'Perfil Alterado',
-      description: `Visão alterada para ${newRole === 'admin' ? 'Gestão' : 'Técnico'}.`,
-    })
+  const roleName = roles.find((r) => r.id === currentUser?.role_id)?.name || 'Usuário'
+  const isTech = currentUser?.role_id === 'role-tecnico'
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
   }
 
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-background px-4 shadow-sm">
       <div className="flex items-center gap-4">
-        {role === 'admin' && <SidebarTrigger />}
-        {role === 'admin' && (
+        {!isTech && <SidebarTrigger />}
+        {!isTech && (
           <div className="hidden md:flex relative w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -57,7 +55,7 @@ export default function Header() {
             />
           </div>
         )}
-        {role === 'tech' && <h1 className="text-lg font-bold text-primary">FieldOps Mobile</h1>}
+        {isTech && <h1 className="text-lg font-bold text-primary">FieldOps Mobile</h1>}
       </div>
 
       <div className="flex items-center gap-4">
@@ -83,7 +81,7 @@ export default function Header() {
                   onClick={markAllAsRead}
                 >
                   <CheckCheck className="mr-1.5 h-3.5 w-3.5" />
-                  Marcar todas como lidas
+                  Marcar todas lidas
                 </Button>
               )}
             </div>
@@ -145,43 +143,31 @@ export default function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar className="h-8 w-8">
+              <Avatar className="h-8 w-8 border bg-secondary">
                 <AvatarImage
-                  src="https://img.usecurling.com/ppl/thumbnail?gender=male&seed=4"
+                  src={`https://img.usecurling.com/ppl/thumbnail?seed=${currentUser?.id}`}
                   alt="@user"
                 />
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarFallback>
+                  <UserIcon className="h-4 w-4" />
+                </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  {role === 'admin' ? 'Gestor Master' : 'Carlos Silva'}
-                </p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {role === 'admin' ? 'admin@fieldops.com' : 'Técnico Sênior'}
-                </p>
+                <p className="text-sm font-medium leading-none truncate">{currentUser?.name}</p>
+                <p className="text-xs leading-none text-muted-foreground truncate">{roleName}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-muted-foreground uppercase">
-              Alternar Visão (Teste)
-            </DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => handleRoleSwitch('admin')}
-              className={role === 'admin' ? 'bg-secondary' : ''}
+              onClick={handleLogout}
+              className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
             >
-              <LayoutDashboard className="mr-2 h-4 w-4" />
-              <span>Painel de Gestão</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => handleRoleSwitch('tech')}
-              className={role === 'tech' ? 'bg-secondary' : ''}
-            >
-              <Smartphone className="mr-2 h-4 w-4" />
-              <span>App do Técnico</span>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Sair do sistema</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

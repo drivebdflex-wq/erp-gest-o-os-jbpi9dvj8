@@ -29,9 +29,12 @@ import OrderKanban from '@/components/admin/OrderKanban'
 import CreateOrderDialog from '@/components/admin/CreateOrderDialog'
 import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog'
 import useAppStore, { Order, Contract } from '@/stores/useAppStore'
+import useAuthStore from '@/stores/useAuthStore'
 
 export default function WorkOrders() {
   const { contracts, orders } = useAppStore()
+  const { hasPermission } = useAuthStore()
+  const canCreateOS = hasPermission('create_service_order')
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null)
   const [view, setView] = useState('list')
   const [createOpen, setCreateOpen] = useState(false)
@@ -180,9 +183,11 @@ export default function WorkOrders() {
             </p>
           </div>
         </div>
-        <Button onClick={() => setCreateOpen(true)} className="w-full md:w-auto">
-          <Plus className="mr-2 h-4 w-4" /> Nova OS
-        </Button>
+        {canCreateOS && (
+          <Button onClick={() => setCreateOpen(true)} className="w-full md:w-auto">
+            <Plus className="mr-2 h-4 w-4" /> Nova OS
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-3 bg-card p-4 rounded-lg border shadow-sm items-center">
@@ -329,11 +334,13 @@ export default function WorkOrders() {
         )}
       </div>
 
-      <CreateOrderDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        defaultContractId={contract.id}
-      />
+      {canCreateOS && (
+        <CreateOrderDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          defaultContractId={contract.id}
+        />
+      )}
       <OrderDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen} order={selectedOrder} />
     </div>
   )

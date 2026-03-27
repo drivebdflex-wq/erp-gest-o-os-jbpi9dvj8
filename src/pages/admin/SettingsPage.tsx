@@ -1,8 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, Building2, Clock, Key, ListChecks, Mail } from 'lucide-react'
+import { Users, Building2, Clock, Key, ListChecks, Mail, ShieldCheck } from 'lucide-react'
 
 // Settings Components
 import UsersSettings from '@/components/admin/settings/UsersSettings'
+import RolesSettings from '@/components/admin/settings/RolesSettings'
 import CompanySettings from '@/components/admin/settings/CompanySettings'
 import SLASettings from '@/components/admin/settings/SLASettings'
 import IntegrationSettings from '@/components/admin/settings/IntegrationSettings'
@@ -15,7 +16,7 @@ export default function SettingsPage() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Configurações do Sistema</h2>
         <p className="text-sm text-muted-foreground">
-          Gerencie usuários, políticas de SLA, integrações, templates e relatórios.
+          Gerencie usuários, permissões, políticas de SLA, integrações e templates.
         </p>
       </div>
 
@@ -26,6 +27,12 @@ export default function SettingsPage() {
             className="justify-start gap-2 px-4 py-2 w-full data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md"
           >
             <Users className="h-4 w-4" /> Usuários
+          </TabsTrigger>
+          <TabsTrigger
+            value="roles"
+            className="justify-start gap-2 px-4 py-2 w-full data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md"
+          >
+            <ShieldCheck className="h-4 w-4" /> Permissões
           </TabsTrigger>
           <TabsTrigger
             value="company"
@@ -62,6 +69,9 @@ export default function SettingsPage() {
         <div className="flex-1 overflow-y-auto pb-8">
           <TabsContent value="users" className="m-0 border-none p-0 outline-none">
             <UsersSettings />
+          </TabsContent>
+          <TabsContent value="roles" className="m-0 border-none p-0 outline-none">
+            <RolesSettings />
           </TabsContent>
           <TabsContent value="company" className="m-0 border-none p-0 outline-none">
             <CompanySettings />

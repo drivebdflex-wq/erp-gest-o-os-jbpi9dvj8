@@ -1,14 +1,19 @@
-import { Outlet } from 'react-router-dom'
-import useAppStore from '@/stores/useAppStore'
+import { Outlet, Navigate } from 'react-router-dom'
+import useAuthStore from '@/stores/useAuthStore'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import AdminSidebar from './admin/AdminSidebar'
 import Header from './Header'
 import TechBottomNav from './tech/TechBottomNav'
 
 export default function Layout() {
-  const { role } = useAppStore()
+  const { currentUser } = useAuthStore()
 
-  if (role === 'tech') {
+  if (!currentUser) {
+    return <Navigate to="/login" replace />
+  }
+
+  // Se for especificamente do papel "Técnico", injeta o layout mobile amigável
+  if (currentUser.role_id === 'role-tecnico') {
     return (
       <div className="min-h-screen bg-secondary/30 flex items-center justify-center p-0 sm:p-4 animate-fade-in">
         <div className="tech-mobile-container">
@@ -22,6 +27,7 @@ export default function Layout() {
     )
   }
 
+  // Layout Administrativo / Padrão
   return (
     <SidebarProvider defaultOpen>
       <div className="flex min-h-screen w-full bg-background animate-fade-in">

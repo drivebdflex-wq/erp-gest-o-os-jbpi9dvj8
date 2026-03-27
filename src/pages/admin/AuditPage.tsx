@@ -3,13 +3,26 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, XCircle, Camera } from 'lucide-react'
 import useAppStore from '@/stores/useAppStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { toast } from '@/hooks/use-toast'
 
 export default function AuditPage() {
   const { orders, updateOrderStatus } = useAppStore()
+  const { hasPermission } = useAuthStore()
+  const canAudit = hasPermission('edit_service_order')
+
   const auditOrders = orders.filter((o) => o.status === 'Em Auditoria')
 
   const handleAudit = async (id: string, approve: boolean) => {
+    if (!canAudit) {
+      toast({
+        title: 'Ação Restrita',
+        description: 'Você não tem permissão para auditar O.S.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
       await updateOrderStatus(id, approve ? 'Finalizada' : 'Reprovada')
       toast({
@@ -68,21 +81,23 @@ export default function AuditPage() {
                 <span className="font-semibold text-foreground">Checklist:</span> 100% Preenchido
               </p>
             </CardContent>
-            <CardFooter className="flex justify-between gap-2 pt-0">
-              <Button
-                variant="outline"
-                className="w-full border-destructive text-destructive hover:bg-destructive/10"
-                onClick={() => handleAudit(order.id, false)}
-              >
-                <XCircle className="w-4 h-4 mr-2" /> Reprovar
-              </Button>
-              <Button
-                className="w-full bg-success hover:bg-success/90"
-                onClick={() => handleAudit(order.id, true)}
-              >
-                <CheckCircle className="w-4 h-4 mr-2" /> Aprovar
-              </Button>
-            </CardFooter>
+            {canAudit && (
+              <CardFooter className="flex justify-between gap-2 pt-0">
+                <Button
+                  variant="outline"
+                  className="w-full border-destructive text-destructive hover:bg-destructive/10"
+                  onClick={() => handleAudit(order.id, false)}
+                >
+                  <XCircle className="w-4 h-4 mr-2" /> Reprovar
+                </Button>
+                <Button
+                  className="w-full bg-success hover:bg-success/90"
+                  onClick={() => handleAudit(order.id, true)}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" /> Aprovar
+                </Button>
+              </CardFooter>
+            )}
           </Card>
         ))}
         {auditOrders.length === 0 && (
