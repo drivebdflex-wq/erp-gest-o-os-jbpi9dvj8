@@ -1,12 +1,18 @@
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || ''
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 
-export const isMock = !SUPABASE_URL || !SUPABASE_KEY
+// Security check: Secret keys are forbidden in client-side bundles.
+// If a secret key is detected, fallback to mock data to prevent runtime blocks.
+const isSecretKey =
+  SUPABASE_KEY.toLowerCase().includes('secret') ||
+  SUPABASE_KEY.toLowerCase().includes('service_role')
+
+export const isMock = !SUPABASE_URL || !SUPABASE_KEY || isSecretKey
 
 export const supabase = {
   async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     if (isMock) {
-      throw new Error('Supabase not configured, use mock data fallback')
+      throw new Error('Supabase not configured securely, using mock data fallback')
     }
     const headers = {
       apikey: SUPABASE_KEY,
