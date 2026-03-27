@@ -58,7 +58,7 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
             <TableRow>
               <TableHead className="w-[100px]">ID</TableHead>
               <TableHead>Título</TableHead>
-              <TableHead>Contrato/Cliente</TableHead>
+              <TableHead>Contrato / Agência</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>Data / Prazo</TableHead>
               <TableHead>Técnico</TableHead>
@@ -80,7 +80,12 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
                   <div className="font-medium text-xs text-primary">
                     {order.contractName || 'Sem Contrato'}
                   </div>
-                  <div className="text-muted-foreground text-xs">{order.client}</div>
+                  <div className="text-muted-foreground text-[10px] truncate max-w-[150px]">
+                    {order.client}
+                  </div>
+                  <div className="text-muted-foreground text-[10px] font-mono mt-0.5">
+                    {order.unit}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge

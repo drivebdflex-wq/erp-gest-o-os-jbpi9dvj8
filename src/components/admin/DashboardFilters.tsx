@@ -18,7 +18,7 @@ export default function DashboardFilters() {
   }, [orders])
 
   return (
-    <div className="bg-card p-4 rounded-lg border shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 items-center animate-fade-in w-full">
+    <div className="bg-card p-4 rounded-lg border shadow-sm grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 items-center animate-fade-in w-full">
       <div className="flex items-center gap-2 text-muted-foreground mr-2 col-span-1 sm:col-span-2 md:col-span-1">
         <Filter className="w-4 h-4" />
         <span className="text-sm font-medium">Filtros Operacionais:</span>
@@ -59,6 +59,20 @@ export default function DashboardFilters() {
                 {c.name}
               </SelectItem>
             ))}
+        </SelectContent>
+      </Select>
+
+      <Select value={filters.unit || 'all'} onValueChange={(v) => setDashboardFilter('unit', v)}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Agência / Unidade" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Todas as Unidades</SelectItem>
+          {units.filter(Boolean).map((u) => (
+            <SelectItem key={u} value={u}>
+              {u}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 

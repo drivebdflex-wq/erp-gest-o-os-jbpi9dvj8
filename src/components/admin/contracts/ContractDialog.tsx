@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Plus, Settings, X } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -31,9 +32,12 @@ import useAppStore from '@/stores/useAppStore'
 import { toast } from '@/hooks/use-toast'
 
 export default function ContractDialog({ open, onOpenChange, contract, type }: any) {
-  const { clients, saveContract, priceItems } = useAppStore()
+  const { clients, saveContract, priceItems, contractUnits, saveContractUnit, deleteContractUnit } =
+    useAppStore()
   const [formData, setFormData] = useState<any>({})
   const [showPriceTable, setShowPriceTable] = useState(false)
+  const [showUnitForm, setShowUnitForm] = useState(false)
+  const [unitFormData, setUnitFormData] = useState<any>({})
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -59,6 +63,7 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
         priceItems: [],
       })
     }
+    setShowUnitForm(false)
   }, [contract, open, type, priceItems])
 
   const handleSave = async () => {
@@ -66,6 +71,51 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
       await saveContract(formData)
       toast({ title: 'Sucesso', description: 'Contrato salvo com sucesso.' })
       onOpenChange(false)
+    } catch (e: any) {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
+  const handleEditUnit = (u: any) => {
+    setUnitFormData(u)
+    setShowUnitForm(true)
+  }
+
+  const handleSaveUnit = async () => {
+    if (
+      !unitFormData.prefix ||
+      !unitFormData.name ||
+      !unitFormData.address ||
+      !unitFormData.city ||
+      !unitFormData.state ||
+      !unitFormData.responsibleName
+    ) {
+      toast({
+        title: 'Aviso',
+        description: 'Preencha todos os campos obrigatórios da agência.',
+        variant: 'destructive',
+      })
+      return
+    }
+    const isDuplicate = contractUnits.some(
+      (u) =>
+        u.contractId === formData.id &&
+        u.prefix === unitFormData.prefix &&
+        u.id !== unitFormData.id,
+    )
+    if (isDuplicate) {
+      toast({
+        title: 'Aviso',
+        description: 'Já existe uma agência com este prefixo neste contrato.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      await saveContractUnit({ ...unitFormData, contractId: formData.id })
+      toast({ title: 'Sucesso', description: 'Agência salva com sucesso.' })
+      setShowUnitForm(false)
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
     }
@@ -142,6 +192,7 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
           <Tabs defaultValue="geral">
             <TabsList className="flex flex-wrap h-auto w-full justify-start text-xs bg-muted/50 p-1 rounded-md mb-4 gap-1">
               <TabsTrigger value="geral">Geral</TabsTrigger>
+              <TabsTrigger value="agencias">Agências</TabsTrigger>
               <TabsTrigger value="finance">Financeiro</TabsTrigger>
               <TabsTrigger value="precos">Preços</TabsTrigger>
               <TabsTrigger value="ops">Operacional</TabsTrigger>
@@ -185,7 +236,7 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
                   </Select>
                 </div>
                 <div className="space-y-2 col-span-2 sm:col-span-1">
-                  <Label>Unidade / Local</Label>
+                  <Label>Unidade / Local (Sede)</Label>
                   <Input
                     value={formData.location || ''}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
@@ -208,6 +259,155 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
                   />
                 </div>
               </div>
+            </TabsContent>
+
+            <TabsContent value="agencias" className="space-y-4 py-4">
+              {!formData.id ? (
+                <div className="text-center py-8 text-muted-foreground border rounded-md bg-muted/10">
+                  Salve o contrato primeiro para adicionar e gerenciar agências.
+                </div>
+              ) : showUnitForm ? (
+                <div className="space-y-4 border rounded-md p-4 bg-muted/20">
+                  <h3 className="font-semibold text-lg">
+                    {unitFormData.id ? 'Editar Agência' : 'Nova Agência'}
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Prefixo / Código *</Label>
+                      <Input
+                        value={unitFormData.prefix || ''}
+                        onChange={(e) =>
+                          setUnitFormData({ ...unitFormData, prefix: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nome da Agência *</Label>
+                      <Input
+                        value={unitFormData.name || ''}
+                        onChange={(e) => setUnitFormData({ ...unitFormData, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label>Endereço Completo *</Label>
+                      <Input
+                        value={unitFormData.address || ''}
+                        onChange={(e) =>
+                          setUnitFormData({ ...unitFormData, address: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Cidade *</Label>
+                      <Input
+                        value={unitFormData.city || ''}
+                        onChange={(e) => setUnitFormData({ ...unitFormData, city: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Estado (UF) *</Label>
+                      <Input
+                        value={unitFormData.state || ''}
+                        onChange={(e) =>
+                          setUnitFormData({ ...unitFormData, state: e.target.value.toUpperCase() })
+                        }
+                        maxLength={2}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nome do Responsável *</Label>
+                      <Input
+                        value={unitFormData.responsibleName || ''}
+                        onChange={(e) =>
+                          setUnitFormData({ ...unitFormData, responsibleName: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Telefone do Responsável</Label>
+                      <Input
+                        value={unitFormData.responsiblePhone || ''}
+                        onChange={(e) =>
+                          setUnitFormData({ ...unitFormData, responsiblePhone: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-2">
+                    <Button variant="outline" onClick={() => setShowUnitForm(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleSaveUnit}>Salvar Agência</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <Label>Unidades Cadastradas</Label>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setUnitFormData({})
+                        setShowUnitForm(true)
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-2" /> Nova Agência
+                    </Button>
+                  </div>
+                  <div className="border rounded-md">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Prefixo</TableHead>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Cidade/UF</TableHead>
+                          <TableHead className="text-right">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {contractUnits
+                          .filter((u: any) => u.contractId === formData.id)
+                          .map((u: any) => (
+                            <TableRow key={u.id}>
+                              <TableCell className="font-mono text-xs">{u.prefix}</TableCell>
+                              <TableCell className="font-medium text-sm">{u.name}</TableCell>
+                              <TableCell className="text-sm text-muted-foreground">
+                                {u.city}/{u.state}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditUnit(u)}
+                                >
+                                  <Settings className="w-4 h-4 text-muted-foreground" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => deleteContractUnit(u.id)}
+                                >
+                                  <X className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        {contractUnits.filter((u: any) => u.contractId === formData.id).length ===
+                          0 && (
+                          <TableRow>
+                            <TableCell
+                              colSpan={4}
+                              className="text-center text-muted-foreground py-8"
+                            >
+                              Nenhuma agência cadastrada neste contrato.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="finance" className="space-y-4 py-4">
@@ -495,7 +695,7 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSave}>Salvar</Button>
+            <Button onClick={handleSave}>Salvar Contrato</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

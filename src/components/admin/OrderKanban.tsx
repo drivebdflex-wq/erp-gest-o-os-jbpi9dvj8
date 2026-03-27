@@ -76,8 +76,11 @@ export default function OrderKanban({ orders: propOrders, onCardClick }: OrderKa
                         {order.title}
                       </p>
                       <div className="flex justify-between items-center text-xs text-muted-foreground mt-3">
-                        <span className="truncate max-w-[120px]">{order.client}</span>
-                        <span className="flex items-center gap-1">
+                        <div className="flex flex-col truncate max-w-[150px]">
+                          <span className="truncate">{order.client}</span>
+                          <span className="truncate text-[10px] text-primary">{order.unit}</span>
+                        </div>
+                        <span className="flex items-center gap-1 shrink-0">
                           <div className="w-2 h-2 rounded-full bg-primary/40" />
                           {order.tech.split(' ')[0]}
                         </span>

@@ -11,6 +11,7 @@ export interface ServiceOrder extends Timestamps {
   id: ID
   client_id: ID
   contract_id?: ID | null
+  unit_id?: ID | null
   technician_id?: ID | null
   team_id?: ID | null
   vehicle_id?: ID | null
@@ -38,6 +39,7 @@ export interface ServiceOrder extends Timestamps {
 export interface CreateServiceOrderDTO {
   client_id: ID
   contract_id?: ID | null
+  unit_id: ID
   technician_id?: ID | null
   team_id?: ID | null
   vehicle_id?: ID | null

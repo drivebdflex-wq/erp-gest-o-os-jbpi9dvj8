@@ -32,7 +32,7 @@ import useAppStore, { Order, Contract } from '@/stores/useAppStore'
 import useAuthStore from '@/stores/useAuthStore'
 
 export default function WorkOrders() {
-  const { contracts, orders } = useAppStore()
+  const { contracts, orders, contractUnits } = useAppStore()
   const { hasPermission } = useAuthStore()
   const canCreateOS = hasPermission('create_service_order')
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null)
@@ -47,6 +47,7 @@ export default function WorkOrders() {
   const [serviceTypeFilter, setServiceTypeFilter] = useState('all')
   const [techFilter, setTechFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
+  const [unitFilter, setUnitFilter] = useState('all')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
@@ -143,7 +144,9 @@ export default function WorkOrders() {
     if (
       search &&
       !o.title.toLowerCase().includes(search.toLowerCase()) &&
-      !o.shortId.toLowerCase().includes(search.toLowerCase())
+      !o.shortId.toLowerCase().includes(search.toLowerCase()) &&
+      !(o.unitPrefix || '').toLowerCase().includes(search.toLowerCase()) &&
+      !(o.unitName || '').toLowerCase().includes(search.toLowerCase())
     )
       return false
     if (statusFilter !== 'all' && o.status !== statusFilter) return false
@@ -151,10 +154,10 @@ export default function WorkOrders() {
     if (techFilter !== 'all' && o.technicianId !== techFilter && o.teamId !== techFilter)
       return false
     if (priorityFilter !== 'all' && o.priority !== priorityFilter) return false
+    if (unitFilter !== 'all' && o.unitId !== unitFilter) return false
 
     const oDate = new Date(o.date).getTime()
     if (dateFrom && oDate < new Date(dateFrom).getTime()) return false
-    // add 86400000 to include the entire "dateTo" day
     if (dateTo && oDate > new Date(dateTo).getTime() + 86400000) return false
 
     return true
@@ -168,6 +171,8 @@ export default function WorkOrders() {
         .map((o) => [o.technicianId || o.teamId, { id: o.technicianId || o.teamId, name: o.tech }]),
     ).values(),
   )
+
+  const availableUnits = contractUnits.filter((u) => u.contractId === selectedContractId)
 
   return (
     <div className="space-y-6 h-full flex flex-col animate-fade-in pb-10">
@@ -198,12 +203,25 @@ export default function WorkOrders() {
         <div className="flex-1 min-w-[150px] relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar OS..."
+            placeholder="Buscar OS ou Agência..."
             className="pl-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <Select value={unitFilter} onValueChange={setUnitFilter}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Agência" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as Agências</SelectItem>
+            {availableUnits.map((u) => (
+              <SelectItem key={u.id} value={u.id}>
+                [{u.prefix}] {u.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[120px]">
             <SelectValue placeholder="Status" />
@@ -242,17 +260,6 @@ export default function WorkOrders() {
                 {t.name}
               </SelectItem>
             ))}
-          </SelectContent>
-        </Select>
-        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-          <SelectTrigger className="w-[110px]">
-            <SelectValue placeholder="Prioridade" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            <SelectItem value="Baixa">Baixa</SelectItem>
-            <SelectItem value="Média">Média</SelectItem>
-            <SelectItem value="Alta">Alta</SelectItem>
           </SelectContent>
         </Select>
 

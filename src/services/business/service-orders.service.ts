@@ -49,6 +49,11 @@ export class ServiceOrdersService {
 
   static async create(data: CreateServiceOrderDTO, userId: string = 'system') {
     if (!data.client_id) throw new BusinessError('client_id is mandatory')
+    if (!data.unit_id)
+      throw new BusinessError(
+        'unit_id is mandatory. Service Order must be associated with an agency.',
+      )
+
     const created = await ServiceOrdersRepository.create(data as any)
     await AuditsRepository.create({
       table_name: 'service_orders',

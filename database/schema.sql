@@ -4,72 +4,12 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- ENUMS
 -- ==========================================
 
-DO $$ BEGIN
-    CREATE TYPE service_order_status AS ENUM (
-        'draft',
-        'pending',
-        'scheduled',
-        'deslocamento',
-        'in_progress',
-        'paused',
-        'in_audit',
-        'completed',
-        'rejected',
-        'cancelled'
-    );
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
-    ALTER TYPE service_order_status ADD VALUE IF NOT EXISTS 'deslocamento';
-EXCEPTION
-    WHEN OTHERS THEN null;
-END $$;
-
-DO $$ BEGIN
-    CREATE TYPE service_order_priority AS ENUM (
-        'low',
-        'medium',
-        'high',
-        'urgent'
-    );
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
-    CREATE TYPE service_order_service_type AS ENUM (
-        'eletrica',
-        'hidraulica',
-        'civil',
-        'serralheria',
-        'marmoraria',
-        'marcenaria'
-    );
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
-    CREATE TYPE sla_status AS ENUM (
-        'within_sla',
-        'warning',
-        'breached'
-    );
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-
-DO $$ BEGIN
-    CREATE TYPE checklist_status AS ENUM (
-        'pending',
-        'in_progress',
-        'completed'
-    );
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
+DO $ BEGIN CREATE TYPE service_order_status AS ENUM ('draft', 'pending', 'scheduled', 'deslocamento', 'in_progress', 'paused', 'in_audit', 'completed', 'rejected', 'cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN ALTER TYPE service_order_status ADD VALUE IF NOT EXISTS 'deslocamento'; EXCEPTION WHEN OTHERS THEN null; END $;
+DO $ BEGIN CREATE TYPE service_order_priority AS ENUM ('low', 'medium', 'high', 'urgent'); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TYPE service_order_service_type AS ENUM ('eletrica', 'hidraulica', 'civil', 'serralheria', 'marmoraria', 'marcenaria'); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TYPE sla_status AS ENUM ('within_sla', 'warning', 'breached'); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TYPE checklist_status AS ENUM ('pending', 'in_progress', 'completed'); EXCEPTION WHEN duplicate_object THEN null; END $;
 
 -- ==========================================
 -- 1. CORE ACCESS CONTROL
@@ -162,6 +102,21 @@ CREATE TABLE IF NOT EXISTS contracts (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS contract_units (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    contract_id UUID NOT NULL REFERENCES contracts(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    prefix VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    address TEXT NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(2) NOT NULL,
+    responsible_name VARCHAR(255) NOT NULL,
+    responsible_phone VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(contract_id, prefix)
+);
+
 CREATE TABLE IF NOT EXISTS contract_price_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     contract_id UUID NOT NULL REFERENCES contracts(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -181,6 +136,7 @@ CREATE TABLE IF NOT EXISTS service_orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     client_id UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE ON UPDATE CASCADE,
     contract_id UUID REFERENCES contracts(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    unit_id UUID REFERENCES contract_units(id) ON DELETE RESTRICT ON UPDATE CASCADE,
     technician_id UUID REFERENCES technicians(id) ON DELETE SET NULL ON UPDATE CASCADE,
     status service_order_status NOT NULL DEFAULT 'pending',
     priority service_order_priority NOT NULL DEFAULT 'medium',
@@ -337,40 +293,41 @@ CREATE TABLE IF NOT EXISTS logs (
 -- ==========================================
 
 CREATE OR REPLACE FUNCTION trigger_set_timestamp()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $
 BEGIN
   NEW.updated_at = CURRENT_TIMESTAMP;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
-DO $$ BEGIN CREATE TRIGGER set_timestamp_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_roles BEFORE UPDATE ON roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_user_roles BEFORE UPDATE ON user_roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_teams BEFORE UPDATE ON teams FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_technicians BEFORE UPDATE ON technicians FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_clients BEFORE UPDATE ON clients FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_contracts BEFORE UPDATE ON contracts FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_contract_price_items BEFORE UPDATE ON contract_price_items FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_service_orders BEFORE UPDATE ON service_orders FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_materials BEFORE UPDATE ON materials FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_inventory BEFORE UPDATE ON inventory FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_service_order_materials BEFORE UPDATE ON service_order_materials FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_vehicles BEFORE UPDATE ON vehicles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_checklists BEFORE UPDATE ON checklists FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_checklist_items BEFORE UPDATE ON checklist_items FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_service_order_checklists BEFORE UPDATE ON service_order_checklists FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_checklist_responses BEFORE UPDATE ON checklist_responses FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_photos BEFORE UPDATE ON photos FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_audits BEFORE UPDATE ON audits FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE TRIGGER set_timestamp_logs BEFORE UPDATE ON logs FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $ BEGIN CREATE TRIGGER set_timestamp_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_roles BEFORE UPDATE ON roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_user_roles BEFORE UPDATE ON user_roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_teams BEFORE UPDATE ON teams FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_technicians BEFORE UPDATE ON technicians FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_clients BEFORE UPDATE ON clients FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_contracts BEFORE UPDATE ON contracts FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_contract_units BEFORE UPDATE ON contract_units FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_contract_price_items BEFORE UPDATE ON contract_price_items FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_service_orders BEFORE UPDATE ON service_orders FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_materials BEFORE UPDATE ON materials FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_inventory BEFORE UPDATE ON inventory FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_service_order_materials BEFORE UPDATE ON service_order_materials FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_vehicles BEFORE UPDATE ON vehicles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_checklists BEFORE UPDATE ON checklists FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_checklist_items BEFORE UPDATE ON checklist_items FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_service_order_checklists BEFORE UPDATE ON service_order_checklists FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_checklist_responses BEFORE UPDATE ON checklist_responses FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_photos BEFORE UPDATE ON photos FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_audits BEFORE UPDATE ON audits FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_logs BEFORE UPDATE ON logs FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
 
 -- ==========================================
 -- AUDIT TRIGGER FOR SERVICE ORDERS
 -- ==========================================
 
 CREATE OR REPLACE FUNCTION audit_service_order_status_change()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $
 BEGIN
   IF OLD.status IS DISTINCT FROM NEW.status THEN
     INSERT INTO audits (table_name, record_id, action, old_value, new_value)
@@ -384,14 +341,14 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
-DO $$ BEGIN
+DO $ BEGIN
     CREATE TRIGGER audit_service_order_status
     AFTER UPDATE ON service_orders
     FOR EACH ROW
     EXECUTE FUNCTION audit_service_order_status_change();
-EXCEPTION WHEN duplicate_object THEN null; END $$;
+EXCEPTION WHEN duplicate_object THEN null; END $;
 
 -- ==========================================
 -- INDEXING STRATEGY
@@ -403,9 +360,11 @@ CREATE INDEX IF NOT EXISTS idx_teams_supervisor_id ON teams(supervisor_id);
 CREATE INDEX IF NOT EXISTS idx_technicians_user_id ON technicians(user_id);
 CREATE INDEX IF NOT EXISTS idx_technicians_team_id ON technicians(team_id);
 CREATE INDEX IF NOT EXISTS idx_contracts_client_id ON contracts(client_id);
+CREATE INDEX IF NOT EXISTS idx_contract_units_contract_id ON contract_units(contract_id);
 CREATE INDEX IF NOT EXISTS idx_contract_price_items_contract_id ON contract_price_items(contract_id);
 CREATE INDEX IF NOT EXISTS idx_service_orders_client_id ON service_orders(client_id);
 CREATE INDEX IF NOT EXISTS idx_service_orders_contract_id ON service_orders(contract_id);
+CREATE INDEX IF NOT EXISTS idx_service_orders_unit_id ON service_orders(unit_id);
 CREATE INDEX IF NOT EXISTS idx_service_orders_technician_id ON service_orders(technician_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_material_id ON inventory(material_id);
 CREATE INDEX IF NOT EXISTS idx_so_materials_so_id ON service_order_materials(service_order_id);
@@ -443,6 +402,10 @@ INSERT INTO contracts (id, client_id, name, type, contract_number, location, sta
 VALUES ('77777777-7777-7777-7777-777777777777', '33333333-3333-3333-3333-333333333333', 'Manutenção Predial Alpha', 'Manutenção', 'CT-2023-001', 'Sede Principal', '2023-01-01', CURRENT_DATE + INTERVAL '15 days', 15000)
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO contract_units (id, contract_id, prefix, name, address, city, state, responsible_name, responsible_phone)
+VALUES ('88888888-8888-8888-8888-888888888888', '77777777-7777-7777-7777-777777777777', '001', 'Agência Centro', 'Rua Principal, 100', 'São Paulo', 'SP', 'João Silva', '11999999999')
+ON CONFLICT (contract_id, prefix) DO NOTHING;
+
 INSERT INTO contract_price_items (contract_id, service_code, service_name, unit_price)
 VALUES 
 ('77777777-7777-7777-7777-777777777777', '001', 'Troca de lâmpada', 50.00),
@@ -453,11 +416,12 @@ INSERT INTO technicians (id, user_id, specialty)
 VALUES ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'General Maintenance')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO service_orders (id, client_id, contract_id, technician_id, status, priority, service_type, description, scheduled_at, deadline_at, sla_status, latitude, longitude, estimated_duration_minutes)
+INSERT INTO service_orders (id, client_id, contract_id, unit_id, technician_id, status, priority, service_type, description, scheduled_at, deadline_at, sla_status, latitude, longitude, estimated_duration_minutes)
 VALUES (
     '55555555-5555-5555-5555-555555555555', 
     '33333333-3333-3333-3333-333333333333', 
     '77777777-7777-7777-7777-777777777777',
+    '88888888-8888-8888-8888-888888888888',
     '44444444-4444-4444-4444-444444444444', 
     'pending', 
     'high', 
@@ -471,3 +435,4 @@ VALUES (
     120
 )
 ON CONFLICT (id) DO NOTHING;
+

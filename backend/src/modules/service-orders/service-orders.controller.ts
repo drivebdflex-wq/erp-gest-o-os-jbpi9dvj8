@@ -3,6 +3,7 @@ import { ServiceOrdersService } from './service-orders.service'
 
 export class CreateServiceOrderDto {
   client_id: string
+  unit_id: string
   technician_id?: string
   status?: string
   priority?: string

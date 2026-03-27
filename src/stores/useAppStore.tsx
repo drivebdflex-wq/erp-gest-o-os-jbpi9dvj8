@@ -12,6 +12,7 @@ import { ClientsRepository } from '@/services/repositories/clients.repository'
 import { TechniciansRepository, UsersRepository } from '@/services/repositories/users.repository'
 import { ContractsRepository } from '@/services/repositories/contracts.repository'
 import { ContractPriceItemsRepository } from '@/services/repositories/contract-price-items.repository'
+import { ContractUnitsRepository } from '@/services/repositories/contract-units.repository'
 import type { SLAStatus } from '@/services/repositories/types/common'
 
 export type Role = 'admin' | 'tech'
@@ -102,6 +103,18 @@ export const KANBAN_BORDER_COLORS: Record<OSServiceType, string> = {
   marcenaria: 'border-t-orange-500 dark:border-t-orange-500',
 }
 
+export interface ContractUnit {
+  id: string
+  contractId: string
+  prefix: string
+  name: string
+  address: string
+  city: string
+  state: string
+  responsibleName: string
+  responsiblePhone?: string
+}
+
 export interface Contract {
   id: string
   name: string
@@ -142,6 +155,12 @@ export interface Order {
   tech: string
   technicianId?: string
   teamId?: string
+  unitId?: string
+  unitPrefix?: string
+  unitName?: string
+  unitAddress?: string
+  unitCity?: string
+  unitState?: string
   address: string
   unit: string
   slaStatus: SLAStatus
@@ -162,6 +181,7 @@ interface AppState {
   filteredOrders: Order[]
   clients: { id: string; name: string }[]
   contracts: Contract[]
+  contractUnits: ContractUnit[]
   priceItems: PriceItem[]
   filters: { client: string; unit: string; type: string; period: string; contract: string }
   setDashboardFilter: (key: string, value: string) => void
@@ -169,6 +189,8 @@ interface AppState {
   updateOrder: (id: string, data: any) => Promise<void>
   createOrder: (data: any) => Promise<void>
   saveContract: (data: any) => Promise<void>
+  saveContractUnit: (data: any) => Promise<void>
+  deleteContractUnit: (id: string) => Promise<void>
   loadOrders: () => Promise<void>
   generatePreventives: (contractId: string) => Promise<void>
 }
@@ -180,6 +202,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([])
   const [clients, setClients] = useState<{ id: string; name: string }[]>([])
   const [contracts, setContracts] = useState<Contract[]>([])
+  const [contractUnits, setContractUnits] = useState<ContractUnit[]>([])
   const [priceItems, setPriceItems] = useState<PriceItem[]>([])
   const [filters, setFilters] = useState({
     client: 'all',
@@ -201,6 +224,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const users = await UsersRepository.findAll()
       const dbContracts = await ContractsRepository.findAll()
       const dbPriceItems = await ContractPriceItemsRepository.findAll()
+      const dbUnits = await ContractUnitsRepository.findAll()
 
       setClients(dbClients.map((c) => ({ id: c.id, name: c.name })))
 
@@ -230,20 +254,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }))
       setContracts(mappedContracts)
 
+      const mappedUnits: ContractUnit[] = dbUnits.map((u) => ({
+        id: u.id,
+        contractId: u.contract_id,
+        prefix: u.prefix,
+        name: u.name,
+        address: u.address,
+        city: u.city,
+        state: u.state,
+        responsibleName: u.responsible_name,
+        responsiblePhone: u.responsible_phone,
+      }))
+      setContractUnits(mappedUnits)
+
       const mappedOrders: Order[] = dbOrders.map((o: any) => {
         const client = dbClients.find((c) => c.id === o.client_id)?.name || 'Desconhecido'
         const tech = techs.find((t) => t.id === o.technician_id)
         const user =
           users.find((u) => u.id === tech?.user_id)?.name || tech?.name || 'Não Atribuído'
         const contract = mappedContracts.find((c) => c.id === o.contract_id)
+        const unit = mappedUnits.find((u) => u.id === o.unit_id)
         const descriptionStr = (o.description || '').toLowerCase()
         const type = descriptionStr.includes('preventiva')
           ? 'Preventiva'
           : descriptionStr.includes('obra')
             ? 'Obra'
             : 'Corretiva'
-        const units = ['Matriz', 'Filial Sul', 'Filial Norte']
-        const unit = units[o.id.charCodeAt(0) % units.length] || 'Matriz'
 
         return {
           id: o.id,
@@ -262,8 +298,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           tech: user,
           technicianId: o.technician_id,
           teamId: o.team_id,
-          address: '123 Business Avenue',
-          unit,
+          unitId: unit?.id,
+          unitPrefix: unit?.prefix,
+          unitName: unit?.name,
+          unitAddress: unit?.address,
+          unitCity: unit?.city,
+          unitState: unit?.state,
+          address: unit?.address || '123 Business Avenue',
+          unit: unit ? `[${unit.prefix}] ${unit.name}` : 'Sede Principal',
           slaStatus: o.sla_status || 'within_sla',
           totalDuration: o.total_duration_minutes || 0,
           estimatedDuration: o.estimated_duration_minutes || 60,
@@ -289,7 +331,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
       if (filters.client !== 'all' && o.client !== filters.client) return false
-      if (filters.unit !== 'all' && o.unit !== filters.unit) return false
+      if (filters.unit !== 'all' && o.unitId !== filters.unit) return false
       if (filters.type !== 'all' && o.type !== filters.type) return false
       if (filters.contract !== 'all' && o.contractName !== filters.contract) return false
       if (filters.period !== 'all') {
@@ -325,15 +367,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const generatePreventives = async (contractId: string) => {
     const contract = contracts.find((c) => c.id === contractId)
-    if (!contract || !contract.hasPreventive) return
+    const defaultUnit = contractUnits.find((u) => u.contractId === contractId)
+    if (!contract || !contract.hasPreventive || !defaultUnit) return
     await ServiceOrdersService.create({
       client_id: contract.clientId,
       contract_id: contract.id,
+      unit_id: defaultUnit.id,
       priority: 'medium',
-      service_type: 'eletrica', // Default category for generated preventives
+      service_type: 'eletrica',
       status: 'scheduled',
       description: `Manutenção Preventiva Automática - ${contract.name}`,
     })
+    await loadOrders()
+  }
+
+  const saveContractUnit = async (data: any) => {
+    const dbData = {
+      contract_id: data.contractId,
+      prefix: data.prefix,
+      name: data.name,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      responsible_name: data.responsibleName,
+      responsible_phone: data.responsiblePhone,
+    }
+    if (data.id) {
+      await ContractUnitsRepository.update(data.id, dbData as any)
+    } else {
+      await ContractUnitsRepository.create(dbData as any)
+    }
+    await loadOrders()
+  }
+
+  const deleteContractUnit = async (id: string) => {
+    await ContractUnitsRepository.delete(id)
     await loadOrders()
   }
 
@@ -379,6 +447,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         filteredOrders,
         clients,
         contracts,
+        contractUnits,
         priceItems,
         filters,
         setDashboardFilter,
@@ -386,6 +455,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateOrder,
         createOrder,
         saveContract,
+        saveContractUnit,
+        deleteContractUnit,
         loadOrders,
         generatePreventives,
       }}

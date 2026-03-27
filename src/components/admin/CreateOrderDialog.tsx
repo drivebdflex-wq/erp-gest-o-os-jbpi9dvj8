@@ -33,7 +33,7 @@ export default function CreateOrderDialog({
   onOpenChange,
   defaultContractId,
 }: CreateOrderDialogProps) {
-  const { clients, contracts, createOrder, priceItems } = useAppStore()
+  const { clients, contracts, contractUnits, createOrder, priceItems } = useAppStore()
   const { technicians, teams } = useOperationalStore()
   const [formData, setFormData] = useState<any>({ priority: 'Média' })
 
@@ -55,6 +55,7 @@ export default function CreateOrderDialog({
   }, [open, defaultContractId, contracts])
 
   const availableServices = priceItems.filter((p) => p.contractId === formData.contractId)
+  const availableUnits = contractUnits.filter((u) => u.contractId === formData.contractId)
 
   const handleSave = async () => {
     try {
@@ -62,6 +63,14 @@ export default function CreateOrderDialog({
         toast({
           title: 'Aviso',
           description: 'Preencha título, cliente e associe a um contrato.',
+          variant: 'destructive',
+        })
+        return
+      }
+      if (!formData.unitId) {
+        toast({
+          title: 'Aviso',
+          description: 'Selecione uma agência / unidade (Obrigatório).',
           variant: 'destructive',
         })
         return
@@ -101,6 +110,7 @@ export default function CreateOrderDialog({
         description: formData.description,
         client_id: formData.clientId,
         contract_id: formData.contractId,
+        unit_id: formData.unitId,
         technician_id: formData.technicianId,
         team_id: formData.teamId,
         priority:
@@ -110,7 +120,10 @@ export default function CreateOrderDialog({
         service_code: formData.serviceCode === 'none' ? undefined : formData.serviceCode,
         service_value: formData.serviceValue,
       })
-      toast({ title: 'Sucesso', description: 'OS criada com sucesso e vinculada ao contrato.' })
+      toast({
+        title: 'Sucesso',
+        description: 'OS criada com sucesso e vinculada ao contrato e agência.',
+      })
       onOpenChange(false)
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
@@ -139,7 +152,12 @@ export default function CreateOrderDialog({
                 disabled={!!defaultContractId}
                 value={formData.clientId || undefined}
                 onValueChange={(v) =>
-                  setFormData({ ...formData, clientId: v, contractId: undefined })
+                  setFormData({
+                    ...formData,
+                    clientId: v,
+                    contractId: undefined,
+                    unitId: undefined,
+                  })
                 }
               >
                 <SelectTrigger>
@@ -165,6 +183,7 @@ export default function CreateOrderDialog({
                   setFormData({
                     ...formData,
                     contractId: v,
+                    unitId: undefined,
                     serviceCode: undefined,
                     serviceValue: undefined,
                   })
@@ -181,6 +200,34 @@ export default function CreateOrderDialog({
                         {c.name || 'Sem Nome'}
                       </SelectItem>
                     ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Agência / Unidade (Obrigatório)</Label>
+              <Select
+                disabled={!formData.contractId || availableUnits.length === 0}
+                value={formData.unitId || undefined}
+                onValueChange={(v) => setFormData({ ...formData, unitId: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      !formData.contractId
+                        ? 'Selecione o contrato primeiro'
+                        : availableUnits.length === 0
+                          ? 'Nenhuma agência no contrato'
+                          : 'Selecione a agência'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableUnits.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      [{u.prefix}] {u.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -205,7 +252,7 @@ export default function CreateOrderDialog({
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 col-span-1 sm:col-span-2">
               <Label>Serviço (Tabela de Preços)</Label>
               <Select
                 disabled={!formData.contractId || availableServices.length === 0}

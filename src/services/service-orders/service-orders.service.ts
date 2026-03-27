@@ -33,6 +33,10 @@ export class ServiceOrdersService {
       throw new Error('client_id is mandatory')
     }
 
+    if (!data.unit_id) {
+      throw new Error('Validation Error: unit_id is mandatory.')
+    }
+
     if (!data.description) {
       throw new Error('Validation Error: description is required.')
     }
@@ -40,6 +44,7 @@ export class ServiceOrdersService {
     const newOrder: ServiceOrder = {
       id: crypto.randomUUID(),
       client_id: data.client_id,
+      unit_id: data.unit_id,
       technician_id: data.technician_id || null,
       description: data.description,
       priority: data.priority || 'medium',
