@@ -29,6 +29,7 @@ import {
   Target,
   OctagonAlert,
   PieChart,
+  Activity,
 } from 'lucide-react'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from 'recharts'
