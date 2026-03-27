@@ -13,15 +13,6 @@ export const UsersRepository = createRepository<User, any, any>('users', [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'sup-id',
-    name: 'Supervisor User',
-    email: 'supervisor@example.com',
-    password_hash: 'sup123',
-    status: 'active',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
     id: 'tech-id',
     name: 'Carlos Silva',
     email: 'tech@example.com',
@@ -36,21 +27,6 @@ export const RolesRepository = createRepository<Role, any, any>('roles', [
   {
     id: 'role-admin',
     name: 'Administrator',
-    description: 'Full system access',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'role-sup',
-    name: 'Supervisor',
-    description: 'Team management',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'role-tech',
-    name: 'Technician',
-    description: 'Field operations',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -64,24 +40,9 @@ export const UserRolesRepository = {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },
-    {
-      user_id: 'sup-id',
-      role_id: 'role-sup',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      user_id: 'tech-id',
-      role_id: 'role-tech',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
   ]),
   async findByUserId(userId: string): Promise<UserRole[]> {
-    if (isMock) {
-      const all = await this.findAll()
-      return all.filter((ur) => ur.user_id === userId)
-    }
+    if (isMock) return (await this.findAll()).filter((ur) => ur.user_id === userId)
     return supabase.request<UserRole[]>(`user_roles?user_id=eq.${userId}&select=*`)
   },
 }
@@ -90,7 +51,7 @@ export const TeamsRepository = createRepository<Team, any, any>('teams', [
   {
     id: 'team-alpha',
     name: 'Alpha Team',
-    supervisor_id: 'sup-id',
+    supervisor_id: 'admin-id',
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -100,9 +61,13 @@ const baseTechniciansRepository = createRepository<Technician, any, any>('techni
   {
     id: 'tech-record-1',
     user_id: 'tech-id',
+    name: 'Carlos Silva',
     team_id: 'team-alpha',
     specialty: 'General Maintenance',
     availability_status: 'available',
+    salary_type: 'mensal',
+    salary_amount: 5000,
+    cost_per_hour: 22.72,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
@@ -111,10 +76,8 @@ const baseTechniciansRepository = createRepository<Technician, any, any>('techni
 export const TechniciansRepository = {
   ...baseTechniciansRepository,
   async findByUserId(userId: string): Promise<Technician | null> {
-    if (isMock) {
-      const all = await baseTechniciansRepository.findAll()
-      return all.find((t) => t.user_id === userId) || null
-    }
+    if (isMock)
+      return (await baseTechniciansRepository.findAll()).find((t) => t.user_id === userId) || null
     const result = await supabase.request<Technician[]>(`technicians?user_id=eq.${userId}&select=*`)
     return result.length > 0 ? result[0] : null
   },

@@ -5,6 +5,7 @@ export interface ServiceOrder extends Timestamps {
   client_id: ID
   contract_id?: ID | null
   technician_id?: ID | null
+  team_id?: ID | null
   vehicle_id?: ID | null
   status: ServiceOrderStatus
   priority: ServiceOrderPriority
@@ -17,6 +18,7 @@ export interface ServiceOrder extends Timestamps {
   paused_at?: string
   finished_at?: string
   total_duration_minutes: number
+  labor_cost?: number
   latitude?: number
   longitude?: number
   customer_signature_url?: string
@@ -26,6 +28,7 @@ export interface CreateServiceOrderDTO {
   client_id: ID
   contract_id?: ID | null
   technician_id?: ID | null
+  team_id?: ID | null
   vehicle_id?: ID | null
   status?: ServiceOrderStatus
   priority?: ServiceOrderPriority
@@ -35,6 +38,7 @@ export interface CreateServiceOrderDTO {
   latitude?: number
   longitude?: number
   customer_signature_url?: string
+  labor_cost?: number
 }
 
 export type UpdateServiceOrderDTO = Partial<CreateServiceOrderDTO> & {

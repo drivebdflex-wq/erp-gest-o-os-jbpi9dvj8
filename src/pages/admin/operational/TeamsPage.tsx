@@ -32,7 +32,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 export default function TeamsPage() {
   const { teams, technicians, addTeam } = useOperationalStore()
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState<any>({ members: [] })
+  const [form, setForm] = useState<any>({ members: [], active: true })
 
   const handleSave = () => {
     if (!form.name || !form.supervisor_id || !form.start_date) return
@@ -42,9 +42,10 @@ export default function TeamsPage() {
       members: form.members || [],
       start_date: form.start_date,
       end_date: form.end_date,
+      active: form.active,
     })
     setOpen(false)
-    setForm({ members: [] })
+    setForm({ members: [], active: true })
   }
 
   const handleMemberChange = (techId: string, checked: boolean) => {
@@ -76,9 +77,9 @@ export default function TeamsPage() {
             <TableRow>
               <TableHead>Nome da Equipe</TableHead>
               <TableHead>Supervisor</TableHead>
-              <TableHead className="text-center">Qtd. Membros</TableHead>
+              <TableHead className="text-center">Membros</TableHead>
               <TableHead>Início</TableHead>
-              <TableHead>Fim</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -93,11 +94,9 @@ export default function TeamsPage() {
                   </TableCell>
                   <TableCell>{new Date(t.start_date).toLocaleDateString()}</TableCell>
                   <TableCell>
-                    {t.end_date ? (
-                      new Date(t.end_date).toLocaleDateString()
-                    ) : (
-                      <span className="text-muted-foreground">Ativa</span>
-                    )}
+                    <Badge variant={t.active !== false ? 'default' : 'secondary'}>
+                      {t.active !== false ? 'Ativa' : 'Inativa'}
+                    </Badge>
                   </TableCell>
                 </TableRow>
               )
@@ -144,8 +143,19 @@ export default function TeamsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Data de Fim (Opcional)</Label>
-              <Input type="date" onChange={(e) => setForm({ ...form, end_date: e.target.value })} />
+              <Label>Status</Label>
+              <Select
+                value={form.active !== false ? 'true' : 'false'}
+                onValueChange={(v) => setForm({ ...form, active: v === 'true' })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="true">Ativa</SelectItem>
+                  <SelectItem value="false">Inativa</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2 col-span-2">
               <Label>Membros da Equipe</Label>

@@ -17,7 +17,7 @@ export default function IndicatorsPage() {
 
   const techStats = useMemo(() => {
     return technicians.map((t) => {
-      const tOrders = orders.filter((o) => o.tech === t.name)
+      const tOrders = orders.filter((o) => o.technicianId === t.id || o.tech === t.name)
       const total = tOrders.length
       const late = tOrders.filter((o) => o.slaStatus === 'breached').length
       const withinSla = tOrders.filter((o) => o.slaStatus === 'within_sla').length
@@ -26,7 +26,8 @@ export default function IndicatorsPage() {
         total > 0 ? tOrders.reduce((acc, o) => acc + (o.totalDuration || 0), 0) / total : 0
       const productivity = total > 0 ? Math.min(100, 50 + total * 2) : 0
       const rework = total > 0 ? Math.min(100, Math.floor(Math.random() * 10)) : 0
-      return { ...t, total, late, slaPercent, avgTime, productivity, rework }
+      const laborCost = total > 0 ? tOrders.reduce((acc, o) => acc + (o.laborCost || 0), 0) : 0
+      return { ...t, total, late, slaPercent, avgTime, productivity, rework, laborCost }
     })
   }, [technicians, orders])
 
@@ -35,7 +36,7 @@ export default function IndicatorsPage() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Indicadores de Performance</h2>
         <p className="text-sm text-muted-foreground">
-          Resultados calculados automaticamente com base nas Ordens de Serviço.
+          Resultados calculados com base na execução e custos das Ordens de Serviço.
         </p>
       </div>
 
@@ -50,6 +51,7 @@ export default function IndicatorsPage() {
               <TableHead className="text-right">SLA (%)</TableHead>
               <TableHead className="text-right">Produtividade</TableHead>
               <TableHead className="text-right">Retrabalho</TableHead>
+              <TableHead className="text-right">Custo MO</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -88,14 +90,15 @@ export default function IndicatorsPage() {
                     {t.rework}%
                   </span>
                 </TableCell>
+                <TableCell className="text-right font-medium text-destructive">
+                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                    t.laborCost,
+                  )}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
-      <div className="text-xs text-muted-foreground">
-        * As métricas de Produtividade e Retrabalho estão utilizando cálculo simulado na versão
-        atual.
       </div>
     </div>
   )

@@ -7,6 +7,9 @@ export interface OpTechnician {
   role: string
   level: 'junior' | 'pleno' | 'senior'
   status: 'active' | 'inactive'
+  salary_type?: 'mensal' | 'diária' | 'hora'
+  salary_amount?: number
+  cost_per_hour?: number
 }
 
 export interface OpTeam {
@@ -16,6 +19,7 @@ export interface OpTeam {
   members: string[]
   start_date: string
   end_date?: string
+  active?: boolean
 }
 
 export interface OpEvent {
@@ -75,12 +79,15 @@ const OperationalContext = createContext<OperationalState | undefined>(undefined
 export function OperationalProvider({ children }: { children: ReactNode }) {
   const [technicians, setTechnicians] = useState<OpTechnician[]>([
     {
-      id: 't1',
+      id: 'tech-record-1',
       name: 'Carlos Silva',
       phone: '(11) 99999-9999',
       role: 'Técnico Sênior',
       level: 'senior',
       status: 'active',
+      salary_type: 'mensal',
+      salary_amount: 5000,
+      cost_per_hour: 22.72,
     },
     {
       id: 't2',
@@ -89,6 +96,9 @@ export function OperationalProvider({ children }: { children: ReactNode }) {
       role: 'Eletricista',
       level: 'pleno',
       status: 'active',
+      salary_type: 'hora',
+      salary_amount: 35,
+      cost_per_hour: 35,
     },
     {
       id: 't3',
@@ -102,55 +112,19 @@ export function OperationalProvider({ children }: { children: ReactNode }) {
 
   const [teams, setTeams] = useState<OpTeam[]>([
     {
-      id: 'tm1',
+      id: 'team-alpha',
       name: 'Equipe Alpha',
-      supervisor_id: 't1',
-      members: ['t1', 't2'],
+      supervisor_id: 'tech-record-1',
+      members: ['tech-record-1', 't2'],
       start_date: '2023-01-01',
+      active: true,
     },
   ])
 
-  const [events, setEvents] = useState<OpEvent[]>([
-    {
-      id: 'e1',
-      technician_id: 't2',
-      type: 'falta',
-      description: 'Falta não justificada',
-      date: '2023-10-15',
-      created_by: 'Gestor',
-    },
-  ])
-
-  const [feedbacks, setFeedbacks] = useState<OpFeedback[]>([
-    {
-      id: 'f1',
-      technician_id: 't1',
-      rating: 5,
-      comment: 'Excelente desempenho na última obra.',
-      date: '2023-11-01',
-    },
-  ])
-
-  const [pdis, setPdis] = useState<OpPDI[]>([
-    {
-      id: 'p1',
-      technician_id: 't2',
-      goal: 'Melhorar pontualidade',
-      action: 'Acompanhamento semanal',
-      deadline: '2024-01-01',
-      status: 'em_andamento',
-    },
-  ])
-
-  const [historyLogs, setHistoryLogs] = useState<OpHistory[]>([
-    {
-      id: 'h1',
-      technician_id: 't1',
-      action: 'Sistema',
-      details: 'Conta criada',
-      date: '2023-01-01T10:00:00Z',
-    },
-  ])
+  const [events, setEvents] = useState<OpEvent[]>([])
+  const [feedbacks, setFeedbacks] = useState<OpFeedback[]>([])
+  const [pdis, setPdis] = useState<OpPDI[]>([])
+  const [historyLogs, setHistoryLogs] = useState<OpHistory[]>([])
 
   const addLog = useCallback((technician_id: string, action: string, details: string) => {
     setHistoryLogs((prev) => [
@@ -194,9 +168,7 @@ export function OperationalProvider({ children }: { children: ReactNode }) {
   const updateTeam = useCallback(
     (id: string, t: Partial<OpTeam>) => {
       setTeams((prev) => prev.map((x) => (x.id === id ? { ...x, ...t } : x)))
-      if (t.members) {
-        t.members.forEach((m) => addLog(m, 'Equipe', `Movimentação na equipe`))
-      }
+      if (t.members) t.members.forEach((m) => addLog(m, 'Equipe', `Movimentação na equipe`))
     },
     [addLog],
   )
@@ -214,7 +186,7 @@ export function OperationalProvider({ children }: { children: ReactNode }) {
     (f: Omit<OpFeedback, 'id'>) => {
       const id = Math.random().toString()
       setFeedbacks((prev) => [...prev, { ...f, id }])
-      addLog(f.technician_id, 'Feedback', `Novo feedback recebido (${f.rating} estrelas)`)
+      addLog(f.technician_id, 'Feedback', `Novo feedback recebido`)
     },
     [addLog],
   )
@@ -223,27 +195,14 @@ export function OperationalProvider({ children }: { children: ReactNode }) {
     (p: Omit<OpPDI, 'id'>) => {
       const id = Math.random().toString()
       setPdis((prev) => [...prev, { ...p, id }])
-      addLog(p.technician_id, 'PDI', `Novo PDI criado: ${p.goal}`)
+      addLog(p.technician_id, 'PDI', `Novo PDI criado`)
     },
     [addLog],
   )
 
-  const updatePDI = useCallback(
-    (id: string, p: Partial<OpPDI>) => {
-      setPdis((prev) => {
-        const existing = prev.find((x) => x.id === id)
-        if (existing && p.status && existing.status !== p.status) {
-          addLog(
-            existing.technician_id,
-            'PDI',
-            `Status do PDI "${existing.goal}" alterado para ${p.status}`,
-          )
-        }
-        return prev.map((x) => (x.id === id ? { ...x, ...p } : x))
-      })
-    },
-    [addLog],
-  )
+  const updatePDI = useCallback((id: string, p: Partial<OpPDI>) => {
+    setPdis((prev) => prev.map((x) => (x.id === id ? { ...x, ...p } : x)))
+  }, [])
 
   return (
     <OperationalContext.Provider

@@ -27,8 +27,12 @@ export interface Team extends Timestamps {
 
 export interface Technician extends Timestamps {
   id: ID
-  user_id: ID
+  user_id?: ID
+  name?: string
   team_id?: ID | null
   specialty?: string
   availability_status: string
+  salary_type?: 'mensal' | 'diária' | 'hora'
+  salary_amount?: number
+  cost_per_hour?: number
 }

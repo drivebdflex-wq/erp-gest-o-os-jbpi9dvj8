@@ -11,13 +11,15 @@ import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
+  SelectGroup,
+  SelectLabel,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import useAppStore from '@/stores/useAppStore'
-import useFleetStore from '@/stores/useFleetStore'
+import useOperationalStore from '@/stores/useOperationalStore'
 import { toast } from '@/hooks/use-toast'
 
 export default function CreateOrderDialog({
@@ -28,8 +30,8 @@ export default function CreateOrderDialog({
   onOpenChange: (open: boolean) => void
 }) {
   const { clients, contracts, createOrder } = useAppStore()
-  const { vehicles } = useFleetStore()
-  const [formData, setFormData] = useState<any>({ priority: 'Média', status: 'Pendente' })
+  const { technicians, teams } = useOperationalStore()
+  const [formData, setFormData] = useState<any>({ priority: 'Média' })
 
   const handleSave = async () => {
     try {
@@ -37,17 +39,27 @@ export default function CreateOrderDialog({
         toast({ title: 'Aviso', description: 'Preencha título e cliente.', variant: 'destructive' })
         return
       }
+      if (!formData.technicianId && !formData.teamId) {
+        toast({
+          title: 'Aviso',
+          description: 'Selecione um responsável (Técnico ou Equipe).',
+          variant: 'destructive',
+        })
+        return
+      }
       await createOrder({
         description: formData.description,
         client_id: formData.clientId,
         contract_id: formData.contractId,
-        vehicle_id: formData.vehicleId,
+        technician_id: formData.technicianId,
+        team_id: formData.teamId,
         priority:
           formData.priority === 'Média' ? 'medium' : formData.priority === 'Alta' ? 'high' : 'low',
+        status: 'pending',
       })
       toast({ title: 'Sucesso', description: 'OS criada com sucesso.' })
       onOpenChange(false)
-      setFormData({ priority: 'Média', status: 'Pendente' })
+      setFormData({ priority: 'Média' })
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
     }
@@ -113,42 +125,46 @@ export default function CreateOrderDialog({
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Prioridade</Label>
+            <div className="space-y-2 col-span-2">
+              <Label>Responsável (Obrigatório)</Label>
               <Select
-                value={formData.priority || 'Média'}
-                onValueChange={(v) => setFormData({ ...formData, priority: v })}
+                value={formData.responsible || ''}
+                onValueChange={(v) => {
+                  if (v.startsWith('team_'))
+                    setFormData({
+                      ...formData,
+                      responsible: v,
+                      teamId: v.replace('team_', ''),
+                      technicianId: undefined,
+                    })
+                  else
+                    setFormData({ ...formData, responsible: v, technicianId: v, teamId: undefined })
+                }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
+                  <SelectValue placeholder="Selecione um Técnico ou Equipe..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Baixa">Baixa</SelectItem>
-                  <SelectItem value="Média">Média</SelectItem>
-                  <SelectItem value="Alta">Alta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Veículo (Opcional)</Label>
-              <Select
-                value={formData.vehicleId || 'none'}
-                onValueChange={(v) =>
-                  setFormData({ ...formData, vehicleId: v === 'none' ? undefined : v })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Nenhum" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {vehicles.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.plate} - {v.model}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectLabel>Equipes</SelectLabel>
+                    {teams
+                      .filter((t) => t.active !== false)
+                      .map((t) => (
+                        <SelectItem key={`team_${t.id}`} value={`team_${t.id}`}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Técnicos</SelectLabel>
+                    {technicians
+                      .filter((t) => t.status === 'active')
+                      .map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>

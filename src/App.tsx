@@ -51,6 +51,8 @@ import FleetHistoryPage from './pages/admin/fleet/FleetHistoryPage'
 
 // Operacional
 import OpDashboard from './pages/admin/operational/OpDashboard'
+import SupervisorPanelPage from './pages/admin/operational/SupervisorPanelPage'
+import OperationalAgendaPage from './pages/admin/operational/OperationalAgendaPage'
 import TechniciansPage from './pages/admin/operational/TechniciansPage'
 import TeamsPage from './pages/admin/operational/TeamsPage'
 import IndicatorsPage from './pages/admin/operational/IndicatorsPage'
@@ -86,6 +88,8 @@ const App = () => (
 
                       {/* Operacional */}
                       <Route path="/operacional/dashboard" element={<OpDashboard />} />
+                      <Route path="/operacional/painel" element={<SupervisorPanelPage />} />
+                      <Route path="/operacional/agenda" element={<OperationalAgendaPage />} />
                       <Route path="/operacional/tecnicos" element={<TechniciansPage />} />
                       <Route path="/operacional/equipes" element={<TeamsPage />} />
                       <Route path="/operacional/indicadores" element={<IndicatorsPage />} />

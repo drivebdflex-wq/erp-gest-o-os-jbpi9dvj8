@@ -31,19 +31,31 @@ import {
 export default function TechniciansPage() {
   const { technicians, addTechnician } = useOperationalStore()
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState<any>({ level: 'junior', status: 'active' })
+  const [form, setForm] = useState<any>({
+    level: 'junior',
+    status: 'active',
+    salary_type: 'mensal',
+  })
 
   const handleSave = () => {
     if (!form.name || !form.role) return
+    let cost = form.cost_per_hour || 0
+    if (form.salary_type === 'mensal' && form.salary_amount) cost = form.salary_amount / 220
+    else if (form.salary_type === 'diária' && form.salary_amount) cost = form.salary_amount / 8
+    else if (form.salary_type === 'hora') cost = form.salary_amount
+
     addTechnician({
       name: form.name,
       phone: form.phone || '',
       role: form.role,
       level: form.level,
       status: form.status,
+      salary_type: form.salary_type,
+      salary_amount: Number(form.salary_amount || 0),
+      cost_per_hour: cost,
     })
     setOpen(false)
-    setForm({ level: 'junior', status: 'active' })
+    setForm({ level: 'junior', status: 'active', salary_type: 'mensal' })
   }
 
   return (
@@ -52,7 +64,7 @@ export default function TechniciansPage() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Técnicos</h2>
           <p className="text-sm text-muted-foreground">
-            Gerencie o quadro de colaboradores operacionais.
+            Gerencie o quadro e custos da mão de obra.
           </p>
         </div>
         <Button onClick={() => setOpen(true)}>
@@ -65,9 +77,9 @@ export default function TechniciansPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Telefone</TableHead>
               <TableHead>Cargo</TableHead>
               <TableHead>Nível</TableHead>
+              <TableHead>Custo/Hora</TableHead>
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -75,9 +87,11 @@ export default function TechniciansPage() {
             {technicians.map((t) => (
               <TableRow key={t.id}>
                 <TableCell className="font-bold">{t.name}</TableCell>
-                <TableCell>{t.phone}</TableCell>
                 <TableCell>{t.role}</TableCell>
                 <TableCell className="capitalize">{t.level}</TableCell>
+                <TableCell className="text-primary font-medium">
+                  {t.cost_per_hour ? `R$ ${t.cost_per_hour.toFixed(2)}` : '-'}
+                </TableCell>
                 <TableCell>
                   <Badge variant={t.status === 'active' ? 'default' : 'secondary'}>
                     {t.status === 'active' ? 'Ativo' : 'Inativo'}
@@ -90,7 +104,7 @@ export default function TechniciansPage() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Registrar Técnico</DialogTitle>
           </DialogHeader>
@@ -100,13 +114,6 @@ export default function TechniciansPage() {
               <Input
                 value={form.name || ''}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Telefone</Label>
-              <Input
-                value={form.phone || ''}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
               />
             </div>
             <div className="space-y-2">
@@ -130,6 +137,30 @@ export default function TechniciansPage() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Tipo de Salário</Label>
+              <Select
+                value={form.salary_type}
+                onValueChange={(v) => setForm({ ...form, salary_type: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mensal">Mensal</SelectItem>
+                  <SelectItem value="diária">Diária</SelectItem>
+                  <SelectItem value="hora">Hora</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Valor Base (R$)</Label>
+              <Input
+                type="number"
+                value={form.salary_amount || ''}
+                onChange={(e) => setForm({ ...form, salary_amount: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2 col-span-2">
               <Label>Status</Label>
               <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
                 <SelectTrigger>

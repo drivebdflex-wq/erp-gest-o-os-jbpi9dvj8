@@ -71,22 +71,8 @@ export interface Contract {
   startDate: string
   endDate: string
   value?: number
-  lastAdjustmentDate?: string
-  nextAdjustmentDate?: string
-  adjustmentType?: string
-  adjustmentPercentage?: number
-  allowsCorrective?: boolean
   hasPreventive?: boolean
   preventiveFrequency?: string
-  slaDefault?: number
-  attachmentUrl?: string
-  budgetLabor?: number
-  budgetMaterial?: number
-  budgetFuel?: number
-  budgetOthers?: number
-  plannedTechs?: number
-  plannedHours?: number
-  estimatedTeamCost?: number
 }
 
 export interface Order {
@@ -102,11 +88,13 @@ export interface Order {
   priority: OSPriority
   date: string
   tech: string
+  technicianId?: string
+  teamId?: string
   address: string
   unit: string
-  distance?: string
   slaStatus: SLAStatus
   totalDuration: number
+  laborCost: number
   finishedAt?: string
   updatedAt: string
   type: 'Preventiva' | 'Corretiva' | 'Obra'
@@ -122,6 +110,7 @@ interface AppState {
   filters: { client: string; unit: string; type: string; period: string; contract: string }
   setDashboardFilter: (key: string, value: string) => void
   updateOrderStatus: (id: string, status: OSStatus) => Promise<void>
+  updateOrder: (id: string, data: any) => Promise<void>
   createOrder: (data: any) => Promise<void>
   saveContract: (data: any) => Promise<void>
   loadOrders: () => Promise<void>
@@ -157,45 +146,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setClients(dbClients.map((c) => ({ id: c.id, name: c.name })))
 
-      const mappedContracts: Contract[] = dbContracts.map((c) => {
-        const clientName = dbClients.find((cl) => cl.id === c.client_id)?.name || 'Desconhecido'
-        return {
-          id: c.id,
-          clientId: c.client_id,
-          clientName,
-          name: c.name,
-          type: c.type as 'Manutenção' | 'Obra',
-          contractNumber: c.contract_number,
-          location: c.location,
-          startDate: c.start_date,
-          endDate: c.end_date,
-          value: c.value,
-          lastAdjustmentDate: c.last_adjustment_date,
-          nextAdjustmentDate: c.next_adjustment_date,
-          adjustmentType: c.adjustment_type,
-          adjustmentPercentage: c.adjustment_percentage,
-          allowsCorrective: c.allows_corrective,
-          hasPreventive: c.has_preventive,
-          preventiveFrequency: c.preventive_frequency,
-          slaDefault: c.sla_default,
-          attachmentUrl: c.attachment_url,
-          budgetLabor: c.budget_labor,
-          budgetMaterial: c.budget_material,
-          budgetFuel: c.budget_fuel,
-          budgetOthers: c.budget_others,
-          plannedTechs: c.planned_techs,
-          plannedHours: c.planned_hours,
-          estimatedTeamCost: c.estimated_team_cost,
-        }
-      })
+      const mappedContracts: Contract[] = dbContracts.map((c) => ({
+        id: c.id,
+        clientId: c.client_id,
+        clientName: dbClients.find((cl) => cl.id === c.client_id)?.name || 'Desconhecido',
+        name: c.name,
+        type: c.type as 'Manutenção' | 'Obra',
+        contractNumber: c.contract_number,
+        location: c.location,
+        startDate: c.start_date,
+        endDate: c.end_date,
+        value: c.value,
+        hasPreventive: c.has_preventive,
+        preventiveFrequency: c.preventive_frequency,
+      }))
       setContracts(mappedContracts)
 
       const mappedOrders: Order[] = dbOrders.map((o: any) => {
         const client = dbClients.find((c) => c.id === o.client_id)?.name || 'Desconhecido'
         const tech = techs.find((t) => t.id === o.technician_id)
-        const user = users.find((u) => u.id === tech?.user_id)?.name || 'Não Atribuído'
+        const user =
+          users.find((u) => u.id === tech?.user_id)?.name || tech?.name || 'Não Atribuído'
         const contract = mappedContracts.find((c) => c.id === o.contract_id)
-
         const descriptionStr = (o.description || '').toLowerCase()
         const type = descriptionStr.includes('preventiva')
           ? 'Preventiva'
@@ -218,10 +190,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           priority: PRIORITY_MAP[o.priority] || 'Média',
           date: o.scheduled_at?.split('T')[0] || new Date().toISOString().split('T')[0],
           tech: user,
+          technicianId: o.technician_id,
+          teamId: o.team_id,
           address: '123 Business Avenue',
           unit,
           slaStatus: o.sla_status || 'within_sla',
           totalDuration: o.total_duration_minutes || 0,
+          laborCost: Number(o.labor_cost) || 0,
           finishedAt: o.finished_at,
           updatedAt: o.updated_at || o.created_at || new Date().toISOString(),
           type,
@@ -230,7 +205,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       setOrders(mappedOrders)
     } catch (error) {
-      console.error('Error loading data from repositories', error)
+      console.error('Error loading data', error)
     }
   }, [])
 
@@ -244,34 +219,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (filters.unit !== 'all' && o.unit !== filters.unit) return false
       if (filters.type !== 'all' && o.type !== filters.type) return false
       if (filters.contract !== 'all' && o.contractName !== filters.contract) return false
-
       if (filters.period !== 'all') {
-        const isDateInPeriod = (dateStr?: string) => {
-          if (!dateStr) return false
-          const d = new Date(dateStr)
-          const now = new Date()
-          if (filters.period === 'Hoje') return d.toDateString() === now.toDateString()
-          if (filters.period === 'Semana') {
-            const start = new Date(now)
-            start.setHours(0, 0, 0, 0)
-            start.setDate(now.getDate() - now.getDay())
-            const end = new Date(start)
-            end.setDate(start.getDate() + 6)
-            end.setHours(23, 59, 59, 999)
-            return d >= start && d <= end
-          }
-          if (filters.period === 'Mês')
-            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-          return true
+        const d = new Date(o.date || o.updatedAt)
+        const now = new Date()
+        if (filters.period === 'Hoje') return d.toDateString() === now.toDateString()
+        if (filters.period === 'Semana') {
+          const start = new Date(now)
+          start.setDate(now.getDate() - now.getDay())
+          return d >= start && d <= new Date(start.getTime() + 604800000)
         }
-
-        if (
-          !isDateInPeriod(o.date) &&
-          !isDateInPeriod(o.updatedAt) &&
-          !isDateInPeriod(o.finishedAt)
-        ) {
-          return false
-        }
+        if (filters.period === 'Mês')
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
       }
       return true
     })
@@ -279,6 +237,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateOrderStatus = async (id: string, status: OSStatus) => {
     await ServiceOrdersService.changeStatus(id, DB_STATUS_MAP[status] as any)
+    await loadOrders()
+  }
+
+  const updateOrder = async (id: string, data: any) => {
+    await ServiceOrdersService.update(id, data)
     await loadOrders()
   }
 
@@ -290,21 +253,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const generatePreventives = async (contractId: string) => {
     const contract = contracts.find((c) => c.id === contractId)
     if (!contract || !contract.hasPreventive) return
-
-    const baseDate = new Date()
-    if (contract.preventiveFrequency === 'Mensal') baseDate.setMonth(baseDate.getMonth() + 1)
-    else if (contract.preventiveFrequency === 'Trimestral')
-      baseDate.setMonth(baseDate.getMonth() + 3)
-    else if (contract.preventiveFrequency === 'Anual')
-      baseDate.setFullYear(baseDate.getFullYear() + 1)
-
     await ServiceOrdersService.create({
       client_id: contract.clientId,
       contract_id: contract.id,
-      description: `Manutenção Preventiva Automática (${contract.preventiveFrequency}) - ${contract.name}`,
       priority: 'medium',
       status: 'scheduled',
-      scheduled_at: baseDate.toISOString(),
+      description: `Manutenção Preventiva Automática - ${contract.name}`,
     })
     await loadOrders()
   }
@@ -314,32 +268,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       client_id: data.clientId,
       name: data.name,
       type: data.type,
-      contract_number: data.contractNumber,
-      location: data.location,
       start_date: data.startDate,
       end_date: data.endDate,
-      last_adjustment_date: data.lastAdjustmentDate,
-      next_adjustment_date: data.nextAdjustmentDate,
-      adjustment_type: data.adjustmentType,
-      adjustment_percentage: data.adjustmentPercentage,
-      allows_corrective: data.allowsCorrective,
-      has_preventive: data.hasPreventive,
-      preventive_frequency: data.preventiveFrequency,
-      sla_default: data.slaDefault,
-      attachment_url: data.attachmentUrl,
-      budget_labor: data.budgetLabor,
-      budget_material: data.budgetMaterial,
-      budget_fuel: data.budgetFuel,
-      budget_others: data.budgetOthers,
-      planned_techs: data.plannedTechs,
-      planned_hours: data.plannedHours,
-      estimated_team_cost: data.estimatedTeamCost,
     }
-    if (data.id) {
-      await ContractsRepository.update(data.id, dbData)
-    } else {
-      await ContractsRepository.create(dbData)
-    }
+    if (data.id) await ContractsRepository.update(data.id, dbData as any)
+    else await ContractsRepository.create(dbData as any)
     await loadOrders()
   }
 
@@ -355,6 +288,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         filters,
         setDashboardFilter,
         updateOrderStatus,
+        updateOrder,
         createOrder,
         saveContract,
         loadOrders,
