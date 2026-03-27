@@ -50,7 +50,7 @@ export default function CreateOrderDialog({
         return
       }
 
-      if (formData.contractId && formData.serviceCode) {
+      if (formData.contractId && formData.serviceCode && formData.serviceCode !== 'none') {
         const exists = priceItems.some(
           (p) => p.contractId === formData.contractId && p.serviceCode === formData.serviceCode,
         )
@@ -67,13 +67,13 @@ export default function CreateOrderDialog({
       await createOrder({
         description: formData.description,
         client_id: formData.clientId,
-        contract_id: formData.contractId,
+        contract_id: formData.contractId === 'none' ? undefined : formData.contractId,
         technician_id: formData.technicianId,
         team_id: formData.teamId,
         priority:
           formData.priority === 'Média' ? 'medium' : formData.priority === 'Alta' ? 'high' : 'low',
         status: 'pending',
-        service_code: formData.serviceCode,
+        service_code: formData.serviceCode === 'none' ? undefined : formData.serviceCode,
         service_value: formData.serviceValue,
       })
       toast({ title: 'Sucesso', description: 'OS criada com sucesso.' })
@@ -103,7 +103,7 @@ export default function CreateOrderDialog({
             <div className="space-y-2">
               <Label>Cliente</Label>
               <Select
-                value={formData.clientId || ''}
+                value={formData.clientId || undefined}
                 onValueChange={(v) =>
                   setFormData({ ...formData, clientId: v, contractId: undefined })
                 }
@@ -112,11 +112,13 @@ export default function CreateOrderDialog({
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
+                  {clients
+                    .filter((c) => c.id && c.id.trim() !== '')
+                    .map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name || 'Sem Nome'}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -140,10 +142,10 @@ export default function CreateOrderDialog({
                 <SelectContent>
                   <SelectItem value="none">Avulso / Sem Contrato</SelectItem>
                   {contracts
-                    .filter((c) => c.clientId === formData.clientId)
+                    .filter((c) => c.clientId === formData.clientId && c.id && c.id.trim() !== '')
                     .map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.name}
+                        {c.name || 'Sem Nome'}
                       </SelectItem>
                     ))}
                 </SelectContent>
@@ -177,11 +179,14 @@ export default function CreateOrderDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Avulso / Outro</SelectItem>
-                  {availableServices.map((s) => (
-                    <SelectItem key={s.serviceCode} value={s.serviceCode}>
-                      {s.serviceCode} - {s.serviceName} (R$ {s.unitPrice.toFixed(2)})
-                    </SelectItem>
-                  ))}
+                  {availableServices
+                    .filter((s) => s.serviceCode && s.serviceCode.trim() !== '')
+                    .map((s) => (
+                      <SelectItem key={s.serviceCode} value={s.serviceCode}>
+                        {s.serviceCode} - {s.serviceName || 'Sem Nome'} (R$ {s.unitPrice.toFixed(2)}
+                        )
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -189,7 +194,7 @@ export default function CreateOrderDialog({
             <div className="space-y-2 col-span-2">
               <Label>Responsável (Obrigatório)</Label>
               <Select
-                value={formData.responsible || ''}
+                value={formData.responsible || undefined}
                 onValueChange={(v) => {
                   if (v.startsWith('team_'))
                     setFormData({
@@ -209,20 +214,20 @@ export default function CreateOrderDialog({
                   <SelectGroup>
                     <SelectLabel>Equipes</SelectLabel>
                     {teams
-                      .filter((t) => t.active !== false)
+                      .filter((t) => t.active !== false && t.id && t.id.trim() !== '')
                       .map((t) => (
                         <SelectItem key={`team_${t.id}`} value={`team_${t.id}`}>
-                          {t.name}
+                          {t.name || 'Sem Nome'}
                         </SelectItem>
                       ))}
                   </SelectGroup>
                   <SelectGroup>
                     <SelectLabel>Técnicos</SelectLabel>
                     {technicians
-                      .filter((t) => t.status === 'active')
+                      .filter((t) => t.status === 'active' && t.id && t.id.trim() !== '')
                       .map((t) => (
                         <SelectItem key={t.id} value={t.id}>
-                          {t.name}
+                          {t.name || 'Sem Nome'}
                         </SelectItem>
                       ))}
                   </SelectGroup>

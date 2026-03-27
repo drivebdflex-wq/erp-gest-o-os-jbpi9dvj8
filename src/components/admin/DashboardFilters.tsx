@@ -24,17 +24,22 @@ export default function DashboardFilters() {
         <span className="text-sm font-medium">Filtros Operacionais:</span>
       </div>
 
-      <Select value={filters.client} onValueChange={(v) => setDashboardFilter('client', v)}>
+      <Select
+        value={filters.client || 'all'}
+        onValueChange={(v) => setDashboardFilter('client', v)}
+      >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Cliente" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos os Clientes</SelectItem>
-          {clients.map((c) => (
-            <SelectItem key={c.id} value={c.name}>
-              {c.name}
-            </SelectItem>
-          ))}
+          {clients
+            .filter((c) => c.name && c.name.trim() !== '')
+            .map((c) => (
+              <SelectItem key={c.id || c.name} value={c.name}>
+                {c.name}
+              </SelectItem>
+            ))}
         </SelectContent>
       </Select>
 
@@ -47,15 +52,17 @@ export default function DashboardFilters() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos os Contratos</SelectItem>
-          {contracts.map((c) => (
-            <SelectItem key={c.id} value={c.name}>
-              {c.name}
-            </SelectItem>
-          ))}
+          {contracts
+            .filter((c) => c.name && c.name.trim() !== '')
+            .map((c) => (
+              <SelectItem key={c.id || c.name} value={c.name}>
+                {c.name}
+              </SelectItem>
+            ))}
         </SelectContent>
       </Select>
 
-      <Select value={filters.type} onValueChange={(v) => setDashboardFilter('type', v)}>
+      <Select value={filters.type || 'all'} onValueChange={(v) => setDashboardFilter('type', v)}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Tipo de Serviço" />
         </SelectTrigger>
@@ -67,7 +74,10 @@ export default function DashboardFilters() {
         </SelectContent>
       </Select>
 
-      <Select value={filters.period} onValueChange={(v) => setDashboardFilter('period', v)}>
+      <Select
+        value={filters.period || 'all'}
+        onValueChange={(v) => setDashboardFilter('period', v)}
+      >
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Período" />
         </SelectTrigger>

@@ -98,7 +98,7 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
               <div className="w-full">
                 <p className="font-medium text-foreground">Responsável</p>
                 <Select
-                  value={order.technicianId || (order.teamId ? `team_${order.teamId}` : '')}
+                  value={order.technicianId || (order.teamId ? `team_${order.teamId}` : undefined)}
                   onValueChange={handleResponsibleChange}
                 >
                   <SelectTrigger className="h-8 text-xs mt-1 w-full">
@@ -108,20 +108,20 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
                     <SelectGroup>
                       <SelectLabel>Equipes</SelectLabel>
                       {teams
-                        .filter((t) => t.active !== false)
+                        .filter((t) => t.active !== false && t.id && t.id.trim() !== '')
                         .map((t) => (
                           <SelectItem key={`team_${t.id}`} value={`team_${t.id}`}>
-                            {t.name}
+                            {t.name || 'Sem Nome'}
                           </SelectItem>
                         ))}
                     </SelectGroup>
                     <SelectGroup>
                       <SelectLabel>Técnicos</SelectLabel>
                       {technicians
-                        .filter((t) => t.status === 'active')
+                        .filter((t) => t.status === 'active' && t.id && t.id.trim() !== '')
                         .map((t) => (
                           <SelectItem key={t.id} value={t.id}>
-                            {t.name}
+                            {t.name || 'Sem Nome'}
                           </SelectItem>
                         ))}
                     </SelectGroup>
