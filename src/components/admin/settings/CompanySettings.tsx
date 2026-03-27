@@ -5,9 +5,11 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Building2, Upload } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import useAppStore from '@/stores/useAppStore'
 
 export default function CompanySettings() {
   const [loading, setLoading] = useState(false)
+  const { companyLogo, setCompanyLogo } = useAppStore()
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault()
@@ -16,6 +18,17 @@ export default function CompanySettings() {
       setLoading(false)
       toast({ title: 'Perfil atualizado', description: 'As informações da empresa foram salvas.' })
     }, 600)
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setCompanyLogo(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
   }
 
   return (
@@ -32,17 +45,52 @@ export default function CompanySettings() {
       <CardContent>
         <form onSubmit={handleSave} className="space-y-6">
           <div className="flex flex-col sm:flex-row gap-6 items-start">
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 items-center sm:items-start">
               <Label>Logomarca</Label>
-              <div className="h-32 w-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center bg-secondary/30 text-muted-foreground hover:bg-secondary/50 transition-colors cursor-pointer relative overflow-hidden group">
-                <img
-                  src="https://img.usecurling.com/i?q=company&color=blue"
-                  alt="Logo"
-                  className="absolute inset-0 w-full h-full object-contain p-4 opacity-50 group-hover:opacity-20 transition-opacity"
+              <div className="h-32 w-32 rounded-xl border-2 border-dashed flex flex-col items-center justify-center bg-secondary/30 text-muted-foreground hover:bg-secondary/50 transition-colors relative overflow-hidden group">
+                {companyLogo ? (
+                  <img
+                    src={companyLogo}
+                    alt="Logo"
+                    className="absolute inset-0 w-full h-full object-contain p-2"
+                  />
+                ) : (
+                  <img
+                    src="https://img.usecurling.com/i?q=company&color=blue"
+                    alt="Logo Placeholder"
+                    className="absolute inset-0 w-full h-full object-contain p-4 opacity-50 group-hover:opacity-20 transition-opacity"
+                  />
+                )}
+                <Input
+                  type="file"
+                  accept="image/*"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  onChange={handleFileChange}
                 />
-                <Upload className="h-6 w-6 mb-2 z-10" />
-                <span className="text-xs z-10 font-medium">Trocar Imagem</span>
+                {!companyLogo && (
+                  <>
+                    <Upload className="h-6 w-6 mb-2 z-10" />
+                    <span className="text-xs z-10 font-medium">Trocar Imagem</span>
+                  </>
+                )}
+                {companyLogo && (
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white pointer-events-none">
+                    <Upload className="h-6 w-6 mb-2" />
+                    <span className="text-xs font-medium text-center px-2">Clique para<br/>Alterar</span>
+                  </div>
+                )}
               </div>
+              {companyLogo && (
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-destructive h-auto py-1"
+                  onClick={() => setCompanyLogo(null)}
+                >
+                  Remover Logo
+                </Button>
+              )}
             </div>
 
             <div className="flex-1 grid gap-4 w-full">

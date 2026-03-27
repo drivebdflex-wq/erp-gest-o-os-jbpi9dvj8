@@ -40,6 +40,7 @@ export interface User {
   role_id: string
   active: boolean
   created_at: string
+  avatar_url?: string
 }
 
 interface AuthState {
@@ -182,6 +183,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateUser = (id: string, u: Partial<User>) => {
     setUsers((prev) => prev.map((x) => (x.id === id ? { ...x, ...u } : x)))
+    if (currentUser?.id === id) {
+      const updated = { ...currentUser, ...u }
+      setCurrentUser(updated)
+      localStorage.setItem('fieldops_user', JSON.stringify(updated))
+    }
   }
 
   const addRole = (r: Omit<Role, 'id'>) => {

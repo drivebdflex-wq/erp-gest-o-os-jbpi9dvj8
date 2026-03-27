@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Navigate } from 'react-router-dom'
 import useAuthStore from '@/stores/useAuthStore'
+import useAppStore from '@/stores/useAppStore'
 import {
   Card,
   CardContent,
@@ -19,6 +20,7 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const { login, isAuthenticated } = useAuthStore()
+  const { companyLogo } = useAppStore()
   const navigate = useNavigate()
 
   if (isAuthenticated) {
@@ -41,12 +43,22 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-secondary/30 p-4">
       <div className="mb-8 flex flex-col items-center gap-2">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-          <ClipboardList className="h-7 w-7" />
-        </div>
-        <span className="text-2xl font-bold tracking-tight">
-          FieldOps <span className="text-primary">Pro</span>
-        </span>
+        {companyLogo ? (
+          <img
+            src={companyLogo}
+            alt="Company Logo"
+            className="h-20 object-contain drop-shadow-md"
+          />
+        ) : (
+          <>
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
+              <ClipboardList className="h-7 w-7" />
+            </div>
+            <span className="text-2xl font-bold tracking-tight">
+              FieldOps <span className="text-primary">Pro</span>
+            </span>
+          </>
+        )}
       </div>
 
       <Card className="w-full max-w-sm shadow-xl">

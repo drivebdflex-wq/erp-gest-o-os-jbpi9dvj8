@@ -177,6 +177,8 @@ export interface Order {
 interface AppState {
   role: Role
   setRole: (role: Role) => void
+  companyLogo: string | null
+  setCompanyLogo: (url: string | null) => void
   orders: Order[]
   filteredOrders: Order[]
   clients: { id: string; name: string }[]
@@ -199,6 +201,9 @@ const AppContext = createContext<AppState | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<Role>('admin')
+  const [companyLogo, setCompanyLogoState] = useState<string | null>(() =>
+    localStorage.getItem('fieldops_logo'),
+  )
   const [orders, setOrders] = useState<Order[]>([])
   const [clients, setClients] = useState<{ id: string; name: string }[]>([])
   const [contracts, setContracts] = useState<Contract[]>([])
@@ -211,6 +216,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     period: 'all',
     contract: 'all',
   })
+
+  const setCompanyLogo = useCallback((url: string | null) => {
+    setCompanyLogoState(url)
+    if (url) localStorage.setItem('fieldops_logo', url)
+    else localStorage.removeItem('fieldops_logo')
+  }, [])
 
   const setDashboardFilter = useCallback((key: string, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }))
@@ -443,6 +454,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       value={{
         role,
         setRole,
+        companyLogo,
+        setCompanyLogo,
         orders,
         filteredOrders,
         clients,

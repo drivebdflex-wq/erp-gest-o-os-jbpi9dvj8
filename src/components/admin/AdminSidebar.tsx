@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import useAuthStore, { Permission } from '@/stores/useAuthStore'
+import useAppStore from '@/stores/useAppStore'
 
 type NavItem = {
   title: string
@@ -115,6 +116,7 @@ const navItems: NavItem[] = [
 export default function AdminSidebar() {
   const location = useLocation()
   const { hasPermission } = useAuthStore()
+  const { companyLogo } = useAppStore()
 
   const filteredNavItems = navItems.filter(
     (item) => !item.permission || hasPermission(item.permission),
@@ -123,14 +125,22 @@ export default function AdminSidebar() {
   return (
     <Sidebar variant="sidebar" className="border-r shadow-sm">
       <SidebarHeader className="flex items-center justify-center py-6">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <ClipboardList className="h-5 w-5" />
+        {companyLogo ? (
+          <img
+            src={companyLogo}
+            alt="Company Logo"
+            className="h-10 object-contain max-w-[180px] px-2 drop-shadow-sm"
+          />
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+              <ClipboardList className="h-5 w-5" />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-sidebar-foreground">
+              FieldOps <span className="text-primary">Pro</span>
+            </span>
           </div>
-          <span className="text-xl font-bold tracking-tight text-sidebar-foreground">
-            FieldOps <span className="text-primary">Pro</span>
-          </span>
-        </div>
+        )}
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

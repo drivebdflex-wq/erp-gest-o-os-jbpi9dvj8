@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Dialog,
   DialogContent,
@@ -36,7 +37,7 @@ export default function UsersSettings() {
   const [search, setSearch] = useState('')
   const [isOpen, setIsOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [form, setForm] = useState<any>({ active: true })
+  const [form, setForm] = useState<any>({ active: true, avatar_url: '' })
 
   const filteredUsers = users.filter(
     (u) =>
@@ -52,10 +53,11 @@ export default function UsersSettings() {
         email: user.email,
         role_id: user.role_id,
         active: user.active,
+        avatar_url: user.avatar_url || '',
       })
     } else {
       setEditingUser(null)
-      setForm({ active: true, role_id: roles[0]?.id })
+      setForm({ active: true, role_id: roles[0]?.id, avatar_url: '' })
     }
     setIsOpen(true)
   }
@@ -70,6 +72,7 @@ export default function UsersSettings() {
         email: form.email,
         role_id: form.role_id,
         active: form.active,
+        avatar_url: form.avatar_url,
       })
       toast({ title: 'Usuário atualizado', description: 'As alterações foram salvas.' })
     } else {
@@ -78,6 +81,7 @@ export default function UsersSettings() {
         email: form.email,
         role_id: form.role_id,
         active: form.active,
+        avatar_url: form.avatar_url,
         password_hash: 'senha123', // Mock default password
       })
       toast({ title: 'Usuário criado', description: 'Novo membro adicionado com sucesso.' })
@@ -118,7 +122,15 @@ export default function UsersSettings() {
               const role = roles.find((r) => r.id === user.role_id)
               return (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8 border">
+                        <AvatarImage src={user.avatar_url} />
+                        <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <span>{user.name}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{role?.name || 'Desconhecido'}</Badge>
@@ -157,6 +169,32 @@ export default function UsersSettings() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Foto de Perfil</Label>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-12 w-12 border">
+                    <AvatarImage src={form.avatar_url} />
+                    <AvatarFallback>
+                      {form.name ? form.name.substring(0, 2).toUpperCase() : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="flex-1"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        const reader = new FileReader()
+                        reader.onloadend = () => {
+                          setForm({ ...form, avatar_url: reader.result as string })
+                        }
+                        reader.readAsDataURL(file)
+                      }
+                    }}
+                  />
+                </div>
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="name">Nome Completo</Label>
                 <Input

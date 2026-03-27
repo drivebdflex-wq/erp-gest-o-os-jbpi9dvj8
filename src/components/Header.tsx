@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Bell,
   Search,
@@ -20,6 +21,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -29,9 +39,12 @@ import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 export default function Header() {
-  const { currentUser, roles, logout } = useAuthStore()
+  const { currentUser, roles, logout, updateUser } = useAuthStore()
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotificationStore()
   const navigate = useNavigate()
+
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [profileForm, setProfileForm] = useState({ name: '', avatar_url: '' })
 
   const roleName = roles.find((r) => r.id === currentUser?.role_id)?.name || 'Usuário'
   const isTech = currentUser?.role_id === 'role-tecnico'
@@ -39,6 +52,22 @@ export default function Header() {
   const handleLogout = () => {
     logout()
     navigate('/login')
+  }
+
+  const handleSaveProfile = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (currentUser) {
+      updateUser(currentUser.id, profileForm)
+      setIsProfileOpen(false)
+    }
+  }
+
+  const openProfile = () => {
+    setProfileForm({
+      name: currentUser?.name || '',
+      avatar_url: currentUser?.avatar_url || '',
+    })
+    setIsProfileOpen(true)
   }
 
   return (
@@ -144,12 +173,13 @@ export default function Header() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
               <Avatar className="h-8 w-8 border bg-secondary">
-                <AvatarImage
-                  src={`https://img.usecurling.com/ppl/thumbnail?seed=${currentUser?.id}`}
-                  alt="@user"
-                />
+                <AvatarImage src={currentUser?.avatar_url} alt="@user" />
                 <AvatarFallback>
-                  <UserIcon className="h-4 w-4" />
+                  {currentUser?.name ? (
+                    currentUser.name.substring(0, 2).toUpperCase()
+                  ) : (
+                    <UserIcon className="h-4 w-4" />
+                  )}
                 </AvatarFallback>
               </Avatar>
             </Button>
@@ -162,6 +192,10 @@ export default function Header() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={openProfile} className="cursor-pointer">
+              <UserIcon className="mr-2 h-4 w-4" />
+              <span>Meu Perfil</span>
+            </DropdownMenuItem>
             <DropdownMenuItem
               onClick={handleLogout}
               className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
@@ -172,6 +206,62 @@ export default function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <form onSubmit={handleSaveProfile}>
+            <DialogHeader>
+              <DialogTitle>Meu Perfil</DialogTitle>
+              <DialogDescription>
+                Atualize suas informações pessoais e foto de perfil.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label>Foto de Perfil</Label>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16 border">
+                    <AvatarImage src={profileForm.avatar_url} />
+                    <AvatarFallback>
+                      {profileForm.name?.substring(0, 2).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="flex-1"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0]
+                      if (file) {
+                        const reader = new FileReader()
+                        reader.onloadend = () => {
+                          setProfileForm({ ...profileForm, avatar_url: reader.result as string })
+                        }
+                        reader.readAsDataURL(file)
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="profile-name">Nome Completo</Label>
+                <Input
+                  id="profile-name"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => setIsProfileOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Salvar Alterações</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </header>
   )
 }
