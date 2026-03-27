@@ -29,9 +29,11 @@ export default function CreateOrderDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { clients, contracts, createOrder } = useAppStore()
+  const { clients, contracts, createOrder, priceItems } = useAppStore()
   const { technicians, teams } = useOperationalStore()
   const [formData, setFormData] = useState<any>({ priority: 'Média' })
+
+  const availableServices = priceItems.filter((p) => p.contractId === formData.contractId)
 
   const handleSave = async () => {
     try {
@@ -47,6 +49,21 @@ export default function CreateOrderDialog({
         })
         return
       }
+
+      if (formData.contractId && formData.serviceCode) {
+        const exists = priceItems.some(
+          (p) => p.contractId === formData.contractId && p.serviceCode === formData.serviceCode,
+        )
+        if (!exists) {
+          toast({
+            title: 'Erro de Validação',
+            description: 'Código de serviço não encontrado na tabela de preços do contrato.',
+            variant: 'destructive',
+          })
+          return
+        }
+      }
+
       await createOrder({
         description: formData.description,
         client_id: formData.clientId,
@@ -56,6 +73,8 @@ export default function CreateOrderDialog({
         priority:
           formData.priority === 'Média' ? 'medium' : formData.priority === 'Alta' ? 'high' : 'low',
         status: 'pending',
+        service_code: formData.serviceCode,
+        service_value: formData.serviceValue,
       })
       toast({ title: 'Sucesso', description: 'OS criada com sucesso.' })
       onOpenChange(false)
@@ -107,7 +126,12 @@ export default function CreateOrderDialog({
                 disabled={!formData.clientId}
                 value={formData.contractId || 'none'}
                 onValueChange={(v) =>
-                  setFormData({ ...formData, contractId: v === 'none' ? undefined : v })
+                  setFormData({
+                    ...formData,
+                    contractId: v === 'none' ? undefined : v,
+                    serviceCode: undefined,
+                    serviceValue: undefined,
+                  })
                 }
               >
                 <SelectTrigger>
@@ -125,6 +149,43 @@ export default function CreateOrderDialog({
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2 col-span-2">
+              <Label>Serviço (Tabela de Preços)</Label>
+              <Select
+                disabled={!formData.contractId || availableServices.length === 0}
+                value={formData.serviceCode || 'none'}
+                onValueChange={(v) => {
+                  if (v === 'none') {
+                    setFormData({ ...formData, serviceCode: undefined, serviceValue: undefined })
+                  } else {
+                    const item = availableServices.find((s) => s.serviceCode === v)
+                    setFormData({ ...formData, serviceCode: v, serviceValue: item?.unitPrice })
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      !formData.contractId
+                        ? 'Selecione um contrato primeiro'
+                        : availableServices.length
+                          ? 'Selecione um serviço...'
+                          : 'Contrato sem tabela de preços'
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Avulso / Outro</SelectItem>
+                  {availableServices.map((s) => (
+                    <SelectItem key={s.serviceCode} value={s.serviceCode}>
+                      {s.serviceCode} - {s.serviceName} (R$ {s.unitPrice.toFixed(2)})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="space-y-2 col-span-2">
               <Label>Responsável (Obrigatório)</Label>
               <Select

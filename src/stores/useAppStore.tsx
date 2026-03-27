@@ -11,6 +11,7 @@ import { ServiceOrdersService } from '@/services/business/service-orders.service
 import { ClientsRepository } from '@/services/repositories/clients.repository'
 import { TechniciansRepository, UsersRepository } from '@/services/repositories/users.repository'
 import { ContractsRepository } from '@/services/repositories/contracts.repository'
+import { ContractPriceItemsRepository } from '@/services/repositories/contract-price-items.repository'
 import type { SLAStatus } from '@/services/repositories/types/common'
 
 export type Role = 'admin' | 'tech'
@@ -75,6 +76,14 @@ export interface Contract {
   preventiveFrequency?: string
 }
 
+export interface PriceItem {
+  id: string
+  contractId: string
+  serviceCode: string
+  serviceName: string
+  unitPrice: number
+}
+
 export interface Order {
   id: string
   shortId: string
@@ -97,6 +106,8 @@ export interface Order {
   totalDuration: number
   estimatedDuration: number
   laborCost: number
+  serviceCode?: string
+  serviceValue?: number
   finishedAt?: string
   updatedAt: string
   type: 'Preventiva' | 'Corretiva' | 'Obra'
@@ -109,6 +120,7 @@ interface AppState {
   filteredOrders: Order[]
   clients: { id: string; name: string }[]
   contracts: Contract[]
+  priceItems: PriceItem[]
   filters: { client: string; unit: string; type: string; period: string; contract: string }
   setDashboardFilter: (key: string, value: string) => void
   updateOrderStatus: (id: string, status: OSStatus) => Promise<void>
@@ -126,6 +138,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([])
   const [clients, setClients] = useState<{ id: string; name: string }[]>([])
   const [contracts, setContracts] = useState<Contract[]>([])
+  const [priceItems, setPriceItems] = useState<PriceItem[]>([])
   const [filters, setFilters] = useState({
     client: 'all',
     unit: 'all',
@@ -145,8 +158,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const techs = await TechniciansRepository.findAll()
       const users = await UsersRepository.findAll()
       const dbContracts = await ContractsRepository.findAll()
+      const dbPriceItems = await ContractPriceItemsRepository.findAll()
 
       setClients(dbClients.map((c) => ({ id: c.id, name: c.name })))
+
+      setPriceItems(
+        dbPriceItems.map((p) => ({
+          id: p.id,
+          contractId: p.contract_id,
+          serviceCode: p.service_code,
+          serviceName: p.service_name,
+          unitPrice: Number(p.unit_price) || 0,
+        })),
+      )
 
       const mappedContracts: Contract[] = dbContracts.map((c) => ({
         id: c.id,
@@ -201,6 +225,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           totalDuration: o.total_duration_minutes || 0,
           estimatedDuration: o.estimated_duration_minutes || 60,
           laborCost: Number(o.labor_cost) || 0,
+          serviceCode: o.service_code,
+          serviceValue: Number(o.service_value) || 0,
           finishedAt: o.finished_at,
           updatedAt: o.updated_at || o.created_at || new Date().toISOString(),
           type,
@@ -275,8 +301,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
       start_date: data.startDate,
       end_date: data.endDate,
     }
-    if (data.id) await ContractsRepository.update(data.id, dbData as any)
-    else await ContractsRepository.create(dbData as any)
+
+    let savedContract
+    if (data.id) {
+      savedContract = await ContractsRepository.update(data.id, dbData as any)
+    } else {
+      savedContract = await ContractsRepository.create(dbData as any)
+    }
+
+    const contractId = data.id || savedContract?.id
+
+    if (contractId && data.priceItems) {
+      await ContractPriceItemsRepository.overwriteForContract(
+        contractId,
+        data.priceItems.map((p: any) => ({
+          contract_id: contractId,
+          service_code: p.serviceCode,
+          service_name: p.serviceName,
+          unit_price: p.unitPrice,
+        })),
+      )
+    }
+
     await loadOrders()
   }
 
@@ -289,6 +335,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         filteredOrders,
         clients,
         contracts,
+        priceItems,
         filters,
         setDashboardFilter,
         updateOrderStatus,

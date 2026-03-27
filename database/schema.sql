@@ -149,6 +149,17 @@ CREATE TABLE IF NOT EXISTS contracts (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS contract_price_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    contract_id UUID NOT NULL REFERENCES contracts(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    service_code VARCHAR(50) NOT NULL,
+    service_name VARCHAR(255) NOT NULL,
+    unit_price DECIMAL(12, 2) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(contract_id, service_code)
+);
+
 -- ==========================================
 -- 4. SERVICE ORDER LIFECYCLE
 -- ==========================================
@@ -161,6 +172,8 @@ CREATE TABLE IF NOT EXISTS service_orders (
     status service_order_status NOT NULL DEFAULT 'pending',
     priority service_order_priority NOT NULL DEFAULT 'medium',
     description TEXT,
+    service_code VARCHAR(50),
+    service_value DECIMAL(12, 2),
     
     -- Schedule & Deadlines
     scheduled_at TIMESTAMP WITH TIME ZONE,
@@ -324,6 +337,7 @@ DO $$ BEGIN CREATE TRIGGER set_timestamp_teams BEFORE UPDATE ON teams FOR EACH R
 DO $$ BEGIN CREATE TRIGGER set_timestamp_technicians BEFORE UPDATE ON technicians FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TRIGGER set_timestamp_clients BEFORE UPDATE ON clients FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TRIGGER set_timestamp_contracts BEFORE UPDATE ON contracts FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE TRIGGER set_timestamp_contract_price_items BEFORE UPDATE ON contract_price_items FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TRIGGER set_timestamp_service_orders BEFORE UPDATE ON service_orders FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TRIGGER set_timestamp_materials BEFORE UPDATE ON materials FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE TRIGGER set_timestamp_inventory BEFORE UPDATE ON inventory FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $$;
@@ -375,6 +389,7 @@ CREATE INDEX IF NOT EXISTS idx_teams_supervisor_id ON teams(supervisor_id);
 CREATE INDEX IF NOT EXISTS idx_technicians_user_id ON technicians(user_id);
 CREATE INDEX IF NOT EXISTS idx_technicians_team_id ON technicians(team_id);
 CREATE INDEX IF NOT EXISTS idx_contracts_client_id ON contracts(client_id);
+CREATE INDEX IF NOT EXISTS idx_contract_price_items_contract_id ON contract_price_items(contract_id);
 CREATE INDEX IF NOT EXISTS idx_service_orders_client_id ON service_orders(client_id);
 CREATE INDEX IF NOT EXISTS idx_service_orders_contract_id ON service_orders(contract_id);
 CREATE INDEX IF NOT EXISTS idx_service_orders_technician_id ON service_orders(technician_id);
@@ -413,6 +428,12 @@ INSERT INTO contracts (id, client_id, name, type, contract_number, location, sta
 VALUES ('77777777-7777-7777-7777-777777777777', '33333333-3333-3333-3333-333333333333', 'Manutenção Predial Alpha', 'Manutenção', 'CT-2023-001', 'Sede Principal', '2023-01-01', CURRENT_DATE + INTERVAL '15 days', 15000)
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO contract_price_items (contract_id, service_code, service_name, unit_price)
+VALUES 
+('77777777-7777-7777-7777-777777777777', '001', 'Troca de lâmpada', 50.00),
+('77777777-7777-7777-7777-777777777777', '002', 'Manutenção elétrica', 120.00)
+ON CONFLICT (contract_id, service_code) DO NOTHING;
+
 INSERT INTO technicians (id, user_id, specialty)
 VALUES ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'General Maintenance')
 ON CONFLICT (id) DO NOTHING;
@@ -434,3 +455,4 @@ VALUES (
     120
 )
 ON CONFLICT (id) DO NOTHING;
+

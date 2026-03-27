@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Badge } from '@/components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import {
   Select,
   SelectContent,
@@ -22,12 +31,21 @@ import useAppStore from '@/stores/useAppStore'
 import { toast } from '@/hooks/use-toast'
 
 export default function ContractDialog({ open, onOpenChange, contract, type }: any) {
-  const { clients, saveContract } = useAppStore()
+  const { clients, saveContract, priceItems } = useAppStore()
   const [formData, setFormData] = useState<any>({})
+  const [showPriceTable, setShowPriceTable] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (contract) {
-      setFormData(contract)
+      const items = priceItems
+        .filter((p) => p.contractId === contract.id)
+        .map((p) => ({
+          serviceCode: p.serviceCode,
+          serviceName: p.serviceName,
+          unitPrice: p.unitPrice,
+        }))
+      setFormData({ ...contract, priceItems: items })
     } else {
       setFormData({
         type,
@@ -38,9 +56,10 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
         location: '',
         startDate: new Date().toISOString().split('T')[0],
         endDate: new Date(Date.now() + 31536000000).toISOString().split('T')[0], // +1 year
+        priceItems: [],
       })
     }
-  }, [contract, open, type])
+  }, [contract, open, type, priceItems])
 
   const handleSave = async () => {
     try {
@@ -52,290 +71,467 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
     }
   }
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.name.endsWith('.csv')) {
+      const reader = new FileReader()
+      reader.onload = (evt) => {
+        const text = evt.target?.result as string
+        const lines = text.split('\n').filter((l) => l.trim().length > 0)
+        if (lines.length === 0) return
+        const headers = lines[0].split(/[,;]/).map((h) => h.trim().toLowerCase())
+
+        if (
+          !headers.includes('service_code') ||
+          !headers.includes('service_name') ||
+          !headers.includes('unit_price')
+        ) {
+          toast({
+            title: 'Erro',
+            description:
+              'Colunas obrigatórias ausentes no CSV (service_code, service_name, unit_price).',
+            variant: 'destructive',
+          })
+          return
+        }
+
+        const items = []
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(/[,;]/).map((c) => c.trim())
+          if (cols.length >= 3) {
+            items.push({
+              serviceCode: cols[headers.indexOf('service_code')],
+              serviceName: cols[headers.indexOf('service_name')],
+              unitPrice: parseFloat(cols[headers.indexOf('unit_price')]) || 0,
+            })
+          }
+        }
+        setFormData({ ...formData, priceItems: items })
+        toast({ title: 'Sucesso', description: `${items.length} itens carregados da planilha.` })
+      }
+      reader.readAsText(file)
+    } else if (file.name.endsWith('.xlsx')) {
+      toast({ title: 'Simulação', description: 'Leitura de XLSX simulada para o protótipo.' })
+      const items = [
+        { serviceCode: '001', serviceName: 'Troca de lâmpada', unitPrice: 50 },
+        { serviceCode: '002', serviceName: 'Manutenção elétrica', unitPrice: 120 },
+        { serviceCode: '003', serviceName: 'Visita Técnica', unitPrice: 150 },
+        { serviceCode: '004', serviceName: 'Instalação de AC', unitPrice: 400 },
+      ]
+      setFormData({ ...formData, priceItems: items })
+    } else {
+      toast({
+        title: 'Formato inválido',
+        description: 'Apenas .csv ou .xlsx permitidos',
+        variant: 'destructive',
+      })
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{contract ? 'Editar Contrato' : 'Novo Contrato'}</DialogTitle>
-        </DialogHeader>
-        <Tabs defaultValue="geral">
-          <TabsList className="grid w-full grid-cols-6 text-xs">
-            <TabsTrigger value="geral">Geral</TabsTrigger>
-            <TabsTrigger value="finance">Financeiro</TabsTrigger>
-            <TabsTrigger value="ops">Operacional</TabsTrigger>
-            <TabsTrigger value="orcamento">Orçamento</TabsTrigger>
-            <TabsTrigger value="equipe">Equipe</TabsTrigger>
-            <TabsTrigger value="docs">Anexos</TabsTrigger>
-          </TabsList>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{contract ? 'Editar Contrato' : 'Novo Contrato'}</DialogTitle>
+          </DialogHeader>
+          <Tabs defaultValue="geral">
+            <TabsList className="flex flex-wrap h-auto w-full justify-start text-xs bg-muted/50 p-1 rounded-md mb-4 gap-1">
+              <TabsTrigger value="geral">Geral</TabsTrigger>
+              <TabsTrigger value="finance">Financeiro</TabsTrigger>
+              <TabsTrigger value="precos">Preços</TabsTrigger>
+              <TabsTrigger value="ops">Operacional</TabsTrigger>
+              <TabsTrigger value="orcamento">Orçamento</TabsTrigger>
+              <TabsTrigger value="equipe">Equipe</TabsTrigger>
+              <TabsTrigger value="docs">Anexos</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="geral" className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label>Nome do Contrato</Label>
-                <Input
-                  value={formData.name || ''}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label>Número do Contrato</Label>
-                <Input
-                  value={formData.contractNumber || ''}
-                  onChange={(e) => setFormData({ ...formData, contractNumber: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label>Cliente</Label>
-                <Select
-                  value={formData.clientId || ''}
-                  onValueChange={(v) => setFormData({ ...formData, clientId: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label>Unidade / Local</Label>
-                <Input
-                  value={formData.location || ''}
-                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label>Data de Início</Label>
-                <Input
-                  type="date"
-                  value={formData.startDate || ''}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label>Data de Término</Label>
-                <Input
-                  type="date"
-                  value={formData.endDate || ''}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                />
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="finance" className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Último Reajuste</Label>
-                <Input
-                  type="date"
-                  value={formData.lastAdjustmentDate || ''}
-                  onChange={(e) => setFormData({ ...formData, lastAdjustmentDate: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Próximo Reajuste</Label>
-                <Input
-                  type="date"
-                  value={formData.nextAdjustmentDate || ''}
-                  onChange={(e) => setFormData({ ...formData, nextAdjustmentDate: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Índice de Reajuste</Label>
-                <Select
-                  value={formData.adjustmentType || ''}
-                  onValueChange={(v) => setFormData({ ...formData, adjustmentType: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="IGPM">IGPM</SelectItem>
-                    <SelectItem value="IPCA">IPCA</SelectItem>
-                    <SelectItem value="Fixo">Fixo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Percentual (%)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={formData.adjustmentPercentage || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, adjustmentPercentage: parseFloat(e.target.value) })
-                  }
-                />
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="ops" className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={formData.allowsCorrective}
-                  onCheckedChange={(c) => setFormData({ ...formData, allowsCorrective: c })}
-                />
-                <Label>Permitir Corretiva</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={formData.hasPreventive}
-                  onCheckedChange={(c) => setFormData({ ...formData, hasPreventive: c })}
-                />
-                <Label>Possui Preventiva</Label>
-              </div>
-              {formData.hasPreventive && (
-                <div className="space-y-2 col-span-2">
-                  <Label>Frequência Preventiva</Label>
+            <TabsContent value="geral" className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label>Nome do Contrato</Label>
+                  <Input
+                    value={formData.name || ''}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label>Número do Contrato</Label>
+                  <Input
+                    value={formData.contractNumber || ''}
+                    onChange={(e) => setFormData({ ...formData, contractNumber: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label>Cliente</Label>
                   <Select
-                    value={formData.preventiveFrequency || ''}
-                    onValueChange={(v) => setFormData({ ...formData, preventiveFrequency: v })}
+                    value={formData.clientId || ''}
+                    onValueChange={(v) => setFormData({ ...formData, clientId: v })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Mensal">Mensal</SelectItem>
-                      <SelectItem value="Trimestral">Trimestral</SelectItem>
-                      <SelectItem value="Anual">Anual</SelectItem>
+                      {clients.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-              )}
-              <div className="space-y-2 col-span-2">
-                <Label>SLA Padrão (horas)</Label>
-                <Input
-                  type="number"
-                  value={formData.slaDefault || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, slaDefault: parseInt(e.target.value, 10) })
-                  }
-                />
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label>Unidade / Local</Label>
+                  <Input
+                    value={formData.location || ''}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label>Data de Início</Label>
+                  <Input
+                    type="date"
+                    value={formData.startDate || ''}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label>Data de Término</Label>
+                  <Input
+                    type="date"
+                    value={formData.endDate || ''}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  />
+                </div>
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="orcamento" className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Teto Mão de Obra (R$)</Label>
-                <Input
-                  type="number"
-                  value={formData.budgetLabor || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, budgetLabor: parseFloat(e.target.value) })
-                  }
-                />
+            <TabsContent value="finance" className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Último Reajuste</Label>
+                  <Input
+                    type="date"
+                    value={formData.lastAdjustmentDate || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastAdjustmentDate: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Próximo Reajuste</Label>
+                  <Input
+                    type="date"
+                    value={formData.nextAdjustmentDate || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, nextAdjustmentDate: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Índice de Reajuste</Label>
+                  <Select
+                    value={formData.adjustmentType || ''}
+                    onValueChange={(v) => setFormData({ ...formData, adjustmentType: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IGPM">IGPM</SelectItem>
+                      <SelectItem value="IPCA">IPCA</SelectItem>
+                      <SelectItem value="Fixo">Fixo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Percentual (%)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={formData.adjustmentPercentage || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, adjustmentPercentage: parseFloat(e.target.value) })
+                    }
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Teto Materiais (R$)</Label>
-                <Input
-                  type="number"
-                  value={formData.budgetMaterial || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, budgetMaterial: parseFloat(e.target.value) })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Teto Combustível (R$)</Label>
-                <Input
-                  type="number"
-                  value={formData.budgetFuel || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, budgetFuel: parseFloat(e.target.value) })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Outros Custos (R$)</Label>
-                <Input
-                  type="number"
-                  value={formData.budgetOthers || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, budgetOthers: parseFloat(e.target.value) })
-                  }
-                />
-              </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="equipe" className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Quantidade de Técnicos Planejada</Label>
-                <Input
-                  type="number"
-                  value={formData.plannedTechs || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, plannedTechs: parseInt(e.target.value, 10) })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Horas Previstas / Mês</Label>
-                <Input
-                  type="number"
-                  value={formData.plannedHours || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, plannedHours: parseFloat(e.target.value) })
-                  }
-                />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label>Custo Estimado de Equipe (R$)</Label>
-                <Input
-                  type="number"
-                  value={formData.estimatedTeamCost || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, estimatedTeamCost: parseFloat(e.target.value) })
-                  }
-                />
-              </div>
-            </div>
-          </TabsContent>
+            <TabsContent value="precos" className="space-y-4 py-4">
+              <div className="space-y-4">
+                <div className="flex flex-col gap-2">
+                  <Label>Gerenciar Tabela de Preços</Label>
+                  <div className="flex gap-2">
+                    <Button asChild variant="outline">
+                      <label className="cursor-pointer">
+                        Upload tabela de preços
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".csv,.xlsx"
+                          onChange={handleFileUpload}
+                          ref={fileInputRef}
+                        />
+                      </label>
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        setShowPriceTable(true)
+                      }}
+                      disabled={!formData.priceItems?.length}
+                    >
+                      Visualizar tabela
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    O arquivo (.csv ou .xlsx) deve conter as colunas: <strong>service_code</strong>,{' '}
+                    <strong>service_name</strong>, <strong>unit_price</strong>.
+                  </p>
+                </div>
 
-          <TabsContent value="docs" className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Anexar Documento (PDF/Excel)</Label>
-              <Input
-                type="file"
-                accept=".pdf,.xlsx,.xls"
-                onChange={(e) => {
-                  if (e.target.files?.length) {
-                    setFormData({
-                      ...formData,
-                      attachmentUrl: URL.createObjectURL(e.target.files[0]),
-                    })
-                    toast({
-                      title: 'Arquivo carregado',
-                      description: 'O documento foi anexado temporariamente.',
-                    })
-                  }
-                }}
-              />
-              {formData.attachmentUrl && (
-                <p className="text-sm text-green-600 mt-2">Documento anexado pronto para envio.</p>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
+                {formData.priceItems && formData.priceItems.length > 0 && (
+                  <div className="space-y-2 mt-4 border rounded-md p-4 bg-muted/20">
+                    <div className="flex justify-between items-center">
+                      <Label>Preview de Serviços</Label>
+                      <Badge variant="secondary">{formData.priceItems.length} itens</Badge>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Código</TableHead>
+                          <TableHead>Serviço</TableHead>
+                          <TableHead>Preço (R$)</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {formData.priceItems.slice(0, 3).map((item: any, i: number) => (
+                          <TableRow key={i}>
+                            <TableCell className="font-mono text-xs">{item.serviceCode}</TableCell>
+                            <TableCell className="text-xs">{item.serviceName}</TableCell>
+                            <TableCell className="text-xs">{item.unitPrice.toFixed(2)}</TableCell>
+                          </TableRow>
+                        ))}
+                        {formData.priceItems.length > 3 && (
+                          <TableRow>
+                            <TableCell
+                              colSpan={3}
+                              className="text-center text-muted-foreground text-xs py-4"
+                            >
+                              ... e mais {formData.priceItems.length - 3} itens. Clique em
+                              "Visualizar tabela" para ver todos.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSave}>Salvar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <TabsContent value="ops" className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={formData.allowsCorrective}
+                    onCheckedChange={(c) => setFormData({ ...formData, allowsCorrective: c })}
+                  />
+                  <Label>Permitir Corretiva</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={formData.hasPreventive}
+                    onCheckedChange={(c) => setFormData({ ...formData, hasPreventive: c })}
+                  />
+                  <Label>Possui Preventiva</Label>
+                </div>
+                {formData.hasPreventive && (
+                  <div className="space-y-2 col-span-2">
+                    <Label>Frequência Preventiva</Label>
+                    <Select
+                      value={formData.preventiveFrequency || ''}
+                      onValueChange={(v) => setFormData({ ...formData, preventiveFrequency: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Mensal">Mensal</SelectItem>
+                        <SelectItem value="Trimestral">Trimestral</SelectItem>
+                        <SelectItem value="Anual">Anual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div className="space-y-2 col-span-2">
+                  <Label>SLA Padrão (horas)</Label>
+                  <Input
+                    type="number"
+                    value={formData.slaDefault || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, slaDefault: parseInt(e.target.value, 10) })
+                    }
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="orcamento" className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Teto Mão de Obra (R$)</Label>
+                  <Input
+                    type="number"
+                    value={formData.budgetLabor || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, budgetLabor: parseFloat(e.target.value) })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Teto Materiais (R$)</Label>
+                  <Input
+                    type="number"
+                    value={formData.budgetMaterial || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, budgetMaterial: parseFloat(e.target.value) })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Teto Combustível (R$)</Label>
+                  <Input
+                    type="number"
+                    value={formData.budgetFuel || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, budgetFuel: parseFloat(e.target.value) })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Outros Custos (R$)</Label>
+                  <Input
+                    type="number"
+                    value={formData.budgetOthers || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, budgetOthers: parseFloat(e.target.value) })
+                    }
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="equipe" className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Quantidade de Técnicos Planejada</Label>
+                  <Input
+                    type="number"
+                    value={formData.plannedTechs || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, plannedTechs: parseInt(e.target.value, 10) })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Horas Previstas / Mês</Label>
+                  <Input
+                    type="number"
+                    value={formData.plannedHours || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, plannedHours: parseFloat(e.target.value) })
+                    }
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Custo Estimado de Equipe (R$)</Label>
+                  <Input
+                    type="number"
+                    value={formData.estimatedTeamCost || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, estimatedTeamCost: parseFloat(e.target.value) })
+                    }
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="docs" className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Anexar Documento (PDF/Excel)</Label>
+                <Input
+                  type="file"
+                  accept=".pdf,.xlsx,.xls"
+                  onChange={(e) => {
+                    if (e.target.files?.length) {
+                      setFormData({
+                        ...formData,
+                        attachmentUrl: URL.createObjectURL(e.target.files[0]),
+                      })
+                      toast({
+                        title: 'Arquivo carregado',
+                        description: 'O documento foi anexado temporariamente.',
+                      })
+                    }
+                  }}
+                />
+                {formData.attachmentUrl && (
+                  <p className="text-sm text-green-600 mt-2">
+                    Documento anexado pronto para envio.
+                  </p>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSave}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPriceTable} onOpenChange={setShowPriceTable}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Tabela de Preços Completa</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto pr-2">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Serviço</TableHead>
+                  <TableHead className="text-right">Preço (R$)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {formData.priceItems?.map((item: any, i: number) => (
+                  <TableRow key={i}>
+                    <TableCell className="font-mono text-xs">{item.serviceCode}</TableCell>
+                    <TableCell className="text-sm">{item.serviceName}</TableCell>
+                    <TableCell className="text-right text-sm">
+                      {item.unitPrice.toFixed(2)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowPriceTable(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

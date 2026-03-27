@@ -10,6 +10,8 @@ export interface ServiceOrder extends Timestamps {
   status: ServiceOrderStatus
   priority: ServiceOrderPriority
   description?: string
+  service_code?: string
+  service_value?: number
   scheduled_at?: string
   deadline_at?: string
   sla_status: SLAStatus
@@ -34,6 +36,8 @@ export interface CreateServiceOrderDTO {
   status?: ServiceOrderStatus
   priority?: ServiceOrderPriority
   description?: string
+  service_code?: string
+  service_value?: number
   scheduled_at?: string
   deadline_at?: string
   latitude?: number
