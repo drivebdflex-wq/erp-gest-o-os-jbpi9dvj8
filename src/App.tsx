@@ -72,8 +72,8 @@ const App = () => (
 
                   {/* Frotas */}
                   <Route path="/frotas/dashboard" element={<FleetDashboard />} />
-                  <Route path="/frotas/veiculos" element={<VehiclesPage />} />
-                  <Route path="/frotas/veiculos/:id" element={<VehicleDetailPage />} />
+                  <Route path="/veiculos" element={<VehiclesPage />} />
+                  <Route path="/veiculos/:id" element={<VehicleDetailPage />} />
                   <Route path="/frotas/motoristas" element={<DriversPage />} />
                   <Route path="/frotas/manutencoes" element={<MaintenancePage />} />
                   <Route path="/frotas/abastecimentos" element={<RefuelingPage />} />

@@ -84,7 +84,7 @@ export default function VehiclesPage() {
               <TableRow
                 key={v.id}
                 className="cursor-pointer hover:bg-muted/50"
-                onClick={() => navigate(`/frotas/veiculos/${v.id}`)}
+                onClick={() => navigate(`/veiculos/${v.id}`)}
               >
                 <TableCell className="font-bold">{v.plate}</TableCell>
                 <TableCell>

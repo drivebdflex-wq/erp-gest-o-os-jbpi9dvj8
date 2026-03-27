@@ -55,7 +55,7 @@ const navItems = [
     icon: Truck,
     subItems: [
       { title: 'Dashboard', url: '/frotas/dashboard' },
-      { title: 'Veículos', url: '/frotas/veiculos' },
+      { title: 'Veículos', url: '/veiculos' },
       { title: 'Motoristas', url: '/frotas/motoristas' },
       { title: 'Manutenções', url: '/frotas/manutencoes' },
       { title: 'Abastecimentos', url: '/frotas/abastecimentos' },
