@@ -16,10 +16,15 @@ const MOCK_SERVICE_ORDERS: ServiceOrder[] = [
     status: 'pending',
     priority: 'high',
     description: 'Annual HVAC maintenance and inspection.',
-    scheduled_at: new Date(Date.now() + 86400000 * 2).toISOString(),
+    scheduled_at: (() => {
+      const d = new Date()
+      d.setHours(8, 0, 0, 0)
+      return d.toISOString()
+    })(),
     deadline_at: new Date(Date.now() + 86400000 * 3).toISOString(),
     sla_status: 'within_sla',
     total_duration_minutes: 0,
+    estimated_duration_minutes: 120,
     labor_cost: 0,
     latitude: -23.5505,
     longitude: -46.6333,
@@ -37,12 +42,17 @@ const MOCK_SERVICE_ORDERS: ServiceOrder[] = [
     status: 'in_progress',
     priority: 'medium',
     description: 'Elevator system routine check.',
-    scheduled_at: new Date().toISOString(),
+    scheduled_at: (() => {
+      const d = new Date()
+      d.setHours(10, 30, 0, 0)
+      return d.toISOString()
+    })(),
     deadline_at: new Date(Date.now() + 86400000 * 1).toISOString(),
     sla_status: 'warning',
     started_at: new Date(Date.now() - 3600000).toISOString(),
     last_resumed_at: new Date(Date.now() - 3600000).toISOString(),
     total_duration_minutes: 45,
+    estimated_duration_minutes: 60,
     labor_cost: 0,
     latitude: -23.551,
     longitude: -46.634,

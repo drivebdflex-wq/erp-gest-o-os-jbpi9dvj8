@@ -173,6 +173,7 @@ CREATE TABLE IF NOT EXISTS service_orders (
     paused_at TIMESTAMP WITH TIME ZONE,
     finished_at TIMESTAMP WITH TIME ZONE,
     total_duration_minutes INT DEFAULT 0,
+    estimated_duration_minutes INT DEFAULT 60,
     
     -- Spatial Data
     latitude DECIMAL(10, 8),
@@ -416,7 +417,7 @@ INSERT INTO technicians (id, user_id, specialty)
 VALUES ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'General Maintenance')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO service_orders (id, client_id, contract_id, technician_id, status, priority, description, scheduled_at, deadline_at, sla_status, latitude, longitude)
+INSERT INTO service_orders (id, client_id, contract_id, technician_id, status, priority, description, scheduled_at, deadline_at, sla_status, latitude, longitude, estimated_duration_minutes)
 VALUES (
     '55555555-5555-5555-5555-555555555555', 
     '33333333-3333-3333-3333-333333333333', 
@@ -429,6 +430,7 @@ VALUES (
     CURRENT_TIMESTAMP + INTERVAL '3 days',
     'within_sla',
     -23.5505,
-    -46.6333
+    -46.6333,
+    120
 )
 ON CONFLICT (id) DO NOTHING;

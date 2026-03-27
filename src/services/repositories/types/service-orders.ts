@@ -18,6 +18,7 @@ export interface ServiceOrder extends Timestamps {
   paused_at?: string
   finished_at?: string
   total_duration_minutes: number
+  estimated_duration_minutes?: number
   labor_cost?: number
   latitude?: number
   longitude?: number
@@ -39,6 +40,7 @@ export interface CreateServiceOrderDTO {
   longitude?: number
   customer_signature_url?: string
   labor_cost?: number
+  estimated_duration_minutes?: number
 }
 
 export type UpdateServiceOrderDTO = Partial<CreateServiceOrderDTO> & {

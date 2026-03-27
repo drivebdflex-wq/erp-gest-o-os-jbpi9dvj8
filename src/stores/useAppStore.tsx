@@ -87,6 +87,7 @@ export interface Order {
   dbStatus: string
   priority: OSPriority
   date: string
+  scheduledAt: string
   tech: string
   technicianId?: string
   teamId?: string
@@ -94,6 +95,7 @@ export interface Order {
   unit: string
   slaStatus: SLAStatus
   totalDuration: number
+  estimatedDuration: number
   laborCost: number
   finishedAt?: string
   updatedAt: string
@@ -189,6 +191,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           dbStatus: o.status,
           priority: PRIORITY_MAP[o.priority] || 'Média',
           date: o.scheduled_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+          scheduledAt: o.scheduled_at || new Date().toISOString(),
           tech: user,
           technicianId: o.technician_id,
           teamId: o.team_id,
@@ -196,6 +199,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           unit,
           slaStatus: o.sla_status || 'within_sla',
           totalDuration: o.total_duration_minutes || 0,
+          estimatedDuration: o.estimated_duration_minutes || 60,
           laborCost: Number(o.labor_cost) || 0,
           finishedAt: o.finished_at,
           updatedAt: o.updated_at || o.created_at || new Date().toISOString(),
