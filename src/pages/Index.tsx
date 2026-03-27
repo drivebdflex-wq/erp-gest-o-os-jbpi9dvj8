@@ -26,7 +26,7 @@ import useAppStore from '@/stores/useAppStore'
 import { exportOrdersToCSV } from '@/lib/export'
 
 export default function Index() {
-  const { filteredOrders: orders } = useAppStore()
+  const { filteredOrders: orders, companyLogo, companyName } = useAppStore()
 
   const handleExportCSV = () => exportOrdersToCSV(orders)
   const handleExportPDF = () => window.print()
@@ -85,11 +85,22 @@ export default function Index() {
     <>
       <div className="space-y-6 print:hidden">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex flex-col gap-2">
-            <h2 className="text-3xl font-bold tracking-tight">Dashboard Operacional</h2>
-            <p className="text-muted-foreground">
-              Monitoramento em tempo real de contratos, serviços e projetos.
-            </p>
+          <div className="flex items-center gap-4">
+            {companyLogo && (
+              <div className="hidden sm:block">
+                <img
+                  src={companyLogo}
+                  alt={companyName}
+                  className="h-14 w-auto object-contain drop-shadow-sm"
+                />
+              </div>
+            )}
+            <div className="flex flex-col gap-1">
+              <h2 className="text-3xl font-bold tracking-tight">Dashboard Operacional</h2>
+              <p className="text-muted-foreground">
+                Monitoramento em tempo real de contratos, serviços e projetos.
+              </p>
+            </div>
           </div>
 
           <DropdownMenu>

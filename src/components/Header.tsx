@@ -34,12 +34,16 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import useAuthStore from '@/stores/useAuthStore'
+import useAppStore from '@/stores/useAppStore'
 import useNotificationStore from '@/stores/useNotificationStore'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { StorageService } from '@/services/storage.service'
+import { toast } from '@/hooks/use-toast'
 
 export default function Header() {
   const { currentUser, roles, logout, updateUser } = useAuthStore()
+  const { companyLogo, companyName } = useAppStore()
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotificationStore()
   const navigate = useNavigate()
 
@@ -59,6 +63,10 @@ export default function Header() {
     if (currentUser) {
       updateUser(currentUser.id, profileForm)
       setIsProfileOpen(false)
+      toast({
+        title: 'Perfil Atualizado',
+        description: 'Suas informações foram salvas com sucesso.',
+      })
     }
   }
 
@@ -70,21 +78,50 @@ export default function Header() {
     setIsProfileOpen(true)
   }
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      try {
+        const url = await StorageService.uploadImage('user-avatars', file)
+        setProfileForm({ ...profileForm, avatar_url: url })
+      } catch (error: any) {
+        toast({ title: 'Erro ao Enviar', description: error.message, variant: 'destructive' })
+      }
+    }
+  }
+
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-background px-4 shadow-sm">
       <div className="flex items-center gap-4">
         {!isTech && <SidebarTrigger />}
-        {!isTech && (
-          <div className="hidden md:flex relative w-64">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Buscar OS, cliente..."
-              className="w-full bg-secondary/50 pl-9"
+
+        <div className="flex items-center gap-3">
+          {companyLogo && (
+            <img
+              src={companyLogo}
+              alt={companyName}
+              className="h-8 w-auto object-contain hidden md:block lg:hidden"
             />
+          )}
+          {!isTech && (
+            <div className="hidden md:flex relative w-64 ml-2">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Buscar OS, cliente..."
+                className="w-full bg-secondary/50 pl-9"
+              />
+            </div>
+          )}
+        </div>
+        {isTech && (
+          <div className="flex items-center gap-2">
+            {companyLogo && (
+              <img src={companyLogo} alt={companyName} className="h-8 w-auto object-contain" />
+            )}
+            {!companyLogo && <h1 className="text-lg font-bold text-primary">FieldOps Mobile</h1>}
           </div>
         )}
-        {isTech && <h1 className="text-lg font-bold text-primary">FieldOps Mobile</h1>}
       </div>
 
       <div className="flex items-center gap-4">
@@ -171,10 +208,13 @@ export default function Header() {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar className="h-8 w-8 border bg-secondary">
-                <AvatarImage src={currentUser?.avatar_url} alt="@user" />
-                <AvatarFallback>
+            <Button
+              variant="ghost"
+              className="relative h-8 w-8 rounded-full border border-border/50 shadow-sm"
+            >
+              <Avatar className="h-8 w-8 bg-secondary">
+                <AvatarImage src={currentUser?.avatar_url} alt="@user" className="object-cover" />
+                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                   {currentUser?.name ? (
                     currentUser.name.substring(0, 2).toUpperCase()
                   ) : (
@@ -219,28 +259,24 @@ export default function Header() {
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label>Foto de Perfil</Label>
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16 border">
-                    <AvatarImage src={profileForm.avatar_url} />
-                    <AvatarFallback>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <Avatar className="h-20 w-20 border-2 shadow-sm">
+                    <AvatarImage src={profileForm.avatar_url} className="object-cover" />
+                    <AvatarFallback className="text-lg bg-primary/10 text-primary">
                       {profileForm.name?.substring(0, 2).toUpperCase() || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    className="flex-1"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        const reader = new FileReader()
-                        reader.onloadend = () => {
-                          setProfileForm({ ...profileForm, avatar_url: reader.result as string })
-                        }
-                        reader.readAsDataURL(file)
-                      }
-                    }}
-                  />
+                  <div className="flex-1 w-full space-y-2">
+                    <Input
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      className="cursor-pointer"
+                      onChange={handleAvatarUpload}
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Formatos permitidos: JPG e PNG. Tamanho máximo: 2MB.
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="grid gap-2">

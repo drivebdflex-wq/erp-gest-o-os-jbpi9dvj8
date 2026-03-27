@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import useOperationalStore from '@/stores/useOperationalStore'
+import useAuthStore from '@/stores/useAuthStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
@@ -8,10 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Activity } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Activity, User as UserIcon } from 'lucide-react'
 
 export default function HistoryPage() {
   const { historyLogs, technicians } = useOperationalStore()
+  const { users } = useAuthStore()
   const [selectedTech, setSelectedTech] = useState<string>('all')
 
   const filteredLogs = historyLogs
@@ -56,12 +59,23 @@ export default function HistoryPage() {
               Nenhum registro encontrado.
             </div>
           ) : (
-            <div className="relative border-l-2 border-border ml-3 space-y-6 py-2">
+            <div className="relative border-l-2 border-border ml-5 space-y-8 py-2">
               {filteredLogs.map((log) => {
                 const tech = technicians.find((t) => t.id === log.technician_id)
+                const user = users.find((u) => u.name === tech?.name)
+
                 return (
-                  <div key={log.id} className="relative pl-6">
-                    <div className="absolute -left-[9px] top-1.5 h-4 w-4 rounded-full bg-primary/20 border-2 border-primary" />
+                  <div key={log.id} className="relative pl-8">
+                    <div className="absolute -left-[21px] top-0 h-10 w-10 rounded-full bg-background border border-border shadow-sm flex items-center justify-center z-10 overflow-hidden">
+                      <Avatar className="h-full w-full">
+                        <AvatarImage src={user?.avatar_url} className="object-cover" />
+                        <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+                          {tech?.name?.substring(0, 2).toUpperCase() || (
+                            <UserIcon className="h-4 w-4" />
+                          )}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
                     <div>
                       <div className="text-sm font-bold flex items-center gap-2">
                         <span className="text-primary">{log.action}</span>

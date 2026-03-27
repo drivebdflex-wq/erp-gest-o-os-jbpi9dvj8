@@ -21,9 +21,16 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
+    avatar_url VARCHAR(1024),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+DO $$ BEGIN
+  ALTER TABLE users ADD COLUMN avatar_url VARCHAR(1024);
+EXCEPTION
+  WHEN duplicate_column THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -39,6 +46,14 @@ CREATE TABLE IF NOT EXISTS user_roles (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (user_id, role_id)
+);
+
+CREATE TABLE IF NOT EXISTS company_settings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_name VARCHAR(255) NOT NULL DEFAULT 'FieldOps Pro',
+    logo_url VARCHAR(1024),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ==========================================
@@ -301,6 +316,7 @@ END;
 $ LANGUAGE plpgsql;
 
 DO $ BEGIN CREATE TRIGGER set_timestamp_users BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_company_settings BEFORE UPDATE ON company_settings FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
 DO $ BEGIN CREATE TRIGGER set_timestamp_roles BEFORE UPDATE ON roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
 DO $ BEGIN CREATE TRIGGER set_timestamp_user_roles BEFORE UPDATE ON user_roles FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
 DO $ BEGIN CREATE TRIGGER set_timestamp_teams BEFORE UPDATE ON teams FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
@@ -435,4 +451,3 @@ VALUES (
     120
 )
 ON CONFLICT (id) DO NOTHING;
-

@@ -31,6 +31,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Search, Plus, UserCog } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import { StorageService } from '@/services/storage.service'
 
 export default function UsersSettings() {
   const { users, roles, addUser, updateUser } = useAuthStore()
@@ -82,11 +83,23 @@ export default function UsersSettings() {
         role_id: form.role_id,
         active: form.active,
         avatar_url: form.avatar_url,
-        password_hash: 'senha123', // Mock default password
+        password_hash: 'senha123',
       })
       toast({ title: 'Usuário criado', description: 'Novo membro adicionado com sucesso.' })
     }
     setIsOpen(false)
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      try {
+        const url = await StorageService.uploadImage('user-avatars', file)
+        setForm({ ...form, avatar_url: url })
+      } catch (err: any) {
+        toast({ title: 'Erro no Upload', description: err.message, variant: 'destructive' })
+      }
+    }
   }
 
   return (
@@ -110,7 +123,7 @@ export default function UsersSettings() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
+              <TableHead>Usuário</TableHead>
               <TableHead>E-mail</TableHead>
               <TableHead>Perfil (Role)</TableHead>
               <TableHead>Status</TableHead>
@@ -124,9 +137,11 @@ export default function UsersSettings() {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8 border">
-                        <AvatarImage src={user.avatar_url} />
-                        <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                      <Avatar className="h-9 w-9 border shadow-sm">
+                        <AvatarImage src={user.avatar_url} className="object-cover" />
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                          {user.name.substring(0, 2).toUpperCase()}
+                        </AvatarFallback>
                       </Avatar>
                       <span>{user.name}</span>
                     </div>
@@ -165,34 +180,30 @@ export default function UsersSettings() {
             <DialogHeader>
               <DialogTitle>{editingUser ? 'Editar Usuário' : 'Adicionar Usuário'}</DialogTitle>
               <DialogDescription>
-                Configure as credenciais e o nível de acesso do membro da equipe.
+                Configure as credenciais, avatar e o nível de acesso.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <Label>Foto de Perfil</Label>
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-12 w-12 border">
-                    <AvatarImage src={form.avatar_url} />
-                    <AvatarFallback>
+                <Label>Foto de Perfil (Avatar)</Label>
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <Avatar className="h-16 w-16 border-2 shadow-sm">
+                    <AvatarImage src={form.avatar_url} className="object-cover" />
+                    <AvatarFallback className="text-lg bg-primary/10 text-primary font-semibold">
                       {form.name ? form.name.substring(0, 2).toUpperCase() : 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    className="flex-1"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) {
-                        const reader = new FileReader()
-                        reader.onloadend = () => {
-                          setForm({ ...form, avatar_url: reader.result as string })
-                        }
-                        reader.readAsDataURL(file)
-                      }
-                    }}
-                  />
+                  <div className="flex-1 w-full space-y-2">
+                    <Input
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      className="cursor-pointer"
+                      onChange={handleAvatarUpload}
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Tamanho máximo: 2MB (JPG/PNG)
+                    </p>
+                  </div>
                 </div>
               </div>
               <div className="grid gap-2">

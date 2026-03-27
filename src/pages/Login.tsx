@@ -20,7 +20,7 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const { login, isAuthenticated } = useAuthStore()
-  const { companyLogo } = useAppStore()
+  const { companyLogo, companyName } = useAppStore()
   const navigate = useNavigate()
 
   if (isAuthenticated) {
@@ -42,21 +42,19 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-secondary/30 p-4">
-      <div className="mb-8 flex flex-col items-center gap-2">
+      <div className="mb-8 flex flex-col items-center gap-3">
         {companyLogo ? (
           <img
             src={companyLogo}
-            alt="Company Logo"
-            className="h-20 object-contain drop-shadow-md"
+            alt={companyName}
+            className="h-24 max-w-[280px] object-contain drop-shadow-md"
           />
         ) : (
           <>
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
-              <ClipboardList className="h-7 w-7" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
+              <ClipboardList className="h-8 w-8" />
             </div>
-            <span className="text-2xl font-bold tracking-tight">
-              FieldOps <span className="text-primary">Pro</span>
-            </span>
+            <span className="text-3xl font-bold tracking-tight text-foreground">{companyName}</span>
           </>
         )}
       </div>
@@ -94,8 +92,8 @@ export default function Login() {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col text-xs text-muted-foreground text-center">
-          <p className="font-semibold mb-1">Contas de Demonstração:</p>
+        <CardFooter className="flex flex-col text-xs text-muted-foreground text-center bg-muted/30 pt-4 pb-4 border-t rounded-b-lg">
+          <p className="font-semibold mb-2">Contas de Demonstração:</p>
           <p>Admin: admin@fieldops.com / admin123</p>
           <p>Técnico: carlos@fieldops.com / tech123</p>
           <p>Financeiro: fin@fieldops.com / fin123</p>
