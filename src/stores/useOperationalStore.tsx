@@ -72,6 +72,7 @@ interface OperationalState {
   addFeedback: (f: Omit<OpFeedback, 'id'>) => void
   addPDI: (p: Omit<OpPDI, 'id'>) => void
   updatePDI: (id: string, p: Partial<OpPDI>) => void
+  addLog: (technician_id: string, action: string, details: string) => void
 }
 
 const OperationalContext = createContext<OperationalState | undefined>(undefined)
@@ -221,6 +222,7 @@ export function OperationalProvider({ children }: { children: ReactNode }) {
         addFeedback,
         addPDI,
         updatePDI,
+        addLog,
       }}
     >
       {children}

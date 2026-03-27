@@ -38,12 +38,13 @@ const getStatusStyles = (order: Order) => {
 }
 
 export default function OperationalAgendaPage() {
-  const { orders, updateOrder } = useAppStore()
-  const { technicians, teams } = useOperationalStore()
+  const { orders, updateOrder, contracts } = useAppStore()
+  const { technicians, teams, addLog } = useOperationalStore()
 
   const [date, setDate] = useState<Date>(new Date())
   const [team, setTeam] = useState<string>('all')
   const [tech, setTech] = useState<string>('all')
+  const [contractId, setContractId] = useState<string>('all')
 
   const timelineRef = useRef<HTMLDivElement>(null)
   const [resizingId, setResizingId] = useState<string | null>(null)
@@ -54,13 +55,47 @@ export default function OperationalAgendaPage() {
   const dayOrders = useMemo(() => {
     return orders.filter((o) => {
       const d = new Date(o.scheduledAt)
-      return (
+      const dateMatch =
         d.getDate() === date.getDate() &&
         d.getMonth() === date.getMonth() &&
         d.getFullYear() === date.getFullYear()
-      )
+      const contractMatch = contractId === 'all' || o.contractId === contractId
+      return dateMatch && contractMatch
     })
-  }, [orders, date])
+  }, [orders, date, contractId])
+
+  const conflictingOrders = useMemo(() => {
+    const conflicts = new Set<string>()
+    const byTech = dayOrders.reduce(
+      (acc, o) => {
+        if (o.technicianId) {
+          if (!acc[o.technicianId]) acc[o.technicianId] = []
+          acc[o.technicianId].push(o)
+        }
+        return acc
+      },
+      {} as Record<string, Order[]>,
+    )
+
+    for (const tId in byTech) {
+      const techOrders = byTech[tId]
+      for (let i = 0; i < techOrders.length; i++) {
+        for (let j = i + 1; j < techOrders.length; j++) {
+          const o1 = techOrders[i]
+          const o2 = techOrders[j]
+          const s1 = new Date(o1.scheduledAt).getTime()
+          const e1 = s1 + (o1.estimatedDuration || 60) * 60000
+          const s2 = new Date(o2.scheduledAt).getTime()
+          const e2 = s2 + (o2.estimatedDuration || 60) * 60000
+          if (s1 < e2 && s2 < e1) {
+            conflicts.add(o1.id)
+            conflicts.add(o2.id)
+          }
+        }
+      }
+    }
+    return conflicts
+  }, [dayOrders])
 
   const unassignedOrders = dayOrders.filter((o) => !o.technicianId)
   const filteredTechs = technicians.filter(
@@ -77,7 +112,15 @@ export default function OperationalAgendaPage() {
     const onUp = async () => {
       if (resizingId && resizeWidth !== null && resizeWidth !== resizeStart.orig) {
         try {
+          const order = orders.find((o) => o.id === resizingId)
           await updateOrder(resizingId, { estimated_duration_minutes: resizeWidth })
+          if (order?.technicianId) {
+            addLog(
+              order.technicianId,
+              'Ajuste de Duração',
+              `Duração da OS ${order.shortId} alterada para ${resizeWidth} min.`,
+            )
+          }
           toast({ title: 'Duração Atualizada', description: `Nova duração: ${resizeWidth} min.` })
         } catch {
           toast({ title: 'Erro ao atualizar', variant: 'destructive' })
@@ -93,7 +136,7 @@ export default function OperationalAgendaPage() {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
     }
-  }, [resizingId, resizeStart, resizeWidth, updateOrder])
+  }, [resizingId, resizeStart, resizeWidth, updateOrder, orders, addLog])
 
   const handleDropOnTech = async (e: React.DragEvent, techId: string) => {
     e.preventDefault()
@@ -106,23 +149,13 @@ export default function OperationalAgendaPage() {
     dropDate.setHours(Math.floor(startMins / 60), startMins % 60, 0, 0)
 
     const oToMove = orders.find((o) => o.id === id)
-    const newEndMs = dropDate.getTime() + (oToMove?.estimatedDuration || 60) * 60000
-    const conflict = dayOrders.some(
-      (o) =>
-        o.technicianId === techId &&
-        o.id !== id &&
-        dropDate.getTime() <
-          new Date(o.scheduledAt).getTime() + (o.estimatedDuration || 60) * 60000 &&
-        newEndMs > new Date(o.scheduledAt).getTime(),
-    )
-    if (conflict)
-      return toast({
-        title: 'Conflito de Agenda',
-        description: 'Técnico ocupado neste horário.',
-        variant: 'destructive',
-      })
     try {
       await updateOrder(id, { technician_id: techId, scheduled_at: dropDate.toISOString() })
+      addLog(
+        techId,
+        'Reagendamento',
+        `OS ${oToMove?.shortId} reagendada para ${format(dropDate, 'HH:mm')}`,
+      )
       toast({ title: 'OS reagendada com sucesso' })
     } catch {
       toast({ title: 'Erro ao reagendar', variant: 'destructive' })
@@ -131,8 +164,8 @@ export default function OperationalAgendaPage() {
 
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col gap-4 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-center bg-card p-3 rounded-lg border shadow-sm gap-4">
-        <h2 className="text-xl font-bold tracking-tight">Agenda Operacional</h2>
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center bg-card p-3 rounded-lg border shadow-sm gap-4">
+        <h2 className="text-xl font-bold tracking-tight shrink-0">Agenda Operacional</h2>
         <div className="flex gap-2 flex-wrap items-center">
           <Popover>
             <PopoverTrigger asChild>
@@ -150,6 +183,19 @@ export default function OperationalAgendaPage() {
               />
             </PopoverContent>
           </Popover>
+          <Select value={contractId} onValueChange={setContractId}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Contrato" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Contratos</SelectItem>
+              {contracts.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={team} onValueChange={setTeam}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Equipe" />
@@ -181,7 +227,7 @@ export default function OperationalAgendaPage() {
 
       <ResizablePanelGroup direction="horizontal" className="flex-1 rounded-lg border bg-card">
         <ResizablePanel defaultSize={20} minSize={15} className="flex flex-col">
-          <div className="p-3 border-b bg-muted/30 font-semibold flex justify-between items-center h-12">
+          <div className="p-3 border-b bg-muted/30 font-semibold flex justify-between items-center h-12 shrink-0">
             <span>Fila de Trabalho</span>
             <Badge variant="secondary">{unassignedOrders.length}</Badge>
           </div>
@@ -192,11 +238,18 @@ export default function OperationalAgendaPage() {
               e.preventDefault()
               const id = e.dataTransfer.getData('orderId')
               if (id) {
-                const fallbackTeam =
-                  orders.find((o) => o.id === id)?.teamId || teams[0]?.id || 'team-alpha'
+                const oToMove = orders.find((o) => o.id === id)
+                const fallbackTeam = oToMove?.teamId || teams[0]?.id || 'team-alpha'
                 await updateOrder(id, { technician_id: null, team_id: fallbackTeam }).catch(() =>
                   toast({ title: 'Erro', variant: 'destructive' }),
                 )
+                if (oToMove?.technicianId) {
+                  addLog(
+                    oToMove.technicianId,
+                    'Remoção de OS',
+                    `OS ${oToMove.shortId} retornada para a fila`,
+                  )
+                }
               }
             }}
           >
@@ -238,7 +291,7 @@ export default function OperationalAgendaPage() {
         <ResizableHandle withHandle />
 
         <ResizablePanel defaultSize={80} className="flex flex-col relative">
-          <div className="flex h-12 border-b bg-muted/30">
+          <div className="flex h-12 border-b bg-muted/30 shrink-0">
             <div className="w-48 flex-shrink-0 border-r flex items-center px-4 font-semibold text-sm">
               Técnicos
             </div>
@@ -293,6 +346,9 @@ export default function OperationalAgendaPage() {
                       const visStart = Math.max(0, st)
                       const visDur = Math.min(TOTAL_MINS, st + dur) - visStart
                       if (visDur <= 0) return null
+
+                      const isConflict = conflictingOrders.has(o.id)
+
                       return (
                         <div
                           key={o.id}
@@ -304,7 +360,9 @@ export default function OperationalAgendaPage() {
                           onDragEnd={() => setDraggedOrder(null)}
                           className={cn(
                             'absolute top-2 bottom-2 rounded-md border shadow-sm p-1.5 text-xs overflow-hidden flex flex-col transition-all hover:shadow-md cursor-grab active:cursor-grabbing',
-                            getStatusStyles(o),
+                            isConflict
+                              ? 'bg-destructive/20 border-destructive text-destructive dark:text-red-400 ring-2 ring-destructive ring-offset-1 animate-pulse'
+                              : getStatusStyles(o),
                             isRes && 'z-50 ring-2 ring-primary cursor-col-resize',
                             draggedOrder === o.id && 'opacity-40 scale-95',
                           )}
