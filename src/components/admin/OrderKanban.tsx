@@ -15,16 +15,18 @@ const columns: OSStatus[] = [
 ]
 
 interface OrderKanbanProps {
+  orders?: Order[]
   onCardClick?: (order: Order) => void
 }
 
-export default function OrderKanban({ onCardClick }: OrderKanbanProps) {
-  const { orders } = useAppStore()
+export default function OrderKanban({ orders: propOrders, onCardClick }: OrderKanbanProps) {
+  const { orders: storeOrders } = useAppStore()
+  const displayOrders = propOrders || storeOrders
 
   return (
     <div className="flex gap-4 h-[calc(100vh-250px)] overflow-x-auto pb-4">
       {columns.map((status) => {
-        const columnOrders = orders.filter((o) => o.status === status)
+        const columnOrders = displayOrders.filter((o) => o.status === status)
         return (
           <div
             key={status}
@@ -35,7 +37,7 @@ export default function OrderKanban({ onCardClick }: OrderKanbanProps) {
               <Badge variant="secondary">{columnOrders.length}</Badge>
             </div>
             <ScrollArea className="flex-1">
-              <div className="space-y-3">
+              <div className="space-y-3 pr-2">
                 {columnOrders.map((order) => (
                   <Card
                     key={order.id}

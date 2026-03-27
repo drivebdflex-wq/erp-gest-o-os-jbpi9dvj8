@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -22,23 +22,48 @@ import useAppStore from '@/stores/useAppStore'
 import useOperationalStore from '@/stores/useOperationalStore'
 import { toast } from '@/hooks/use-toast'
 
+interface CreateOrderDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  defaultContractId?: string
+}
+
 export default function CreateOrderDialog({
   open,
   onOpenChange,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-}) {
+  defaultContractId,
+}: CreateOrderDialogProps) {
   const { clients, contracts, createOrder, priceItems } = useAppStore()
   const { technicians, teams } = useOperationalStore()
   const [formData, setFormData] = useState<any>({ priority: 'Média' })
+
+  useEffect(() => {
+    if (open) {
+      if (defaultContractId) {
+        const contract = contracts.find((c) => c.id === defaultContractId)
+        if (contract) {
+          setFormData({
+            priority: 'Média',
+            contractId: defaultContractId,
+            clientId: contract.clientId,
+          })
+        }
+      } else {
+        setFormData({ priority: 'Média' })
+      }
+    }
+  }, [open, defaultContractId, contracts])
 
   const availableServices = priceItems.filter((p) => p.contractId === formData.contractId)
 
   const handleSave = async () => {
     try {
-      if (!formData.description || !formData.clientId) {
-        toast({ title: 'Aviso', description: 'Preencha título e cliente.', variant: 'destructive' })
+      if (!formData.description || !formData.clientId || !formData.contractId) {
+        toast({
+          title: 'Aviso',
+          description: 'Preencha título, cliente e associe a um contrato.',
+          variant: 'destructive',
+        })
         return
       }
       if (!formData.technicianId && !formData.teamId) {
@@ -50,7 +75,7 @@ export default function CreateOrderDialog({
         return
       }
 
-      if (formData.contractId && formData.serviceCode && formData.serviceCode !== 'none') {
+      if (formData.serviceCode && formData.serviceCode !== 'none') {
         const exists = priceItems.some(
           (p) => p.contractId === formData.contractId && p.serviceCode === formData.serviceCode,
         )
@@ -67,7 +92,7 @@ export default function CreateOrderDialog({
       await createOrder({
         description: formData.description,
         client_id: formData.clientId,
-        contract_id: formData.contractId === 'none' ? undefined : formData.contractId,
+        contract_id: formData.contractId,
         technician_id: formData.technicianId,
         team_id: formData.teamId,
         priority:
@@ -76,9 +101,8 @@ export default function CreateOrderDialog({
         service_code: formData.serviceCode === 'none' ? undefined : formData.serviceCode,
         service_value: formData.serviceValue,
       })
-      toast({ title: 'Sucesso', description: 'OS criada com sucesso.' })
+      toast({ title: 'Sucesso', description: 'OS criada com sucesso e vinculada ao contrato.' })
       onOpenChange(false)
-      setFormData({ priority: 'Média' })
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
     }
@@ -103,6 +127,7 @@ export default function CreateOrderDialog({
             <div className="space-y-2">
               <Label>Cliente</Label>
               <Select
+                disabled={!!defaultContractId}
                 value={formData.clientId || undefined}
                 onValueChange={(v) =>
                   setFormData({ ...formData, clientId: v, contractId: undefined })
@@ -123,24 +148,23 @@ export default function CreateOrderDialog({
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Contrato Vinculado</Label>
+              <Label>Contrato Vinculado (Obrigatório)</Label>
               <Select
-                disabled={!formData.clientId}
-                value={formData.contractId || 'none'}
+                disabled={!!defaultContractId || !formData.clientId}
+                value={formData.contractId || undefined}
                 onValueChange={(v) =>
                   setFormData({
                     ...formData,
-                    contractId: v === 'none' ? undefined : v,
+                    contractId: v,
                     serviceCode: undefined,
                     serviceValue: undefined,
                   })
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Opcional..." />
+                  <SelectValue placeholder="Selecione o contrato" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Avulso / Sem Contrato</SelectItem>
                   {contracts
                     .filter((c) => c.clientId === formData.clientId && c.id && c.id.trim() !== '')
                     .map((c) => (
@@ -178,7 +202,7 @@ export default function CreateOrderDialog({
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Avulso / Outro</SelectItem>
+                  <SelectItem value="none">Serviço Avulso / Não tabelado</SelectItem>
                   {availableServices
                     .filter((s) => s.serviceCode && s.serviceCode.trim() !== '')
                     .map((s) => (

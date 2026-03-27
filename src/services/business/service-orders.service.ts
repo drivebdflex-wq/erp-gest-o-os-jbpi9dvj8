@@ -122,6 +122,16 @@ export class ServiceOrdersService {
       updates.sla_status = 'within_sla' as SLAStatus
     }
 
-    return await ServiceOrdersRepository.update(orderId, updates)
+    const updated = await ServiceOrdersRepository.update(orderId, updates)
+
+    await AuditsRepository.create({
+      table_name: 'service_orders',
+      record_id: orderId,
+      action: 'UPDATE',
+      old_value: order,
+      new_value: updated,
+    })
+
+    return updated
   }
 }
