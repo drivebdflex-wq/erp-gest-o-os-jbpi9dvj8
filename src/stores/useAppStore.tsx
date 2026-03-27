@@ -28,6 +28,14 @@ export type OSStatus =
   | 'Cancelada'
 export type OSPriority = 'Alta' | 'Média' | 'Baixa'
 
+export type OSServiceType =
+  | 'eletrica'
+  | 'hidraulica'
+  | 'civil'
+  | 'serralheria'
+  | 'marmoraria'
+  | 'marcenaria'
+
 const STATUS_MAP: Record<string, OSStatus> = {
   draft: 'Rascunho',
   pending: 'Pendente',
@@ -59,6 +67,39 @@ const PRIORITY_MAP: Record<string, OSPriority> = {
   urgent: 'Alta',
   medium: 'Média',
   low: 'Baixa',
+}
+
+export const SERVICE_TYPE_LABELS: Record<OSServiceType, string> = {
+  eletrica: 'Elétrica',
+  hidraulica: 'Hidráulica',
+  civil: 'Civil',
+  serralheria: 'Serralheria',
+  marmoraria: 'Marmoraria',
+  marcenaria: 'Marcenaria',
+}
+
+export const SERVICE_TYPE_COLORS: Record<OSServiceType, string> = {
+  eletrica:
+    'bg-yellow-100 text-yellow-800 border-yellow-400 dark:bg-yellow-900/40 dark:text-yellow-400 dark:border-yellow-700',
+  hidraulica:
+    'bg-blue-100 text-blue-800 border-blue-400 dark:bg-blue-900/40 dark:text-blue-400 dark:border-blue-700',
+  civil:
+    'bg-green-100 text-green-800 border-green-400 dark:bg-green-900/40 dark:text-green-400 dark:border-green-700',
+  serralheria:
+    'bg-slate-100 text-slate-800 border-slate-400 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-600',
+  marmoraria:
+    'bg-purple-100 text-purple-800 border-purple-400 dark:bg-purple-900/40 dark:text-purple-400 dark:border-purple-700',
+  marcenaria:
+    'bg-orange-100 text-orange-800 border-orange-400 dark:bg-orange-900/40 dark:text-orange-400 dark:border-orange-700',
+}
+
+export const KANBAN_BORDER_COLORS: Record<OSServiceType, string> = {
+  eletrica: 'border-t-yellow-500 dark:border-t-yellow-500',
+  hidraulica: 'border-t-blue-500 dark:border-t-blue-500',
+  civil: 'border-t-green-500 dark:border-t-green-500',
+  serralheria: 'border-t-slate-500 dark:border-t-slate-500',
+  marmoraria: 'border-t-purple-500 dark:border-t-purple-500',
+  marcenaria: 'border-t-orange-500 dark:border-t-orange-500',
 }
 
 export interface Contract {
@@ -95,6 +136,7 @@ export interface Order {
   status: OSStatus
   dbStatus: string
   priority: OSPriority
+  serviceType: OSServiceType
   date: string
   scheduledAt: string
   tech: string
@@ -214,6 +256,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           status: STATUS_MAP[o.status] || 'Pendente',
           dbStatus: o.status,
           priority: PRIORITY_MAP[o.priority] || 'Média',
+          serviceType: o.service_type || 'civil',
           date: o.scheduled_at?.split('T')[0] || new Date().toISOString().split('T')[0],
           scheduledAt: o.scheduled_at || new Date().toISOString(),
           tech: user,
@@ -287,6 +330,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       client_id: contract.clientId,
       contract_id: contract.id,
       priority: 'medium',
+      service_type: 'eletrica', // Default category for generated preventives
       status: 'scheduled',
       description: `Manutenção Preventiva Automática - ${contract.name}`,
     })

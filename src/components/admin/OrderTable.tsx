@@ -10,7 +10,13 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Eye, ChevronLeft, ChevronRight } from 'lucide-react'
-import useAppStore, { OSStatus, Order } from '@/stores/useAppStore'
+import useAppStore, {
+  OSStatus,
+  Order,
+  SERVICE_TYPE_COLORS,
+  SERVICE_TYPE_LABELS,
+} from '@/stores/useAppStore'
+import { cn } from '@/lib/utils'
 
 const getStatusColor = (status: OSStatus) => {
   switch (status) {
@@ -53,6 +59,7 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
               <TableHead className="w-[100px]">ID</TableHead>
               <TableHead>Título</TableHead>
               <TableHead>Contrato/Cliente</TableHead>
+              <TableHead>Categoria</TableHead>
               <TableHead>Data / Prazo</TableHead>
               <TableHead>Técnico</TableHead>
               <TableHead>Status</TableHead>
@@ -74,6 +81,17 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
                     {order.contractName || 'Sem Contrato'}
                   </div>
                   <div className="text-muted-foreground text-xs">{order.client}</div>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'border bg-background shadow-sm',
+                      SERVICE_TYPE_COLORS[order.serviceType],
+                    )}
+                  >
+                    {SERVICE_TYPE_LABELS[order.serviceType]}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {new Date(order.date).toLocaleDateString()}
@@ -107,7 +125,7 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
             ))}
             {displayOrders.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   Nenhuma ordem de serviço encontrada para os filtros aplicados.
                 </TableCell>
               </TableRow>

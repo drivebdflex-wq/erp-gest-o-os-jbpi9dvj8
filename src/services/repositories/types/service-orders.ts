@@ -1,4 +1,11 @@
-import { ID, Timestamps, ServiceOrderStatus, ServiceOrderPriority, SLAStatus } from './common'
+import {
+  ID,
+  Timestamps,
+  ServiceOrderStatus,
+  ServiceOrderPriority,
+  SLAStatus,
+  ServiceOrderServiceType,
+} from './common'
 
 export interface ServiceOrder extends Timestamps {
   id: ID
@@ -9,6 +16,7 @@ export interface ServiceOrder extends Timestamps {
   vehicle_id?: ID | null
   status: ServiceOrderStatus
   priority: ServiceOrderPriority
+  service_type: ServiceOrderServiceType
   description?: string
   service_code?: string
   service_value?: number
@@ -35,6 +43,7 @@ export interface CreateServiceOrderDTO {
   vehicle_id?: ID | null
   status?: ServiceOrderStatus
   priority?: ServiceOrderPriority
+  service_type: ServiceOrderServiceType
   description?: string
   service_code?: string
   service_value?: number

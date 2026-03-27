@@ -18,5 +18,14 @@ export type ServiceOrderStatus =
   | 'cancelled'
 
 export type ServiceOrderPriority = 'low' | 'medium' | 'high' | 'urgent'
+
+export type ServiceOrderServiceType =
+  | 'eletrica'
+  | 'hidraulica'
+  | 'civil'
+  | 'serralheria'
+  | 'marmoraria'
+  | 'marcenaria'
+
 export type SLAStatus = 'within_sla' | 'warning' | 'breached'
 export type ChecklistStatus = 'pending' | 'in_progress' | 'completed'

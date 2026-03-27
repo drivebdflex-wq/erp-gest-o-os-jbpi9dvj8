@@ -66,6 +66,14 @@ export default function CreateOrderDialog({
         })
         return
       }
+      if (!formData.serviceType) {
+        toast({
+          title: 'Aviso',
+          description: 'Selecione uma categoria de serviço (Obrigatório).',
+          variant: 'destructive',
+        })
+        return
+      }
       if (!formData.technicianId && !formData.teamId) {
         toast({
           title: 'Aviso',
@@ -97,6 +105,7 @@ export default function CreateOrderDialog({
         team_id: formData.teamId,
         priority:
           formData.priority === 'Média' ? 'medium' : formData.priority === 'Alta' ? 'high' : 'low',
+        service_type: formData.serviceType,
         status: 'pending',
         service_code: formData.serviceCode === 'none' ? undefined : formData.serviceCode,
         service_value: formData.serviceValue,
@@ -110,7 +119,7 @@ export default function CreateOrderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Nova Ordem de Serviço</DialogTitle>
         </DialogHeader>
@@ -123,7 +132,7 @@ export default function CreateOrderDialog({
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Cliente</Label>
               <Select
@@ -176,7 +185,27 @@ export default function CreateOrderDialog({
               </Select>
             </div>
 
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2">
+              <Label>Categoria do Serviço (Obrigatório)</Label>
+              <Select
+                value={formData.serviceType || undefined}
+                onValueChange={(v) => setFormData({ ...formData, serviceType: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a categoria..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="eletrica">Elétrica</SelectItem>
+                  <SelectItem value="hidraulica">Hidráulica</SelectItem>
+                  <SelectItem value="civil">Civil</SelectItem>
+                  <SelectItem value="serralheria">Serralheria</SelectItem>
+                  <SelectItem value="marmoraria">Marmoraria</SelectItem>
+                  <SelectItem value="marcenaria">Marcenaria</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label>Serviço (Tabela de Preços)</Label>
               <Select
                 disabled={!formData.contractId || availableServices.length === 0}
@@ -197,7 +226,7 @@ export default function CreateOrderDialog({
                         ? 'Selecione um contrato primeiro'
                         : availableServices.length
                           ? 'Selecione um serviço...'
-                          : 'Contrato sem tabela de preços'
+                          : 'Contrato sem tabela'
                     }
                   />
                 </SelectTrigger>
@@ -215,7 +244,7 @@ export default function CreateOrderDialog({
               </Select>
             </div>
 
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2 col-span-1 sm:col-span-2">
               <Label>Responsável (Obrigatório)</Label>
               <Select
                 value={formData.responsible || undefined}

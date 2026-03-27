@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import useAppStore, { Order } from '@/stores/useAppStore'
+import useAppStore, { Order, SERVICE_TYPE_COLORS } from '@/stores/useAppStore'
 import useOperationalStore, { OpTeam } from '@/stores/useOperationalStore'
 import { Badge } from '@/components/ui/badge'
 import { Clock, CalendarIcon, LayoutTemplate, CalendarDays, CalendarRange, X } from 'lucide-react'
@@ -29,18 +29,12 @@ import {
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 
-const getStatusStyles = (order: Order) => {
-  const isOverdue =
-    new Date(order.scheduledAt) < new Date() &&
-    !['completed', 'in_progress'].includes(order.dbStatus)
-  if (isOverdue) return 'bg-destructive/20 border-destructive text-destructive dark:text-red-400'
-  if (order.dbStatus === 'completed')
-    return 'bg-green-500/20 border-green-500 text-green-700 dark:text-green-400'
-  if (order.dbStatus === 'in_progress')
-    return 'bg-yellow-500/20 border-yellow-500 text-yellow-700 dark:text-yellow-400'
-  if (order.dbStatus === 'scheduled' || order.dbStatus === 'deslocamento')
-    return 'bg-blue-500/20 border-blue-500 text-blue-700 dark:text-blue-400'
-  return 'bg-muted border-muted-foreground/30 text-foreground'
+const getCardStyles = (order: Order, isConflict: boolean) => {
+  if (isConflict)
+    return 'bg-destructive/20 border-destructive text-destructive dark:text-red-400 ring-2 ring-destructive ring-offset-1 animate-pulse'
+  return (
+    SERVICE_TYPE_COLORS[order.serviceType] || 'bg-muted border-muted-foreground/30 text-foreground'
+  )
 }
 
 export default function OperationalAgendaPage() {
@@ -403,16 +397,23 @@ export default function OperationalAgendaPage() {
                 onDragEnd={() => setDraggedOrder(null)}
                 className={cn(
                   'p-3 rounded-lg border-2 cursor-grab shadow-sm text-sm hover:border-primary transition-all bg-background',
+                  SERVICE_TYPE_COLORS[o.serviceType],
                   draggedOrder === o.id && 'opacity-50',
                 )}
               >
                 <div className="font-bold">{o.shortId}</div>
-                <div className="text-xs text-muted-foreground mt-1 line-clamp-2">{o.title}</div>
+                <div className="text-xs opacity-80 mt-1 line-clamp-2">{o.title}</div>
                 <div className="mt-2 flex gap-2 flex-wrap">
-                  <Badge variant="outline" className="text-[10px]">
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] bg-background/80 text-foreground border-foreground/20"
+                  >
                     {o.priority}
                   </Badge>
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] bg-background/80 text-foreground"
+                  >
                     <Clock className="w-3 h-3 mr-1 inline" />
                     {o.estimatedDuration}m
                   </Badge>
@@ -488,9 +489,7 @@ export default function OperationalAgendaPage() {
                           onDragEnd={() => setDraggedOrder(null)}
                           className={cn(
                             'group/card absolute top-2 bottom-2 rounded-md border shadow-sm p-1.5 text-xs overflow-hidden flex flex-col transition-all hover:shadow-md cursor-grab active:cursor-grabbing min-w-[12px]',
-                            isConflict
-                              ? 'bg-destructive/20 border-destructive text-destructive dark:text-red-400 ring-2 ring-destructive ring-offset-1 animate-pulse'
-                              : getStatusStyles(o),
+                            getCardStyles(o, isConflict),
                             isRes && 'z-50 ring-2 ring-primary cursor-col-resize',
                             draggedOrder === o.id && 'opacity-40 scale-95',
                           )}

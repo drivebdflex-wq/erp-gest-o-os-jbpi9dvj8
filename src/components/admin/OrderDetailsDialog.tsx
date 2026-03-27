@@ -20,9 +20,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { MapPin, User, Clock, FileText, History } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
-import useAppStore, { Order } from '@/stores/useAppStore'
+import useAppStore, { Order, SERVICE_TYPE_COLORS, SERVICE_TYPE_LABELS } from '@/stores/useAppStore'
 import useOperationalStore from '@/stores/useOperationalStore'
 import { AuditsRepository } from '@/services/repositories/auxiliary.repository'
+import { cn } from '@/lib/utils'
 
 interface OrderDetailsDialogProps {
   open: boolean
@@ -87,9 +88,17 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <div className="flex items-center justify-between mt-2">
-            <DialogTitle className="text-xl font-bold tracking-tight">
-              OS {order.shortId}
-            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <DialogTitle className="text-xl font-bold tracking-tight">
+                OS {order.shortId}
+              </DialogTitle>
+              <Badge
+                variant="outline"
+                className={cn('border shadow-sm', SERVICE_TYPE_COLORS[order.serviceType])}
+              >
+                {SERVICE_TYPE_LABELS[order.serviceType]}
+              </Badge>
+            </div>
             <Badge variant={order.priority === 'Alta' ? 'destructive' : 'secondary'}>
               {order.priority}
             </Badge>

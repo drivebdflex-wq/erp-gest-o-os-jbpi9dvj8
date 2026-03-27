@@ -41,6 +41,7 @@ export default function WorkOrders() {
   // Contract Panel Filters
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [serviceTypeFilter, setServiceTypeFilter] = useState('all')
   const [techFilter, setTechFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [dateFrom, setDateFrom] = useState('')
@@ -143,6 +144,7 @@ export default function WorkOrders() {
     )
       return false
     if (statusFilter !== 'all' && o.status !== statusFilter) return false
+    if (serviceTypeFilter !== 'all' && o.serviceType !== serviceTypeFilter) return false
     if (techFilter !== 'all' && o.technicianId !== techFilter && o.teamId !== techFilter)
       return false
     if (priorityFilter !== 'all' && o.priority !== priorityFilter) return false
@@ -188,21 +190,21 @@ export default function WorkOrders() {
           <ClipboardList className="w-4 h-4" />
           <span className="text-sm font-medium">Filtros da Fila:</span>
         </div>
-        <div className="flex-1 min-w-[200px] relative">
+        <div className="flex-1 min-w-[150px] relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar OS ou descrição..."
+            placeholder="Buscar OS..."
             className="pl-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[140px]">
+          <SelectTrigger className="w-[120px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos os Status</SelectItem>
+            <SelectItem value="all">Todos Status</SelectItem>
             <SelectItem value="Pendente">Pendente</SelectItem>
             <SelectItem value="Agendado">Agendado</SelectItem>
             <SelectItem value="Em Execução">Em Execução</SelectItem>
@@ -210,12 +212,26 @@ export default function WorkOrders() {
             <SelectItem value="Finalizada">Finalizada</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={techFilter} onValueChange={setTechFilter}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Técnico/Equipe" />
+        <Select value={serviceTypeFilter} onValueChange={setServiceTypeFilter}>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="Categoria" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos Responsáveis</SelectItem>
+            <SelectItem value="all">Todas as Categorias</SelectItem>
+            <SelectItem value="eletrica">Elétrica</SelectItem>
+            <SelectItem value="hidraulica">Hidráulica</SelectItem>
+            <SelectItem value="civil">Civil</SelectItem>
+            <SelectItem value="serralheria">Serralheria</SelectItem>
+            <SelectItem value="marmoraria">Marmoraria</SelectItem>
+            <SelectItem value="marcenaria">Marcenaria</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={techFilter} onValueChange={setTechFilter}>
+          <SelectTrigger className="w-[140px]">
+            <SelectValue placeholder="Responsável" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
             {availableTechs.map((t) => (
               <SelectItem key={t.id} value={t.id!}>
                 {t.name}
@@ -224,7 +240,7 @@ export default function WorkOrders() {
           </SelectContent>
         </Select>
         <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-          <SelectTrigger className="w-[120px]">
+          <SelectTrigger className="w-[110px]">
             <SelectValue placeholder="Prioridade" />
           </SelectTrigger>
           <SelectContent>
@@ -239,7 +255,7 @@ export default function WorkOrders() {
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className={`w-[220px] justify-start text-left font-normal ${!dateFrom && !dateTo ? 'text-muted-foreground' : ''}`}
+              className={`w-[190px] justify-start text-left font-normal ${!dateFrom && !dateTo ? 'text-muted-foreground' : ''}`}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {dateFrom || dateTo ? (
@@ -248,7 +264,7 @@ export default function WorkOrders() {
                   {dateTo ? new Date(dateTo).toLocaleDateString() : 'Fim'}
                 </span>
               ) : (
-                <span>Filtrar por Período</span>
+                <span>Filtrar Período</span>
               )}
             </Button>
           </PopoverTrigger>

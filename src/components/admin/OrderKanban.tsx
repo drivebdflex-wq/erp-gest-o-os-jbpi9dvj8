@@ -1,7 +1,14 @@
-import useAppStore, { OSStatus, Order } from '@/stores/useAppStore'
+import useAppStore, {
+  OSStatus,
+  Order,
+  KANBAN_BORDER_COLORS,
+  SERVICE_TYPE_COLORS,
+  SERVICE_TYPE_LABELS,
+} from '@/stores/useAppStore'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
 
 const columns: OSStatus[] = [
   'Pendente',
@@ -41,15 +48,29 @@ export default function OrderKanban({ orders: propOrders, onCardClick }: OrderKa
                 {columnOrders.map((order) => (
                   <Card
                     key={order.id}
-                    className="cursor-pointer hover:shadow-md transition-shadow border-l-4 border-l-primary"
+                    className={cn(
+                      'cursor-pointer hover:shadow-md transition-shadow border-t-4',
+                      KANBAN_BORDER_COLORS[order.serviceType] || 'border-t-primary',
+                    )}
                     onClick={() => onCardClick?.(order)}
                   >
                     <CardContent className="p-3">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-xs font-bold">{order.shortId}</span>
-                        <Badge variant="outline" className="text-[10px] h-4 px-1">
-                          {order.priority}
-                        </Badge>
+                        <div className="flex gap-1 items-center">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'text-[10px] h-4 px-1 leading-none shadow-sm',
+                              SERVICE_TYPE_COLORS[order.serviceType],
+                            )}
+                          >
+                            {SERVICE_TYPE_LABELS[order.serviceType]}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none">
+                            {order.priority}
+                          </Badge>
+                        </div>
                       </div>
                       <p className="text-sm font-medium leading-tight mb-2 line-clamp-2">
                         {order.title}

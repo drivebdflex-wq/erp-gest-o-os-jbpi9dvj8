@@ -15,6 +15,7 @@ const MOCK_SERVICE_ORDERS: ServiceOrder[] = [
     vehicle_id: 'v1',
     status: 'pending',
     priority: 'high',
+    service_type: 'eletrica',
     description: 'Annual HVAC maintenance and inspection.',
     scheduled_at: (() => {
       const d = new Date()
@@ -41,6 +42,7 @@ const MOCK_SERVICE_ORDERS: ServiceOrder[] = [
     vehicle_id: 'v2',
     status: 'in_progress',
     priority: 'medium',
+    service_type: 'civil',
     description: 'Elevator system routine check.',
     scheduled_at: (() => {
       const d = new Date()

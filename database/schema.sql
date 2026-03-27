@@ -39,6 +39,19 @@ EXCEPTION
 END $$;
 
 DO $$ BEGIN
+    CREATE TYPE service_order_service_type AS ENUM (
+        'eletrica',
+        'hidraulica',
+        'civil',
+        'serralheria',
+        'marmoraria',
+        'marcenaria'
+    );
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
     CREATE TYPE sla_status AS ENUM (
         'within_sla',
         'warning',
@@ -171,6 +184,7 @@ CREATE TABLE IF NOT EXISTS service_orders (
     technician_id UUID REFERENCES technicians(id) ON DELETE SET NULL ON UPDATE CASCADE,
     status service_order_status NOT NULL DEFAULT 'pending',
     priority service_order_priority NOT NULL DEFAULT 'medium',
+    service_type service_order_service_type NOT NULL DEFAULT 'civil',
     description TEXT,
     service_code VARCHAR(50),
     service_value DECIMAL(12, 2),
@@ -408,6 +422,7 @@ CREATE INDEX IF NOT EXISTS idx_audits_user_id ON audits(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_service_orders_status ON service_orders(status);
 CREATE INDEX IF NOT EXISTS idx_service_orders_priority ON service_orders(priority);
+CREATE INDEX IF NOT EXISTS idx_service_orders_service_type ON service_orders(service_type);
 CREATE INDEX IF NOT EXISTS idx_service_orders_sla_status ON service_orders(sla_status);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_clients_document ON clients(document);
@@ -438,7 +453,7 @@ INSERT INTO technicians (id, user_id, specialty)
 VALUES ('44444444-4444-4444-4444-444444444444', '22222222-2222-2222-2222-222222222222', 'General Maintenance')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO service_orders (id, client_id, contract_id, technician_id, status, priority, description, scheduled_at, deadline_at, sla_status, latitude, longitude, estimated_duration_minutes)
+INSERT INTO service_orders (id, client_id, contract_id, technician_id, status, priority, service_type, description, scheduled_at, deadline_at, sla_status, latitude, longitude, estimated_duration_minutes)
 VALUES (
     '55555555-5555-5555-5555-555555555555', 
     '33333333-3333-3333-3333-333333333333', 
@@ -446,6 +461,7 @@ VALUES (
     '44444444-4444-4444-4444-444444444444', 
     'pending', 
     'high', 
+    'eletrica',
     'Annual HVAC maintenance and inspection.', 
     CURRENT_TIMESTAMP + INTERVAL '2 days',
     CURRENT_TIMESTAMP + INTERVAL '3 days',
@@ -455,4 +471,3 @@ VALUES (
     120
 )
 ON CONFLICT (id) DO NOTHING;
-

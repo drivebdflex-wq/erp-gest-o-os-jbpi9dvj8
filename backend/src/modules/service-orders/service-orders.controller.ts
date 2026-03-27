@@ -6,6 +6,7 @@ export class CreateServiceOrderDto {
   technician_id?: string
   status?: string
   priority?: string
+  service_type?: string
   description?: string
   scheduled_at?: string
 }
