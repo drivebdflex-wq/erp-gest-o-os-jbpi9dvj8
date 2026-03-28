@@ -184,7 +184,10 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
                   <div>
                     <p className="font-medium text-foreground">Status: {order.status}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Atualizado em {new Date(order.updatedAt).toLocaleDateString()}
+                      Agendado:{' '}
+                      {order.scheduledAt
+                        ? `${new Date(order.scheduledAt).toLocaleDateString()} ${new Date(order.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (${order.estimatedDurationMinutes || 60} min)`
+                        : 'Não agendado'}
                     </p>
                   </div>
                 </div>

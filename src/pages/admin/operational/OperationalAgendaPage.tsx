@@ -2,16 +2,7 @@ import { useState, useMemo } from 'react'
 import useAppStore, { Order, SERVICE_TYPE_LABELS } from '@/stores/useAppStore'
 import useOperationalStore from '@/stores/useOperationalStore'
 import { Badge } from '@/components/ui/badge'
-import {
-  Clock,
-  CalendarIcon,
-  LayoutTemplate,
-  CalendarDays,
-  CalendarRange,
-  X,
-  AlertTriangle,
-  Plus,
-} from 'lucide-react'
+import { CalendarIcon, LayoutTemplate, CalendarDays, CalendarRange, X, Plus } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 // @ts-expect-error
 import useAuthStore from '@/stores/useAuthStore'
@@ -26,22 +17,27 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   format,
   startOfWeek,
   endOfMonth,
   startOfMonth,
-  addMinutes,
-  getDaysInMonth,
+  eachDayOfInterval,
+  isSameMonth,
+  isSameDay,
+  endOfWeek,
   addDays,
-  startOfDay,
-  endOfDay,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import CreateOrderDialog from '@/components/admin/CreateOrderDialog'
 import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog'
+import { checkConflict } from '@/lib/schedule'
+
+const HOUR_HEIGHT = 60
+const START_HOUR = 7
+const END_HOUR = 19
+const HOURS_COUNT = END_HOUR - START_HOUR
 
 const getStatusColor = (status: string, dateStr: string | null) => {
   if (dateStr) {
@@ -75,60 +71,9 @@ export default function OperationalAgendaPage() {
 
   const [draggedOrder, setDraggedOrder] = useState<string | null>(null)
 
-  // Dialogs State
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createDefaults, setCreateDefaults] = useState<{ teamId?: string; date?: Date }>({})
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-
-  const bounds = useMemo(() => {
-    if (view === 'daily') {
-      const s = startOfDay(date)
-      s.setHours(7, 0, 0, 0)
-      const e = startOfDay(date)
-      e.setHours(19, 0, 0, 0)
-      return { start: s, end: e }
-    }
-    if (view === 'weekly') {
-      const s = startOfWeek(date, { weekStartsOn: 1 })
-      const e = endOfDay(addDays(s, 6))
-      return { start: s, end: e }
-    }
-    const s = startOfMonth(date)
-    const e = endOfMonth(date)
-    return { start: s, end: e }
-  }, [view, date])
-
-  const columns = useMemo(() => {
-    if (view === 'daily') {
-      return Array.from({ length: 12 }).map((_, i) => ({
-        key: `h-${i}`,
-        label: `${String(7 + i).padStart(2, '0')}:00`,
-        start: addMinutes(bounds.start, i * 60),
-        end: addMinutes(bounds.start, (i + 1) * 60),
-      }))
-    }
-    if (view === 'weekly') {
-      return Array.from({ length: 7 }).map((_, i) => {
-        const d = addDays(bounds.start, i)
-        return {
-          key: `d-${i}`,
-          label: format(d, 'EEEE', { locale: ptBR }),
-          start: startOfDay(d),
-          end: endOfDay(d),
-        }
-      })
-    }
-    const days = getDaysInMonth(bounds.start)
-    return Array.from({ length: days }).map((_, i) => {
-      const d = addDays(bounds.start, i)
-      return {
-        key: `d-${i}`,
-        label: format(d, 'dd/MM'),
-        start: startOfDay(d),
-        end: endOfDay(d),
-      }
-    })
-  }, [view, bounds])
 
   const filteredOrders = useMemo(() => {
     return orders.filter(
@@ -139,50 +84,61 @@ export default function OperationalAgendaPage() {
   }, [orders, contractId, serviceTypeFilter])
 
   const unassignedOrders = useMemo(() => {
-    return filteredOrders.filter((o) => !o.teamId && !o.technicianId)
+    return filteredOrders.filter((o) => !o.teamId && !o.technicianId && o.status === 'pending')
   }, [filteredOrders])
-
-  const viewOrders = useMemo(() => {
-    return filteredOrders.filter((o) => {
-      if (!o.scheduledAt) return false
-      const s = new Date(o.scheduledAt)
-      return s >= bounds.start && s <= bounds.end
-    })
-  }, [filteredOrders, bounds])
-
-  const ordersByTeamAndCol = useMemo(() => {
-    const map = new Map<string, Order[]>()
-    viewOrders.forEach((o) => {
-      if (!o.teamId || !o.scheduledAt) return
-      const s = new Date(o.scheduledAt)
-      const col = columns.find((c) => s >= c.start && s <= c.end)
-      if (col) {
-        const key = `${o.teamId}-${col.key}`
-        if (!map.has(key)) map.set(key, [])
-        map.get(key)!.push(o)
-      }
-    })
-    return map
-  }, [viewOrders, columns])
 
   const filteredTeams = teams.filter((t) => teamFilter === 'all' || t.id === teamFilter)
 
-  const handleDropOnCell = async (e: React.DragEvent, teamId: string, colStart: Date) => {
+  const handleDropOnTimeline = async (e: React.DragEvent, dropDate: Date, dropTeamId?: string) => {
     e.preventDefault()
     e.stopPropagation()
     const id = e.dataTransfer.getData('orderId')
     if (!id) return
 
+    const rect = e.currentTarget.getBoundingClientRect()
+    const y = e.clientY - rect.top
+    const droppedMinutesFromStart = (y / HOUR_HEIGHT) * 60
+
+    // Snap to 15 mins precision
+    const snappedMinutes = Math.round(droppedMinutesFromStart / 15) * 15
+    const totalMinutes = START_HOUR * 60 + snappedMinutes
+
+    const newDate = new Date(dropDate)
+    newDate.setHours(Math.floor(totalMinutes / 60), totalMinutes % 60, 0, 0)
+
+    const order = orders.find((o) => o.id === id)
+    if (!order) return
+
+    const teamToAssign = dropTeamId || order.teamId || null
+
+    const hasConflict = checkConflict(
+      orders as any[],
+      teamToAssign,
+      order.technicianId,
+      newDate,
+      order.estimatedDurationMinutes || 60,
+      id,
+    )
+
+    if (hasConflict) {
+      toast({
+        title: 'Conflito de Horário',
+        description:
+          'Responsável indisponível neste horário (conflito ou intervalo obrigatório de 30m).',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
       await updateOrder(id, {
-        team_id: teamId,
-        technician_id: null,
-        scheduled_at: colStart.toISOString(),
-        status: 'scheduled',
+        team_id: teamToAssign,
+        scheduled_at: newDate.toISOString(),
+        status: order.status === 'pending' ? 'scheduled' : order.status,
       })
-      toast({ title: 'OS escalada com sucesso' })
+      toast({ title: 'OS reagendada com sucesso' })
     } catch {
-      toast({ title: 'Erro ao escalar OS', variant: 'destructive' })
+      toast({ title: 'Erro ao reagendar', variant: 'destructive' })
     }
   }
 
@@ -205,10 +161,259 @@ export default function OperationalAgendaPage() {
     setIsCreateOpen(true)
   }
 
+  const renderMonthly = () => {
+    const monthStart = startOfMonth(date)
+    const monthEnd = endOfMonth(date)
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 0 })
+    const endDate = endOfWeek(monthEnd, { weekStartsOn: 0 })
+    const days = eachDayOfInterval({ start: startDate, end: endDate })
+
+    return (
+      <div className="flex-1 flex flex-col h-full bg-card animate-fade-in">
+        <div className="grid grid-cols-7 border-b bg-muted/30 shrink-0">
+          {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((d) => (
+            <div
+              key={d}
+              className="p-2 border-r text-center font-semibold text-xs text-muted-foreground uppercase"
+            >
+              {d}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 flex-1 auto-rows-fr">
+          {days.map((d) => {
+            const isCurrentMonth = isSameMonth(d, date)
+            const dayOrders = filteredOrders.filter(
+              (o) => o.scheduledAt && isSameDay(new Date(o.scheduledAt), d),
+            )
+            return (
+              <div
+                key={d.toISOString()}
+                className={cn(
+                  'border-r border-b p-2 flex flex-col gap-1 cursor-pointer hover:bg-muted/10 transition-colors relative',
+                  !isCurrentMonth && 'bg-muted/5 opacity-50',
+                )}
+                onClick={() => {
+                  setDate(d)
+                  setView('daily')
+                }}
+              >
+                <div className="flex justify-between items-start">
+                  <span
+                    className={cn(
+                      'text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full',
+                      isSameDay(d, new Date()) && 'bg-primary text-primary-foreground',
+                    )}
+                  >
+                    {format(d, 'd')}
+                  </span>
+                  {dayOrders.length > 0 && (
+                    <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                      {dayOrders.length}
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1 mt-1 overflow-hidden">
+                  {Array.from(
+                    new Set(dayOrders.map((o) => format(new Date(o.scheduledAt!), 'HH:mm'))),
+                  )
+                    .sort()
+                    .slice(0, 6)
+                    .map((t) => (
+                      <span
+                        key={t}
+                        className="text-[9px] bg-secondary/60 px-1 py-0.5 rounded text-foreground font-medium"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  {dayOrders.length > 6 && (
+                    <span className="text-[9px] text-muted-foreground">
+                      +{dayOrders.length - 6}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  const renderTimeline = () => {
+    let columns: { id: string; label: string; date: Date; teamId?: string }[] = []
+
+    if (view === 'weekly') {
+      const weekStart = startOfWeek(date, { weekStartsOn: 1 })
+      columns = Array.from({ length: 7 }).map((_, i) => {
+        const d = addDays(weekStart, i)
+        return {
+          id: d.toISOString(),
+          label: format(d, 'EEEE, dd/MM', { locale: ptBR }),
+          date: d,
+          teamId: teamFilter === 'all' ? undefined : teamFilter,
+        }
+      })
+    } else if (view === 'daily') {
+      if (filteredTeams.length === 0) {
+        return (
+          <div className="p-8 text-center text-muted-foreground w-full">
+            Nenhuma equipe corresponde aos filtros.
+          </div>
+        )
+      }
+      columns = filteredTeams.map((t) => ({
+        id: t.id,
+        label: t.name,
+        date: date,
+        teamId: t.id,
+      }))
+    }
+
+    const hours = Array.from({ length: HOURS_COUNT }).map((_, i) => START_HOUR + i)
+
+    return (
+      <div className="flex flex-col flex-1 overflow-hidden bg-card relative animate-fade-in">
+        <div className="flex sticky top-0 z-20 bg-muted/80 backdrop-blur-md border-b shrink-0">
+          <div className="w-16 shrink-0 border-r" />
+          {columns.map((c) => (
+            <div
+              key={c.id}
+              className="flex-1 min-w-[150px] p-2 text-center border-r font-semibold text-sm capitalize truncate"
+            >
+              {c.label}
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 overflow-auto custom-scrollbar">
+          <div className="flex relative min-w-max w-full">
+            <div
+              className="w-16 shrink-0 border-r bg-muted/5 relative pointer-events-none sticky left-0 z-10"
+              style={{ height: HOURS_COUNT * HOUR_HEIGHT }}
+            >
+              {hours.map((h) => (
+                <div
+                  key={h}
+                  className="absolute w-full text-right pr-2 text-xs font-medium text-muted-foreground"
+                  style={{ top: (h - START_HOUR) * HOUR_HEIGHT - 8 }}
+                >
+                  {String(h).padStart(2, '0')}:00
+                </div>
+              ))}
+            </div>
+
+            {columns.map((c) => {
+              const colOrders = filteredOrders.filter((o) => {
+                if (!o.scheduledAt) return false
+                const oDate = new Date(o.scheduledAt)
+                if (!isSameDay(oDate, c.date)) return false
+                if (c.teamId && o.teamId !== c.teamId) return false
+                return true
+              })
+
+              return (
+                <div
+                  key={c.id}
+                  className="flex-1 min-w-[150px] border-r relative group/col hover:bg-muted/5 transition-colors"
+                  style={{ height: HOURS_COUNT * HOUR_HEIGHT }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => handleDropOnTimeline(e, c.date, c.teamId)}
+                  onClick={(e) => {
+                    if (e.target === e.currentTarget && isAdmin) {
+                      const rect = e.currentTarget.getBoundingClientRect()
+                      const y = e.clientY - rect.top
+                      const droppedMinutesFromStart = (y / HOUR_HEIGHT) * 60
+                      const newDate = new Date(c.date)
+                      const totalMins =
+                        START_HOUR * 60 + Math.round(droppedMinutesFromStart / 15) * 15
+                      newDate.setHours(Math.floor(totalMins / 60), totalMins % 60, 0, 0)
+                      openCreateDialog(c.teamId, newDate)
+                    }
+                  }}
+                >
+                  {hours.map((h) => (
+                    <div
+                      key={h}
+                      className="absolute w-full border-t border-border/40 pointer-events-none"
+                      style={{ top: (h - START_HOUR) * HOUR_HEIGHT, height: HOUR_HEIGHT }}
+                    />
+                  ))}
+                  {colOrders.map((o) => {
+                    const oDate = new Date(o.scheduledAt!)
+                    const startMins = oDate.getHours() * 60 + oDate.getMinutes()
+                    const top = ((startMins - START_HOUR * 60) / 60) * HOUR_HEIGHT
+                    const duration = o.estimatedDurationMinutes || 60
+                    const height = (duration / 60) * HOUR_HEIGHT
+
+                    return (
+                      <div
+                        key={o.id}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('orderId', o.id)
+                          setDraggedOrder(o.id)
+                        }}
+                        onDragEnd={() => setDraggedOrder(null)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedOrder(o)
+                        }}
+                        className={cn(
+                          'absolute left-1 right-1 rounded border shadow-sm text-xs overflow-hidden cursor-grab hover:shadow-md transition-all z-10 flex flex-col group/item p-1.5',
+                          getStatusColor(o.status, o.scheduledAt),
+                          draggedOrder === o.id && 'opacity-40 scale-95',
+                        )}
+                        style={{ top, height: Math.max(height, 24) }}
+                      >
+                        <div className="flex justify-between items-start gap-1">
+                          <span className="font-bold truncate leading-tight">{o.shortId}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              handleUnassign(o.id)
+                            }}
+                            className="opacity-0 group-hover/item:opacity-100 p-0.5 rounded-full hover:bg-background/50 transition-all shrink-0"
+                            title="Retornar à fila"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                        {height >= 45 && (
+                          <div className="text-[10px] truncate opacity-80 mt-0.5 leading-tight">
+                            {o.title}
+                          </div>
+                        )}
+                        {height >= 35 && (
+                          <div className="text-[9px] mt-auto pt-1 opacity-70 font-medium">
+                            {format(oDate, 'HH:mm')} -{' '}
+                            {format(new Date(oDate.getTime() + duration * 60000), 'HH:mm')}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {isAdmin && (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/col:opacity-100 pointer-events-none">
+                      <div className="bg-background/80 px-2 py-1 rounded shadow-sm border text-[10px] text-muted-foreground backdrop-blur-sm">
+                        Clique para agendar
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col gap-4 animate-fade-in">
-      {/* Top Filter Bar */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center bg-card p-3 rounded-lg border shadow-sm gap-4">
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center bg-card p-3 rounded-lg border shadow-sm gap-4 shrink-0">
         <h2 className="text-xl font-bold tracking-tight shrink-0">Agenda e Escalas</h2>
         <div className="flex gap-2 flex-wrap items-center">
           <div className="flex border rounded-md overflow-hidden bg-background">
@@ -298,7 +503,6 @@ export default function OperationalAgendaPage() {
       </div>
 
       <ResizablePanelGroup direction="horizontal" className="flex-1 rounded-lg border bg-card">
-        {/* Fila Pendente Sidebar */}
         <ResizablePanel defaultSize={20} minSize={15} className="flex flex-col">
           <div className="p-3 border-b bg-muted/30 font-semibold flex justify-between items-center h-12 shrink-0">
             <span>Fila Pendente</span>
@@ -317,7 +521,7 @@ export default function OperationalAgendaPage() {
             </div>
           </div>
           <div
-            className="flex-1 overflow-y-auto p-3 space-y-3 bg-muted/5"
+            className="flex-1 overflow-y-auto p-3 space-y-3 bg-muted/5 custom-scrollbar"
             onDragOver={(e) => e.preventDefault()}
             onDrop={async (e) => {
               e.preventDefault()
@@ -366,164 +570,11 @@ export default function OperationalAgendaPage() {
 
         <ResizableHandle withHandle />
 
-        {/* Grid Area */}
         <ResizablePanel defaultSize={80} className="flex flex-col relative overflow-hidden">
-          <div className="flex-1 overflow-auto bg-card/50">
-            {/* Grid Header */}
-            <div className="flex h-12 border-b bg-muted/30 sticky top-0 z-20 w-max min-w-full">
-              <div className="w-48 flex-shrink-0 border-r flex items-center px-4 font-semibold text-sm sticky left-0 bg-muted/80 backdrop-blur-md z-30">
-                Equipes Operacionais
-              </div>
-              {columns.map((col) => (
-                <div
-                  key={col.key}
-                  className="flex-1 min-w-[120px] border-r flex items-center justify-center text-xs font-medium text-muted-foreground uppercase"
-                >
-                  {col.label}
-                </div>
-              ))}
-            </div>
-
-            {/* Grid Body */}
-            <div className="flex flex-col w-max min-w-full pb-4">
-              {filteredTeams.map((team) => (
-                <div
-                  key={team.id}
-                  className="flex min-h-[120px] border-b group hover:bg-muted/5 transition-colors"
-                >
-                  {/* Row Header (Team) */}
-                  <div className="w-48 flex-shrink-0 border-r p-3 flex flex-col justify-center bg-card sticky left-0 z-10 shadow-[1px_0_5px_rgba(0,0,0,0.05)]">
-                    <span className="font-bold text-sm truncate text-primary">{team.name}</span>
-                    <span className="text-xs text-muted-foreground truncate mt-0.5">
-                      {team.members.length} membro(s)
-                    </span>
-                    {team.shift_start && (
-                      <span className="text-[10px] text-muted-foreground mt-1 bg-secondary w-fit px-1.5 rounded">
-                        {team.shift_start} - {team.shift_end}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Row Cells */}
-                  {columns.map((col) => {
-                    const cellKey = `${team.id}-${col.key}`
-                    const cellOrders = ordersByTeamAndCol.get(cellKey) || []
-                    const count = cellOrders.length
-                    const isOverloaded = count > 5
-
-                    return (
-                      <div
-                        key={col.key}
-                        className={cn(
-                          'flex-1 min-w-[120px] border-r p-1.5 flex flex-col gap-1.5 transition-colors relative',
-                          draggedOrder ? 'hover:bg-primary/5' : '',
-                        )}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => handleDropOnCell(e, team.id, col.start)}
-                        onClick={(e) => {
-                          if (e.target === e.currentTarget && isAdmin) {
-                            openCreateDialog(team.id, col.start)
-                          }
-                        }}
-                      >
-                        {/* Cell Header with Density Indicator */}
-                        <div className="flex justify-between items-center mb-1 h-5 shrink-0 px-1 pointer-events-none">
-                          <span className="text-[10px] text-muted-foreground/50 font-medium">
-                            {view === 'daily'
-                              ? format(col.start, 'HH:mm')
-                              : format(col.start, 'dd/MM')}
-                          </span>
-                          <div className="flex items-center gap-1">
-                            {isOverloaded && (
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <AlertTriangle className="w-3.5 h-3.5 text-destructive animate-pulse" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  Equipe sobrecarregada neste período (&gt;5 OS)
-                                </TooltipContent>
-                              </Tooltip>
-                            )}
-                            {count > 0 && (
-                              <Badge
-                                variant={isOverloaded ? 'destructive' : 'secondary'}
-                                className="text-[9px] h-4 px-1.5 py-0"
-                              >
-                                {count}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Order Cards in Cell */}
-                        <div className="flex flex-col gap-1.5 flex-1 z-10 pointer-events-none">
-                          {cellOrders.map((o) => (
-                            <div
-                              key={o.id}
-                              draggable
-                              onDragStart={(e) => {
-                                e.dataTransfer.setData('orderId', o.id)
-                                setDraggedOrder(o.id)
-                              }}
-                              onDragEnd={() => setDraggedOrder(null)}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setSelectedOrder(o)
-                              }}
-                              className={cn(
-                                'group/item p-1.5 rounded border shadow-sm text-xs cursor-grab hover:shadow-md transition-all flex flex-col pointer-events-auto',
-                                getStatusColor(o.status, o.scheduledAt),
-                                draggedOrder === o.id && 'opacity-40 scale-95',
-                              )}
-                            >
-                              <div className="flex justify-between items-start gap-1">
-                                <span className="font-bold truncate">{o.shortId}</span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    handleUnassign(o.id)
-                                  }}
-                                  className="opacity-0 group-hover/item:opacity-100 p-0.5 rounded-full hover:bg-background/50 transition-all shrink-0"
-                                  title="Retornar à fila"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </div>
-                              <div className="text-[10px] opacity-80 truncate mt-0.5 leading-tight">
-                                {o.title}
-                              </div>
-                              <div className="text-[9px] font-medium mt-1 flex items-center gap-1 opacity-70">
-                                <Clock className="w-2.5 h-2.5" />
-                                {format(new Date(o.scheduledAt!), 'HH:mm')}
-                              </div>
-                            </div>
-                          ))}
-
-                          {/* Empty state prompt on hover if admin */}
-                          {count === 0 && isAdmin && (
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 pointer-events-none bg-muted/10 transition-opacity m-1 rounded border border-dashed border-muted-foreground/30">
-                              <Plus className="w-4 h-4 text-muted-foreground/50" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
-              {filteredTeams.length === 0 && (
-                <div className="p-8 text-center text-muted-foreground w-full">
-                  Nenhuma equipe corresponde aos filtros.
-                </div>
-              )}
-            </div>
-          </div>
+          {view === 'monthly' ? renderMonthly() : renderTimeline()}
         </ResizablePanel>
       </ResizablePanelGroup>
 
-      {/* Dialogs */}
       <CreateOrderDialog
         open={isCreateOpen}
         onOpenChange={setIsCreateOpen}

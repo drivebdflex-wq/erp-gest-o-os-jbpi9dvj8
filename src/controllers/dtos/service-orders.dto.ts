@@ -16,6 +16,7 @@ export const CreateServiceOrderDto = z.object({
   ]),
   description: z.string().optional(),
   scheduled_at: z.string().optional(),
+  estimated_duration_minutes: z.number().optional(),
   service_code: z.string().optional().nullable(),
   service_value: z.number().optional().nullable(),
 })
