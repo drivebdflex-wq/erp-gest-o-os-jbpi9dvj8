@@ -46,7 +46,8 @@ import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog'
 const getStatusColor = (status: string, dateStr: string | null) => {
   if (dateStr) {
     const isDelayed = new Date(dateStr) < new Date() && !['completed', 'cancelled'].includes(status)
-    if (isDelayed) return 'bg-destructive/10 border-destructive/50 text-destructive dark:text-red-400'
+    if (isDelayed)
+      return 'bg-destructive/10 border-destructive/50 text-destructive dark:text-red-400'
   }
   if (['pending', 'scheduled'].includes(status))
     return 'bg-blue-500/10 border-blue-500/50 text-blue-700 dark:text-blue-400'
@@ -73,7 +74,7 @@ export default function OperationalAgendaPage() {
   const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all')
 
   const [draggedOrder, setDraggedOrder] = useState<string | null>(null)
-  
+
   // Dialogs State
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createDefaults, setCreateDefaults] = useState<{ teamId?: string; date?: Date }>({})
@@ -133,7 +134,7 @@ export default function OperationalAgendaPage() {
     return orders.filter(
       (o) =>
         (contractId === 'all' || o.contractId === contractId) &&
-        (serviceTypeFilter === 'all' || o.serviceType === serviceTypeFilter)
+        (serviceTypeFilter === 'all' || o.serviceType === serviceTypeFilter),
     )
   }, [orders, contractId, serviceTypeFilter])
 
@@ -287,7 +288,9 @@ export default function OperationalAgendaPage() {
             <SelectContent>
               <SelectItem value="all">Todos os Tipos</SelectItem>
               {Object.entries(SERVICE_TYPE_LABELS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
+                <SelectItem key={k} value={k}>
+                  {v}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -302,7 +305,12 @@ export default function OperationalAgendaPage() {
             <div className="flex items-center gap-2">
               <Badge variant="secondary">{unassignedOrders.length}</Badge>
               {isAdmin && (
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openCreateDialog()}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => openCreateDialog()}
+                >
                   <Plus className="w-4 h-4" />
                 </Button>
               )}
@@ -336,7 +344,10 @@ export default function OperationalAgendaPage() {
                 <div className="font-bold pr-6">{o.shortId}</div>
                 <div className="text-xs opacity-80 mt-1 line-clamp-2 pr-2">{o.title}</div>
                 <div className="mt-2 flex gap-2 flex-wrap items-center">
-                  <Badge variant="outline" className="text-[10px] bg-background/80 text-foreground border-foreground/20 uppercase">
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] bg-background/80 text-foreground border-foreground/20 uppercase"
+                  >
                     {o.priority}
                   </Badge>
                   <span className="text-[10px] font-medium text-muted-foreground ml-auto uppercase">
@@ -376,7 +387,10 @@ export default function OperationalAgendaPage() {
             {/* Grid Body */}
             <div className="flex flex-col w-max min-w-full pb-4">
               {filteredTeams.map((team) => (
-                <div key={team.id} className="flex min-h-[120px] border-b group hover:bg-muted/5 transition-colors">
+                <div
+                  key={team.id}
+                  className="flex min-h-[120px] border-b group hover:bg-muted/5 transition-colors"
+                >
                   {/* Row Header (Team) */}
                   <div className="w-48 flex-shrink-0 border-r p-3 flex flex-col justify-center bg-card sticky left-0 z-10 shadow-[1px_0_5px_rgba(0,0,0,0.05)]">
                     <span className="font-bold text-sm truncate text-primary">{team.name}</span>
@@ -401,8 +415,8 @@ export default function OperationalAgendaPage() {
                       <div
                         key={col.key}
                         className={cn(
-                          "flex-1 min-w-[120px] border-r p-1.5 flex flex-col gap-1.5 transition-colors relative",
-                          draggedOrder ? "hover:bg-primary/5" : ""
+                          'flex-1 min-w-[120px] border-r p-1.5 flex flex-col gap-1.5 transition-colors relative',
+                          draggedOrder ? 'hover:bg-primary/5' : '',
                         )}
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={(e) => handleDropOnCell(e, team.id, col.start)}
@@ -415,7 +429,9 @@ export default function OperationalAgendaPage() {
                         {/* Cell Header with Density Indicator */}
                         <div className="flex justify-between items-center mb-1 h-5 shrink-0 px-1 pointer-events-none">
                           <span className="text-[10px] text-muted-foreground/50 font-medium">
-                            {view === 'daily' ? format(col.start, 'HH:mm') : format(col.start, 'dd/MM')}
+                            {view === 'daily'
+                              ? format(col.start, 'HH:mm')
+                              : format(col.start, 'dd/MM')}
                           </span>
                           <div className="flex items-center gap-1">
                             {isOverloaded && (
@@ -423,11 +439,16 @@ export default function OperationalAgendaPage() {
                                 <TooltipTrigger>
                                   <AlertTriangle className="w-3.5 h-3.5 text-destructive animate-pulse" />
                                 </TooltipTrigger>
-                                <TooltipContent>Equipe sobrecarregada neste período (>5 OS)</TooltipContent>
+                                <TooltipContent>
+                                  Equipe sobrecarregada neste período (&gt;5 OS)
+                                </TooltipContent>
                               </Tooltip>
                             )}
                             {count > 0 && (
-                              <Badge variant={isOverloaded ? 'destructive' : 'secondary'} className="text-[9px] h-4 px-1.5 py-0">
+                              <Badge
+                                variant={isOverloaded ? 'destructive' : 'secondary'}
+                                className="text-[9px] h-4 px-1.5 py-0"
+                              >
                                 {count}
                               </Badge>
                             )}
@@ -452,7 +473,7 @@ export default function OperationalAgendaPage() {
                               className={cn(
                                 'group/item p-1.5 rounded border shadow-sm text-xs cursor-grab hover:shadow-md transition-all flex flex-col pointer-events-auto',
                                 getStatusColor(o.status, o.scheduledAt),
-                                draggedOrder === o.id && 'opacity-40 scale-95'
+                                draggedOrder === o.id && 'opacity-40 scale-95',
                               )}
                             >
                               <div className="flex justify-between items-start gap-1">
@@ -479,7 +500,7 @@ export default function OperationalAgendaPage() {
                               </div>
                             </div>
                           ))}
-                          
+
                           {/* Empty state prompt on hover if admin */}
                           {count === 0 && isAdmin && (
                             <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 pointer-events-none bg-muted/10 transition-opacity m-1 rounded border border-dashed border-muted-foreground/30">
@@ -509,7 +530,7 @@ export default function OperationalAgendaPage() {
         defaultTeamId={createDefaults.teamId}
         defaultDate={createDefaults.date}
       />
-      
+
       <OrderDetailsDialog
         open={!!selectedOrder}
         onOpenChange={(open) => !open && setSelectedOrder(null)}
