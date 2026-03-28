@@ -1,6 +1,5 @@
 import { supabase, isMock } from '@/lib/supabase'
 import { ID } from '../types/common'
-import useAuthStore from '@/stores/useAuthStore'
 import { useSystemStore } from '@/stores/useSystemStore'
 import { repositoryDataMap } from '@/lib/mock-db'
 
@@ -14,7 +13,9 @@ export function createRepository<T extends { id: ID }, CreateDTO, UpdateDTO>(
   const inMemoryData = repositoryDataMap[tableName]
 
   const logAudit = (action: any, recordId: ID, oldValue: any, newValue: any) => {
-    const user = useAuthStore.getState().user
+    const savedUser = localStorage.getItem('fieldops_user')
+    const user = savedUser ? JSON.parse(savedUser) : null
+
     useSystemStore.getState().logAudit({
       user_id: user?.id || null,
       user_name: user?.name || 'Sistema',
@@ -112,7 +113,9 @@ export function createRepository<T extends { id: ID }, CreateDTO, UpdateDTO>(
       }
 
       if (deletedItem) {
-        const user = useAuthStore.getState().user
+        const savedUser = localStorage.getItem('fieldops_user')
+        const user = savedUser ? JSON.parse(savedUser) : null
+
         useSystemStore.getState().addDeletedRecord({
           table_name: tableName,
           record_id: String(id),
