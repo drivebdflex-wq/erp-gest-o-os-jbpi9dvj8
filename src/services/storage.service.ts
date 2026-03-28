@@ -1,6 +1,21 @@
 import { isMock } from '@/lib/supabase'
 
 export class StorageService {
+  static async clearBucket(bucket: string): Promise<void> {
+    if (isMock) {
+      console.log(`[Mock] Cleared bucket: ${bucket}`)
+      return Promise.resolve()
+    }
+    // Implementação real para o Supabase:
+    /*
+    const { data: files } = await supabase.storage.from(bucket).list()
+    if (files && files.length > 0) {
+      const fileNames = files.map(f => f.name)
+      await supabase.storage.from(bucket).remove(fileNames)
+    }
+    */
+  }
+
   /**
    * Mock implementation of image upload to a bucket.
    * Handles format and size validation.

@@ -1,8 +1,18 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, Building2, Clock, Key, ListChecks, Mail, ShieldCheck } from 'lucide-react'
+import {
+  Users,
+  Building2,
+  Clock,
+  Key,
+  ListChecks,
+  Mail,
+  ShieldCheck,
+  AlertTriangle,
+} from 'lucide-react'
 
 // Settings Components
 import UsersSettings from '@/components/admin/settings/UsersSettings'
+import AdvancedSettings from '@/components/admin/settings/AdvancedSettings'
 import RolesSettings from '@/components/admin/settings/RolesSettings'
 import CompanySettings from '@/components/admin/settings/CompanySettings'
 import SLASettings from '@/components/admin/settings/SLASettings'
@@ -64,6 +74,12 @@ export default function SettingsPage() {
           >
             <Key className="h-4 w-4" /> Integrações
           </TabsTrigger>
+          <TabsTrigger
+            value="advanced"
+            className="justify-start gap-2 px-4 py-2 w-full data-[state=active]:bg-card data-[state=active]:shadow-sm rounded-md text-destructive data-[state=active]:text-destructive"
+          >
+            <AlertTriangle className="h-4 w-4" /> Avançado
+          </TabsTrigger>
         </TabsList>
 
         <div className="flex-1 overflow-y-auto pb-8">
@@ -87,6 +103,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="integrations" className="m-0 border-none p-0 outline-none">
             <IntegrationSettings />
+          </TabsContent>
+          <TabsContent value="advanced" className="m-0 border-none p-0 outline-none">
+            <AdvancedSettings />
           </TabsContent>
         </div>
       </Tabs>
