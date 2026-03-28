@@ -1,6 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
-import useAppStore, { Order, SERVICE_TYPE_COLORS } from '@/stores/useAppStore'
-import useOperationalStore, { OpTeam } from '@/stores/useOperationalStore'
+import { useState, useMemo } from 'react'
+import useAppStore, { Order, SERVICE_TYPE_LABELS } from '@/stores/useAppStore'
+import useOperationalStore from '@/stores/useOperationalStore'
 import { Badge } from '@/components/ui/badge'
 import {
   Clock,
@@ -9,20 +9,10 @@ import {
   CalendarDays,
   CalendarRange,
   X,
-  Trash2,
-  Loader2,
+  AlertTriangle,
+  Plus,
 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 // @ts-expect-error
 import useAuthStore from '@/stores/useAuthStore'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
@@ -36,26 +26,35 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   format,
   startOfWeek,
   endOfMonth,
   startOfMonth,
-  differenceInMinutes,
   addMinutes,
   getDaysInMonth,
   addDays,
-  differenceInDays,
+  startOfDay,
+  endOfDay,
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import CreateOrderDialog from '@/components/admin/CreateOrderDialog'
+import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog'
 
-const getCardStyles = (order: Order, isConflict: boolean) => {
-  if (isConflict)
-    return 'bg-destructive/20 border-destructive text-destructive dark:text-red-400 ring-2 ring-destructive ring-offset-1 animate-pulse'
-  return (
-    SERVICE_TYPE_COLORS[order.serviceType] || 'bg-muted border-muted-foreground/30 text-foreground'
-  )
+const getStatusColor = (status: string, dateStr: string | null) => {
+  if (dateStr) {
+    const isDelayed = new Date(dateStr) < new Date() && !['completed', 'cancelled'].includes(status)
+    if (isDelayed) return 'bg-destructive/10 border-destructive/50 text-destructive dark:text-red-400'
+  }
+  if (['pending', 'scheduled'].includes(status))
+    return 'bg-blue-500/10 border-blue-500/50 text-blue-700 dark:text-blue-400'
+  if (['in_progress', 'deslocamento', 'paused'].includes(status))
+    return 'bg-orange-500/10 border-orange-500/50 text-orange-700 dark:text-orange-400'
+  if (['completed'].includes(status))
+    return 'bg-green-500/10 border-green-500/50 text-green-700 dark:text-green-400'
+  return 'bg-muted border-muted-foreground/30 text-foreground'
 }
 
 export default function OperationalAgendaPage() {
@@ -67,159 +66,122 @@ export default function OperationalAgendaPage() {
   const { orders, updateOrder, contracts } = useAppStore()
   const { teams } = useOperationalStore()
 
-  const [view, setView] = useState<'daily' | 'weekly' | 'monthly'>('daily')
-  const [orderToDelete, setOrderToDelete] = useState<string | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [view, setView] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
   const [date, setDate] = useState<Date>(new Date())
   const [teamFilter, setTeamFilter] = useState<string>('all')
   const [contractId, setContractId] = useState<string>('all')
+  const [serviceTypeFilter, setServiceTypeFilter] = useState<string>('all')
 
-  const timelineRef = useRef<HTMLDivElement>(null)
-  const [resizingId, setResizingId] = useState<string | null>(null)
-  const [resizeWidth, setResizeWidth] = useState<number | null>(null)
-  const [resizeStart, setResizeStart] = useState<{ x: number; orig: number } | null>(null)
   const [draggedOrder, setDraggedOrder] = useState<string | null>(null)
+  
+  // Dialogs State
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [createDefaults, setCreateDefaults] = useState<{ teamId?: string; date?: Date }>({})
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
 
   const bounds = useMemo(() => {
     if (view === 'daily') {
-      const s = new Date(date)
+      const s = startOfDay(date)
       s.setHours(7, 0, 0, 0)
-      const e = new Date(date)
+      const e = startOfDay(date)
       e.setHours(19, 0, 0, 0)
-      return { start: s, end: e, totalMins: 12 * 60 }
+      return { start: s, end: e }
     }
     if (view === 'weekly') {
       const s = startOfWeek(date, { weekStartsOn: 1 })
-      s.setHours(0, 0, 0, 0)
-      const e = new Date(s)
-      e.setDate(e.getDate() + 7)
-      return { start: s, end: e, totalMins: 7 * 24 * 60 }
+      const e = endOfDay(addDays(s, 6))
+      return { start: s, end: e }
     }
     const s = startOfMonth(date)
-    s.setHours(0, 0, 0, 0)
-    const days = getDaysInMonth(date)
-    const e = new Date(s)
-    e.setDate(e.getDate() + days)
-    return { start: s, end: e, totalMins: days * 24 * 60 }
+    const e = endOfMonth(date)
+    return { start: s, end: e }
   }, [view, date])
 
-  const viewOrders = useMemo(() => {
-    return orders.filter((o) => {
-      const s = new Date(o.scheduledAt)
-      const e = addMinutes(s, o.estimatedDuration || 60)
-      return (
-        s < bounds.end && e > bounds.start && (contractId === 'all' || o.contractId === contractId)
-      )
-    })
-  }, [orders, bounds, contractId])
-
-  const conflictingOrders = useMemo(() => {
-    const conflicts = new Set<string>()
-    const byTeam = viewOrders.reduce(
-      (acc, o) => {
-        if (o.teamId) {
-          if (!acc[o.teamId]) acc[o.teamId] = []
-          acc[o.teamId].push(o)
-        }
-        return acc
-      },
-      {} as Record<string, Order[]>,
-    )
-
-    for (const tId in byTeam) {
-      const teamOrders = byTeam[tId]
-      for (let i = 0; i < teamOrders.length; i++) {
-        for (let j = i + 1; j < teamOrders.length; j++) {
-          const o1 = teamOrders[i]
-          const o2 = teamOrders[j]
-          const s1 = new Date(o1.scheduledAt).getTime()
-          const e1 = s1 + (o1.estimatedDuration || 60) * 60000
-          const s2 = new Date(o2.scheduledAt).getTime()
-          const e2 = s2 + (o2.estimatedDuration || 60) * 60000
-          if (s1 < e2 && s2 < e1) {
-            conflicts.add(o1.id)
-            conflicts.add(o2.id)
-          }
-        }
-      }
+  const columns = useMemo(() => {
+    if (view === 'daily') {
+      return Array.from({ length: 12 }).map((_, i) => ({
+        key: `h-${i}`,
+        label: `${String(7 + i).padStart(2, '0')}:00`,
+        start: addMinutes(bounds.start, i * 60),
+        end: addMinutes(bounds.start, (i + 1) * 60),
+      }))
     }
-    return conflicts
-  }, [viewOrders])
+    if (view === 'weekly') {
+      return Array.from({ length: 7 }).map((_, i) => {
+        const d = addDays(bounds.start, i)
+        return {
+          key: `d-${i}`,
+          label: format(d, 'EEEE', { locale: ptBR }),
+          start: startOfDay(d),
+          end: endOfDay(d),
+        }
+      })
+    }
+    const days = getDaysInMonth(bounds.start)
+    return Array.from({ length: days }).map((_, i) => {
+      const d = addDays(bounds.start, i)
+      return {
+        key: `d-${i}`,
+        label: format(d, 'dd/MM'),
+        start: startOfDay(d),
+        end: endOfDay(d),
+      }
+    })
+  }, [view, bounds])
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter(
+      (o) =>
+        (contractId === 'all' || o.contractId === contractId) &&
+        (serviceTypeFilter === 'all' || o.serviceType === serviceTypeFilter)
+    )
+  }, [orders, contractId, serviceTypeFilter])
 
   const unassignedOrders = useMemo(() => {
-    return orders.filter((o) => !o.teamId && (contractId === 'all' || o.contractId === contractId))
-  }, [orders, contractId])
+    return filteredOrders.filter((o) => !o.teamId && !o.technicianId)
+  }, [filteredOrders])
+
+  const viewOrders = useMemo(() => {
+    return filteredOrders.filter((o) => {
+      if (!o.scheduledAt) return false
+      const s = new Date(o.scheduledAt)
+      return s >= bounds.start && s <= bounds.end
+    })
+  }, [filteredOrders, bounds])
+
+  const ordersByTeamAndCol = useMemo(() => {
+    const map = new Map<string, Order[]>()
+    viewOrders.forEach((o) => {
+      if (!o.teamId || !o.scheduledAt) return
+      const s = new Date(o.scheduledAt)
+      const col = columns.find((c) => s >= c.start && s <= c.end)
+      if (col) {
+        const key = `${o.teamId}-${col.key}`
+        if (!map.has(key)) map.set(key, [])
+        map.get(key)!.push(o)
+      }
+    })
+    return map
+  }, [viewOrders, columns])
 
   const filteredTeams = teams.filter((t) => teamFilter === 'all' || t.id === teamFilter)
 
-  useEffect(() => {
-    if (!resizingId || !resizeStart || !timelineRef.current) return
-    const onMove = (e: PointerEvent) => {
-      const pxPerMin = timelineRef.current!.getBoundingClientRect().width / bounds.totalMins
-      const deltaMins = Math.round((e.clientX - resizeStart.x) / pxPerMin / 15) * 15
-      setResizeWidth(Math.max(15, resizeStart.orig + deltaMins))
-    }
-    const onUp = async () => {
-      if (resizingId && resizeWidth !== null && resizeWidth !== resizeStart.orig) {
-        try {
-          await updateOrder(resizingId, { estimated_duration_minutes: resizeWidth })
-          toast({ title: 'Duração Atualizada', description: `Nova duração: ${resizeWidth} min.` })
-        } catch {
-          toast({ title: 'Erro ao atualizar', variant: 'destructive' })
-        }
-      }
-      setResizingId(null)
-      setResizeWidth(null)
-      setResizeStart(null)
-    }
-    window.addEventListener('pointermove', onMove)
-    window.addEventListener('pointerup', onUp)
-    return () => {
-      window.removeEventListener('pointermove', onMove)
-      window.removeEventListener('pointerup', onUp)
-    }
-  }, [resizingId, resizeStart, resizeWidth, updateOrder, bounds.totalMins])
-
-  const handleDropOnTeam = async (e: React.DragEvent, teamId: string) => {
+  const handleDropOnCell = async (e: React.DragEvent, teamId: string, colStart: Date) => {
     e.preventDefault()
+    e.stopPropagation()
     const id = e.dataTransfer.getData('orderId')
-    if (!id || !timelineRef.current) return
-
-    const rowRect = e.currentTarget.getBoundingClientRect()
-    const pct = Math.max(0, Math.min(1, (e.clientX - rowRect.left) / rowRect.width))
-    const startMins = Math.round((pct * bounds.totalMins) / 15) * 15
-    const dropDate = addMinutes(bounds.start, startMins)
+    if (!id) return
 
     try {
       await updateOrder(id, {
         team_id: teamId,
         technician_id: null,
-        scheduled_at: dropDate.toISOString(),
+        scheduled_at: colStart.toISOString(),
         status: 'scheduled',
       })
       toast({ title: 'OS escalada com sucesso' })
     } catch {
       toast({ title: 'Erro ao escalar OS', variant: 'destructive' })
-    }
-  }
-
-  const handleDelete = async (id: string) => {
-    setIsDeleting(true)
-    try {
-      useAppStore.setState((state: any) => ({
-        orders: state.orders.filter((o: any) => o.id !== id),
-        filteredOrders: state.filteredOrders.filter((o: any) => o.id !== id),
-      }))
-      toast({ title: 'Sucesso', description: 'Ordem de Serviço excluída com sucesso.' })
-    } catch (e: any) {
-      toast({
-        title: 'Erro',
-        description: e.message || 'Falha ao excluir OS.',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsDeleting(false)
-      setOrderToDelete(null)
     }
   }
 
@@ -237,110 +199,14 @@ export default function OperationalAgendaPage() {
     }
   }
 
-  const renderColumns = () => {
-    if (view === 'daily') {
-      return Array.from({ length: 13 }).map((_, i) => (
-        <div
-          key={i}
-          className="absolute top-0 bottom-0 border-l border-border/50 text-[10px] text-muted-foreground pl-1 pt-1"
-          style={{ left: `${(i / 12) * 100}%` }}
-        >
-          {String(7 + i).padStart(2, '0')}:00
-        </div>
-      ))
-    }
-    if (view === 'weekly') {
-      return Array.from({ length: 7 }).map((_, i) => {
-        const d = addDays(bounds.start, i)
-        return (
-          <div
-            key={i}
-            className="absolute top-0 bottom-0 border-l border-border/50 text-[10px] text-muted-foreground pl-1 pt-1"
-            style={{ left: `${(i / 7) * 100}%`, width: `${100 / 7}%` }}
-          >
-            {format(d, 'EEEE', { locale: ptBR })}
-          </div>
-        )
-      })
-    }
-    if (view === 'monthly') {
-      const days = differenceInDays(bounds.end, bounds.start)
-      return Array.from({ length: days }).map((_, i) => (
-        <div
-          key={i}
-          className="absolute top-0 bottom-0 border-l border-border/50 text-[10px] text-muted-foreground pl-1 pt-1 flex justify-center"
-          style={{ left: `${(i / days) * 100}%`, width: `${100 / days}%` }}
-        >
-          {i + 1}
-        </div>
-      ))
-    }
-  }
-
-  const numCols =
-    view === 'daily' ? 12 : view === 'weekly' ? 7 : differenceInDays(bounds.end, bounds.start)
-
-  const renderGridLines = () => {
-    return Array.from({ length: numCols + 1 }).map((_, i) => (
-      <div
-        key={i}
-        className="absolute top-0 bottom-0 border-l border-border/50 pointer-events-none"
-        style={{ left: `${(i / numCols) * 100}%` }}
-      />
-    ))
-  }
-
-  const renderNonWorkingHours = (team: OpTeam) => {
-    if (!team.shift_start || !team.shift_end) return null
-    const [startH, startM] = team.shift_start.split(':').map(Number)
-    const [endH, endM] = team.shift_end.split(':').map(Number)
-
-    const blocks = []
-
-    if (view === 'daily') {
-      const shiftStartMins = startH * 60 + startM
-      const shiftEndMins = endH * 60 + endM
-      const viewStartMins = 7 * 60
-      const viewEndMins = 19 * 60
-
-      if (shiftStartMins > viewStartMins) {
-        const dur = Math.min(shiftStartMins, viewEndMins) - viewStartMins
-        if (dur > 0) blocks.push({ start: 0, dur })
-      }
-      if (shiftEndMins < viewEndMins) {
-        const startInView = Math.max(shiftEndMins, viewStartMins) - viewStartMins
-        const dur = viewEndMins - Math.max(shiftEndMins, viewStartMins)
-        if (dur > 0) blocks.push({ start: startInView, dur })
-      }
-    } else {
-      const days = view === 'weekly' ? 7 : getDaysInMonth(date)
-      for (let i = 0; i < days; i++) {
-        const dayStartMins = i * 24 * 60
-        const shiftStartMins = dayStartMins + startH * 60 + startM
-        const shiftEndMins = dayStartMins + endH * 60 + endM
-        const dayEndMins = dayStartMins + 24 * 60
-
-        blocks.push({ start: dayStartMins, dur: startH * 60 + startM })
-        blocks.push({ start: shiftEndMins, dur: dayEndMins - shiftEndMins })
-      }
-    }
-
-    return blocks.map((b, i) => (
-      <div
-        key={i}
-        className="absolute top-0 bottom-0 pointer-events-none"
-        style={{
-          left: `${(b.start / bounds.totalMins) * 100}%`,
-          width: `${(b.dur / bounds.totalMins) * 100}%`,
-          backgroundImage:
-            'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.05) 10px, rgba(0,0,0,0.05) 20px)',
-        }}
-      />
-    ))
+  const openCreateDialog = (teamId?: string, colStart?: Date) => {
+    setCreateDefaults({ teamId, date: colStart })
+    setIsCreateOpen(true)
   }
 
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col gap-4 animate-fade-in">
+      {/* Top Filter Bar */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center bg-card p-3 rounded-lg border shadow-sm gap-4">
         <h2 className="text-xl font-bold tracking-tight shrink-0">Agenda e Escalas</h2>
         <div className="flex gap-2 flex-wrap items-center">
@@ -414,24 +280,41 @@ export default function OperationalAgendaPage() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={serviceTypeFilter} onValueChange={setServiceTypeFilter}>
+            <SelectTrigger className="w-[150px] h-9">
+              <SelectValue placeholder="Tipo Serviço" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os Tipos</SelectItem>
+              {Object.entries(SERVICE_TYPE_LABELS).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       <ResizablePanelGroup direction="horizontal" className="flex-1 rounded-lg border bg-card">
+        {/* Fila Pendente Sidebar */}
         <ResizablePanel defaultSize={20} minSize={15} className="flex flex-col">
           <div className="p-3 border-b bg-muted/30 font-semibold flex justify-between items-center h-12 shrink-0">
             <span>Fila Pendente</span>
-            <Badge variant="secondary">{unassignedOrders.length}</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">{unassignedOrders.length}</Badge>
+              {isAdmin && (
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openCreateDialog()}>
+                  <Plus className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
           <div
-            className="flex-1 overflow-y-auto p-3 space-y-3"
+            className="flex-1 overflow-y-auto p-3 space-y-3 bg-muted/5"
             onDragOver={(e) => e.preventDefault()}
             onDrop={async (e) => {
               e.preventDefault()
               const id = e.dataTransfer.getData('orderId')
-              if (id) {
-                await handleUnassign(id)
-              }
+              if (id) await handleUnassign(id)
             }}
           >
             {unassignedOrders.map((o) => (
@@ -443,42 +326,22 @@ export default function OperationalAgendaPage() {
                   setDraggedOrder(o.id)
                 }}
                 onDragEnd={() => setDraggedOrder(null)}
+                onClick={() => setSelectedOrder(o)}
                 className={cn(
                   'group/card p-3 rounded-lg border-2 cursor-grab shadow-sm text-sm hover:border-primary transition-all bg-background relative',
-                  SERVICE_TYPE_COLORS[o.serviceType],
+                  getStatusColor(o.status, null),
                   draggedOrder === o.id && 'opacity-50',
                 )}
               >
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setOrderToDelete(o.id)
-                    }}
-                    className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 p-1 rounded-md bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all z-20"
-                    title="Excluir OS"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                )}
                 <div className="font-bold pr-6">{o.shortId}</div>
                 <div className="text-xs opacity-80 mt-1 line-clamp-2 pr-2">{o.title}</div>
-                <div className="mt-2 flex gap-2 flex-wrap">
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] bg-background/80 text-foreground border-foreground/20"
-                  >
+                <div className="mt-2 flex gap-2 flex-wrap items-center">
+                  <Badge variant="outline" className="text-[10px] bg-background/80 text-foreground border-foreground/20 uppercase">
                     {o.priority}
                   </Badge>
-                  <Badge
-                    variant="secondary"
-                    className="text-[10px] bg-background/80 text-foreground"
-                  >
-                    <Clock className="w-3 h-3 mr-1 inline" />
-                    {o.estimatedDuration}m
-                  </Badge>
+                  <span className="text-[10px] font-medium text-muted-foreground ml-auto uppercase">
+                    {SERVICE_TYPE_LABELS[o.serviceType]}
+                  </span>
                 </div>
               </div>
             ))}
@@ -492,172 +355,166 @@ export default function OperationalAgendaPage() {
 
         <ResizableHandle withHandle />
 
-        <ResizablePanel defaultSize={80} className="flex flex-col relative">
-          <div className="flex h-12 border-b bg-muted/30 shrink-0">
-            <div className="w-48 flex-shrink-0 border-r flex items-center px-4 font-semibold text-sm">
-              Equipes Operacionais
-            </div>
-            <div className="flex-1 relative" ref={timelineRef}>
-              {renderColumns()}
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
-            {filteredTeams.map((team) => (
-              <div key={team.id} className="flex min-h-[90px] border-b group relative">
-                <div className="w-48 flex-shrink-0 border-r p-3 flex flex-col justify-center bg-card group-hover:bg-muted/10 relative z-10">
-                  <span className="font-bold text-sm truncate text-primary">{team.name}</span>
-                  <span className="text-xs text-muted-foreground truncate mt-0.5">
-                    {team.members.length} membro(s)
-                  </span>
-                  {team.shift_start && (
-                    <span className="text-[10px] text-muted-foreground mt-1 bg-secondary w-fit px-1.5 rounded">
-                      {team.shift_start} - {team.shift_end}
-                    </span>
-                  )}
-                </div>
-
+        {/* Grid Area */}
+        <ResizablePanel defaultSize={80} className="flex flex-col relative overflow-hidden">
+          <div className="flex-1 overflow-auto bg-card/50">
+            {/* Grid Header */}
+            <div className="flex h-12 border-b bg-muted/30 sticky top-0 z-20 w-max min-w-full">
+              <div className="w-48 flex-shrink-0 border-r flex items-center px-4 font-semibold text-sm sticky left-0 bg-muted/80 backdrop-blur-md z-30">
+                Equipes Operacionais
+              </div>
+              {columns.map((col) => (
                 <div
-                  className="flex-1 relative bg-card/50 group-hover:bg-muted/5"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => handleDropOnTeam(e, team.id)}
+                  key={col.key}
+                  className="flex-1 min-w-[120px] border-r flex items-center justify-center text-xs font-medium text-muted-foreground uppercase"
                 >
-                  {renderNonWorkingHours(team)}
-                  {renderGridLines()}
+                  {col.label}
+                </div>
+              ))}
+            </div>
 
-                  {viewOrders
-                    .filter((o) => o.teamId === team.id)
-                    .map((o) => {
-                      const st = differenceInMinutes(new Date(o.scheduledAt), bounds.start)
-                      const isRes = resizingId === o.id
-                      const dur =
-                        isRes && resizeWidth !== null ? resizeWidth : o.estimatedDuration || 60
-                      const visStart = Math.max(0, st)
-                      const visDur = Math.min(bounds.totalMins, st + dur) - visStart
-                      if (visDur <= 0) return null
+            {/* Grid Body */}
+            <div className="flex flex-col w-max min-w-full pb-4">
+              {filteredTeams.map((team) => (
+                <div key={team.id} className="flex min-h-[120px] border-b group hover:bg-muted/5 transition-colors">
+                  {/* Row Header (Team) */}
+                  <div className="w-48 flex-shrink-0 border-r p-3 flex flex-col justify-center bg-card sticky left-0 z-10 shadow-[1px_0_5px_rgba(0,0,0,0.05)]">
+                    <span className="font-bold text-sm truncate text-primary">{team.name}</span>
+                    <span className="text-xs text-muted-foreground truncate mt-0.5">
+                      {team.members.length} membro(s)
+                    </span>
+                    {team.shift_start && (
+                      <span className="text-[10px] text-muted-foreground mt-1 bg-secondary w-fit px-1.5 rounded">
+                        {team.shift_start} - {team.shift_end}
+                      </span>
+                    )}
+                  </div>
 
-                      const isConflict = conflictingOrders.has(o.id)
-                      const leftPct = (visStart / bounds.totalMins) * 100
-                      const widthPct = (visDur / bounds.totalMins) * 100
+                  {/* Row Cells */}
+                  {columns.map((col) => {
+                    const cellKey = `${team.id}-${col.key}`
+                    const cellOrders = ordersByTeamAndCol.get(cellKey) || []
+                    const count = cellOrders.length
+                    const isOverloaded = count > 5
 
-                      return (
-                        <div
-                          key={o.id}
-                          draggable={!isRes}
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('orderId', o.id)
-                            setDraggedOrder(o.id)
-                          }}
-                          onDragEnd={() => setDraggedOrder(null)}
-                          className={cn(
-                            'group/card absolute top-2 bottom-2 rounded-md border shadow-sm p-1.5 text-xs overflow-hidden flex flex-col transition-all hover:shadow-md cursor-grab active:cursor-grabbing min-w-[12px]',
-                            getCardStyles(o, isConflict),
-                            isRes && 'z-50 ring-2 ring-primary cursor-col-resize',
-                            draggedOrder === o.id && 'opacity-40 scale-95',
-                          )}
-                          style={{
-                            left: `${leftPct}%`,
-                            width: `${widthPct}%`,
-                          }}
-                        >
-                          <div className="font-bold truncate select-none pr-4">{o.shortId}</div>
-                          {widthPct > 5 && (
-                            <div className="truncate opacity-90 select-none hidden md:block pr-4">
-                              {o.title}
-                            </div>
-                          )}
-                          {widthPct > 10 && (
-                            <div className="text-[10px] mt-auto font-medium select-none truncate pr-4">
-                              {format(
-                                new Date(o.scheduledAt),
-                                view === 'daily' ? 'HH:mm' : 'dd/MM HH:mm',
-                              )}{' '}
-                              -{' '}
-                              {format(
-                                new Date(new Date(o.scheduledAt).getTime() + dur * 60000),
-                                view === 'daily' ? 'HH:mm' : 'dd/MM HH:mm',
-                              )}
-                            </div>
-                          )}
-                          <div className="absolute top-1 right-1 opacity-0 group-hover/card:opacity-100 flex gap-1 z-20 transition-opacity">
-                            {isAdmin && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  e.stopPropagation()
-                                  setOrderToDelete(o.id)
-                                }}
-                                className="p-0.5 rounded-full bg-destructive/90 text-destructive-foreground hover:bg-destructive transition-all"
-                                title="Excluir OS"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
+                    return (
+                      <div
+                        key={col.key}
+                        className={cn(
+                          "flex-1 min-w-[120px] border-r p-1.5 flex flex-col gap-1.5 transition-colors relative",
+                          draggedOrder ? "hover:bg-primary/5" : ""
+                        )}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => handleDropOnCell(e, team.id, col.start)}
+                        onClick={(e) => {
+                          if (e.target === e.currentTarget && isAdmin) {
+                            openCreateDialog(team.id, col.start)
+                          }
+                        }}
+                      >
+                        {/* Cell Header with Density Indicator */}
+                        <div className="flex justify-between items-center mb-1 h-5 shrink-0 px-1 pointer-events-none">
+                          <span className="text-[10px] text-muted-foreground/50 font-medium">
+                            {view === 'daily' ? format(col.start, 'HH:mm') : format(col.start, 'dd/MM')}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {isOverloaded && (
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <AlertTriangle className="w-3.5 h-3.5 text-destructive animate-pulse" />
+                                </TooltipTrigger>
+                                <TooltipContent>Equipe sobrecarregada neste período (>5 OS)</TooltipContent>
+                              </Tooltip>
                             )}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                handleUnassign(o.id)
-                              }}
-                              className="p-0.5 rounded-full bg-background/80 text-foreground hover:bg-warning hover:text-warning-foreground transition-all"
-                              title="Desvincular e retornar à fila"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                          <div
-                            className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize flex items-center justify-center group/handle"
-                            onPointerDown={(e) => {
-                              e.stopPropagation()
-                              e.preventDefault()
-                              setResizingId(o.id)
-                              setResizeStart({ x: e.clientX, orig: dur })
-                            }}
-                          >
-                            <div className="w-0.5 h-4 bg-foreground/30 rounded-full group-hover/handle:bg-foreground/60" />
+                            {count > 0 && (
+                              <Badge variant={isOverloaded ? 'destructive' : 'secondary'} className="text-[9px] h-4 px-1.5 py-0">
+                                {count}
+                              </Badge>
+                            )}
                           </div>
                         </div>
-                      )
-                    })}
+
+                        {/* Order Cards in Cell */}
+                        <div className="flex flex-col gap-1.5 flex-1 z-10 pointer-events-none">
+                          {cellOrders.map((o) => (
+                            <div
+                              key={o.id}
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('orderId', o.id)
+                                setDraggedOrder(o.id)
+                              }}
+                              onDragEnd={() => setDraggedOrder(null)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedOrder(o)
+                              }}
+                              className={cn(
+                                'group/item p-1.5 rounded border shadow-sm text-xs cursor-grab hover:shadow-md transition-all flex flex-col pointer-events-auto',
+                                getStatusColor(o.status, o.scheduledAt),
+                                draggedOrder === o.id && 'opacity-40 scale-95'
+                              )}
+                            >
+                              <div className="flex justify-between items-start gap-1">
+                                <span className="font-bold truncate">{o.shortId}</span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    handleUnassign(o.id)
+                                  }}
+                                  className="opacity-0 group-hover/item:opacity-100 p-0.5 rounded-full hover:bg-background/50 transition-all shrink-0"
+                                  title="Retornar à fila"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <div className="text-[10px] opacity-80 truncate mt-0.5 leading-tight">
+                                {o.title}
+                              </div>
+                              <div className="text-[9px] font-medium mt-1 flex items-center gap-1 opacity-70">
+                                <Clock className="w-2.5 h-2.5" />
+                                {format(new Date(o.scheduledAt!), 'HH:mm')}
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {/* Empty state prompt on hover if admin */}
+                          {count === 0 && isAdmin && (
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 pointer-events-none bg-muted/10 transition-opacity m-1 rounded border border-dashed border-muted-foreground/30">
+                              <Plus className="w-4 h-4 text-muted-foreground/50" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-              </div>
-            ))}
-            {filteredTeams.length === 0 && (
-              <div className="p-8 text-center text-muted-foreground">
-                Nenhuma equipe corresponde aos filtros.
-              </div>
-            )}
+              ))}
+              {filteredTeams.length === 0 && (
+                <div className="p-8 text-center text-muted-foreground w-full">
+                  Nenhuma equipe corresponde aos filtros.
+                </div>
+              )}
+            </div>
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
 
-      <AlertDialog open={!!orderToDelete} onOpenChange={(open) => !open && setOrderToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Ordem de Serviço</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza de que deseja excluir esta Ordem de Serviço? Esta ação não pode ser
-              desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault()
-                if (orderToDelete) handleDelete(orderToDelete)
-              }}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Dialogs */}
+      <CreateOrderDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        defaultTeamId={createDefaults.teamId}
+        defaultDate={createDefaults.date}
+      />
+      
+      <OrderDetailsDialog
+        open={!!selectedOrder}
+        onOpenChange={(open) => !open && setSelectedOrder(null)}
+        order={selectedOrder}
+      />
     </div>
   )
 }

@@ -26,12 +26,16 @@ interface CreateOrderDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   defaultContractId?: string
+  defaultTeamId?: string
+  defaultDate?: Date
 }
 
 export default function CreateOrderDialog({
   open,
   onOpenChange,
   defaultContractId,
+  defaultTeamId,
+  defaultDate,
 }: CreateOrderDialogProps) {
   const { clients, contracts, contractUnits, createOrder, priceItems } = useAppStore()
   const { technicians, teams } = useOperationalStore()
@@ -39,20 +43,24 @@ export default function CreateOrderDialog({
 
   useEffect(() => {
     if (open) {
+      let initData: any = { priority: 'Média' }
+
       if (defaultContractId) {
         const contract = contracts.find((c) => c.id === defaultContractId)
         if (contract) {
-          setFormData({
-            priority: 'Média',
-            contractId: defaultContractId,
-            clientId: contract.clientId,
-          })
+          initData = { ...initData, contractId: defaultContractId, clientId: contract.clientId }
         }
-      } else {
-        setFormData({ priority: 'Média' })
       }
+      if (defaultTeamId) {
+        initData = { ...initData, responsible: `team_${defaultTeamId}`, teamId: defaultTeamId }
+      }
+      if (defaultDate) {
+        initData = { ...initData, scheduledAt: defaultDate }
+      }
+
+      setFormData(initData)
     }
-  }, [open, defaultContractId, contracts])
+  }, [open, defaultContractId, defaultTeamId, defaultDate, contracts])
 
   const availableServices = priceItems.filter((p) => p.contractId === formData.contractId)
   const availableUnits = contractUnits.filter((u) => u.contractId === formData.contractId)
@@ -116,7 +124,8 @@ export default function CreateOrderDialog({
         priority:
           formData.priority === 'Média' ? 'medium' : formData.priority === 'Alta' ? 'high' : 'low',
         service_type: formData.serviceType,
-        status: 'pending',
+        status: formData.scheduledAt ? 'scheduled' : 'pending',
+        scheduled_at: formData.scheduledAt ? formData.scheduledAt.toISOString() : undefined,
         service_code: formData.serviceCode === 'none' ? undefined : formData.serviceCode,
         service_value: formData.serviceValue,
       })
