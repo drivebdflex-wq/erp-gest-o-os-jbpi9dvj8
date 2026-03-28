@@ -2,8 +2,29 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import useAppStore, { Order, SERVICE_TYPE_COLORS } from '@/stores/useAppStore'
 import useOperationalStore, { OpTeam } from '@/stores/useOperationalStore'
 import { Badge } from '@/components/ui/badge'
-import { Clock, CalendarIcon, LayoutTemplate, CalendarDays, CalendarRange, X } from 'lucide-react'
+import {
+  Clock,
+  CalendarIcon,
+  LayoutTemplate,
+  CalendarDays,
+  CalendarRange,
+  X,
+  Trash2,
+  Loader2,
+} from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+// @ts-expect-error
+import useAuthStore from '@/stores/useAuthStore'
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
 import {
   Select,
@@ -38,10 +59,17 @@ const getCardStyles = (order: Order, isConflict: boolean) => {
 }
 
 export default function OperationalAgendaPage() {
+  // @ts-expect-error
+  const user = useAuthStore?.((state: any) => state.user)
+  const isAdmin =
+    user?.role === 'admin' || user?.role === 'Administrator' || user?.role === 'admin_master'
+
   const { orders, updateOrder, contracts } = useAppStore()
   const { teams } = useOperationalStore()
 
   const [view, setView] = useState<'daily' | 'weekly' | 'monthly'>('daily')
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [date, setDate] = useState<Date>(new Date())
   const [teamFilter, setTeamFilter] = useState<string>('all')
   const [contractId, setContractId] = useState<string>('all')
@@ -172,6 +200,26 @@ export default function OperationalAgendaPage() {
       toast({ title: 'OS escalada com sucesso' })
     } catch {
       toast({ title: 'Erro ao escalar OS', variant: 'destructive' })
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    setIsDeleting(true)
+    try {
+      useAppStore.setState((state: any) => ({
+        orders: state.orders.filter((o: any) => o.id !== id),
+        filteredOrders: state.filteredOrders.filter((o: any) => o.id !== id),
+      }))
+      toast({ title: 'Sucesso', description: 'Ordem de Serviço excluída com sucesso.' })
+    } catch (e: any) {
+      toast({
+        title: 'Erro',
+        description: e.message || 'Falha ao excluir OS.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+      setOrderToDelete(null)
     }
   }
 
@@ -396,13 +444,27 @@ export default function OperationalAgendaPage() {
                 }}
                 onDragEnd={() => setDraggedOrder(null)}
                 className={cn(
-                  'p-3 rounded-lg border-2 cursor-grab shadow-sm text-sm hover:border-primary transition-all bg-background',
+                  'group/card p-3 rounded-lg border-2 cursor-grab shadow-sm text-sm hover:border-primary transition-all bg-background relative',
                   SERVICE_TYPE_COLORS[o.serviceType],
                   draggedOrder === o.id && 'opacity-50',
                 )}
               >
-                <div className="font-bold">{o.shortId}</div>
-                <div className="text-xs opacity-80 mt-1 line-clamp-2">{o.title}</div>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setOrderToDelete(o.id)
+                    }}
+                    className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 p-1 rounded-md bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all z-20"
+                    title="Excluir OS"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+                <div className="font-bold pr-6">{o.shortId}</div>
+                <div className="text-xs opacity-80 mt-1 line-clamp-2 pr-2">{o.title}</div>
                 <div className="mt-2 flex gap-2 flex-wrap">
                   <Badge
                     variant="outline"
@@ -517,18 +579,34 @@ export default function OperationalAgendaPage() {
                               )}
                             </div>
                           )}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              handleUnassign(o.id)
-                            }}
-                            className="absolute top-1 right-1 opacity-0 group-hover/card:opacity-100 p-0.5 rounded-full bg-background/80 text-foreground hover:bg-destructive hover:text-destructive-foreground transition-all z-20"
-                            title="Desvincular e retornar à fila"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
+                          <div className="absolute top-1 right-1 opacity-0 group-hover/card:opacity-100 flex gap-1 z-20 transition-opacity">
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setOrderToDelete(o.id)
+                                }}
+                                className="p-0.5 rounded-full bg-destructive/90 text-destructive-foreground hover:bg-destructive transition-all"
+                                title="Excluir OS"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                handleUnassign(o.id)
+                              }}
+                              className="p-0.5 rounded-full bg-background/80 text-foreground hover:bg-warning hover:text-warning-foreground transition-all"
+                              title="Desvincular e retornar à fila"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
                           <div
                             className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize flex items-center justify-center group/handle"
                             onPointerDown={(e) => {
@@ -554,6 +632,32 @@ export default function OperationalAgendaPage() {
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      <AlertDialog open={!!orderToDelete} onOpenChange={(open) => !open && setOrderToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Ordem de Serviço</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza de que deseja excluir esta Ordem de Serviço? Esta ação não pode ser
+              desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                if (orderToDelete) handleDelete(orderToDelete)
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

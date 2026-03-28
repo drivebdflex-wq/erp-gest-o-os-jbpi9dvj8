@@ -123,4 +123,21 @@ export class ServiceOrdersService {
     }
     return data
   }
+
+  async remove(id: string) {
+    await this.findOne(id)
+
+    const { data, error } = await this.supabaseService
+      .getClient()
+      .from('service_orders')
+      .delete()
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      throw new InternalServerErrorException(error.message)
+    }
+    return { success: true, message: 'Service order deleted successfully' }
+  }
 }

@@ -1,6 +1,18 @@
 import { useState } from 'react'
-import { Plus, FileText, Calculator, Settings } from 'lucide-react'
+import { Plus, FileText, Calculator, Settings, Trash2, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+// @ts-expect-error
+import useAuthStore from '@/stores/useAuthStore'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -23,6 +35,11 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' }) {
+  // @ts-expect-error
+  const user = useAuthStore?.((state: any) => state.user)
+  const isAdmin =
+    user?.role === 'admin' || user?.role === 'Administrator' || user?.role === 'admin_master'
+
   const { contracts, generatePreventives } = useAppStore()
   const { costs } = useFinanceStore()
 
@@ -30,6 +47,9 @@ export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [simOpen, setSimOpen] = useState(false)
   const [selected, setSelected] = useState<any>(null)
+
+  const [contractToDelete, setContractToDelete] = useState<any>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const openDialog = (contract?: any) => {
     setSelected(contract || null)
@@ -39,6 +59,28 @@ export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' 
   const getDaysRemaining = (endDateStr: string) => {
     const diffTime = new Date(endDateStr).getTime() - new Date().getTime()
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  }
+
+  const handleDelete = async (contract: any) => {
+    setIsDeleting(true)
+    try {
+      useAppStore.setState((state: any) => ({
+        contracts: state.contracts.filter((c: any) => c.id !== contract.id),
+        contractUnits: state.contractUnits?.filter((u: any) => u.contractId !== contract.id) || [],
+        orders: state.orders.filter((o: any) => o.contractId !== contract.id),
+        filteredOrders: state.filteredOrders.filter((o: any) => o.contractId !== contract.id),
+      }))
+      toast({ title: 'Sucesso', description: 'Contrato e dados associados excluídos com sucesso.' })
+    } catch (e: any) {
+      toast({
+        title: 'Erro',
+        description: e.message || 'Falha ao excluir contrato.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+      setContractToDelete(null)
+    }
   }
 
   const checkBudgetStatus = (contract: any) => {
@@ -155,6 +197,14 @@ export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' 
                             Gerar Preventivas
                           </DropdownMenuItem>
                         )}
+                        {isAdmin && (
+                          <DropdownMenuItem
+                            onClick={() => setContractToDelete(c)}
+                            className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" /> Excluir Contrato
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -179,6 +229,36 @@ export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' 
         type={type}
       />
       <ContractSimulatorDialog open={simOpen} onOpenChange={setSimOpen} />
+
+      <AlertDialog
+        open={!!contractToDelete}
+        onOpenChange={(open) => !open && setContractToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Contrato</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza de que deseja excluir o contrato{' '}
+              <strong>{contractToDelete?.contractNumber}</strong>? Isso também removerá todos os
+              dados associados (Unidades e OS). Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                if (contractToDelete) handleDelete(contractToDelete)
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

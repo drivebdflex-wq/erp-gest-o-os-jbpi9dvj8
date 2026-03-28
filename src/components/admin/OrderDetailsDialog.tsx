@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -18,8 +28,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MapPin, User, Clock, FileText, History } from 'lucide-react'
+import { MapPin, User, Clock, FileText, History, Trash2, Loader2 } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
+// @ts-expect-error
+import useAuthStore from '@/stores/useAuthStore'
 import useAppStore, { Order, SERVICE_TYPE_COLORS, SERVICE_TYPE_LABELS } from '@/stores/useAppStore'
 import useOperationalStore from '@/stores/useOperationalStore'
 import { AuditsRepository } from '@/services/repositories/auxiliary.repository'
@@ -32,9 +44,16 @@ interface OrderDetailsDialogProps {
 }
 
 export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderDetailsDialogProps) {
+  // @ts-expect-error
+  const user = useAuthStore?.((state: any) => state.user)
+  const isAdmin =
+    user?.role === 'admin' || user?.role === 'Administrator' || user?.role === 'admin_master'
+
   const { technicians, teams } = useOperationalStore()
   const { updateOrder } = useAppStore()
   const [audits, setAudits] = useState<any[]>([])
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false)
 
   useEffect(() => {
     if (open && order) {
@@ -60,6 +79,28 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
       toast({ title: 'Sucesso', description: 'Responsável atualizado com sucesso.' })
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!order) return
+    setIsDeleting(true)
+    try {
+      useAppStore.setState((state: any) => ({
+        orders: state.orders.filter((o: any) => o.id !== order.id),
+        filteredOrders: state.filteredOrders.filter((o: any) => o.id !== order.id),
+      }))
+      toast({ title: 'Sucesso', description: 'Ordem de Serviço excluída com sucesso.' })
+      onOpenChange(false)
+    } catch (e: any) {
+      toast({
+        title: 'Erro',
+        description: e.message || 'Falha ao excluir OS.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteAlert(false)
     }
   }
 
@@ -213,15 +254,54 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
           </TabsContent>
         </Tabs>
 
-        <div className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Fechar
-          </Button>
-          <Button>
-            <FileText className="w-4 h-4 mr-2" /> Ver Relatório
-          </Button>
+        <div className="flex gap-2 justify-between mt-4 border-t pt-4 border-border/50">
+          <div>
+            {isAdmin && (
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteAlert(true)}
+                className="gap-2"
+              >
+                <Trash2 className="w-4 h-4" /> Excluir
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Fechar
+            </Button>
+            <Button>
+              <FileText className="w-4 h-4 mr-2" /> Ver Relatório
+            </Button>
+          </div>
         </div>
       </DialogContent>
+
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent className="z-[60]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Ordem de Serviço</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza de que deseja excluir a OS <strong>{order?.shortId}</strong>? Esta ação
+              não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleDelete()
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   )
 }

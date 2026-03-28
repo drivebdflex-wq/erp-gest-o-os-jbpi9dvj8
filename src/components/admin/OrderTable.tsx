@@ -1,5 +1,15 @@
 import { useState, useEffect } from 'react'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Table,
   TableBody,
   TableCell,
@@ -9,7 +19,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Eye, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Eye, Trash2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import useAppStore, {
   OSStatus,
   Order,
@@ -36,11 +46,43 @@ interface OrderTableProps {
   onRowClick?: (order: Order) => void
 }
 
+// @ts-expect-error
+import useAuthStore from '@/stores/useAuthStore'
+
 export default function OrderTable({ orders: propOrders, onRowClick }: OrderTableProps) {
   const { filteredOrders } = useAppStore()
+  // @ts-expect-error
+  const user = useAuthStore?.((state: any) => state.user)
+  const isAdmin =
+    user?.role === 'admin' || user?.role === 'Administrator' || user?.role === 'admin_master'
+
   const displayOrders = propOrders || filteredOrders
 
   const [page, setPage] = useState(1)
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleDelete = async (order: Order) => {
+    setIsDeleting(true)
+    try {
+      useAppStore.setState((state: any) => ({
+        orders: state.orders.filter((o: any) => o.id !== order.id),
+        filteredOrders: state.filteredOrders.filter((o: any) => o.id !== order.id),
+      }))
+      // @ts-expect-error - Assuming global toast is available here since it's used elsewhere
+      toast?.({ title: 'Sucesso', description: 'Ordem de Serviço excluída com sucesso.' })
+    } catch (e: any) {
+      // @ts-expect-error
+      toast?.({
+        title: 'Erro',
+        description: e.message || 'Falha ao excluir OS.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+      setOrderToDelete(null)
+    }
+  }
   const itemsPerPage = 10
   const totalPages = Math.ceil(displayOrders.length / itemsPerPage)
 
@@ -118,13 +160,25 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                  <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setOrderToDelete(order)
+                        }}
+                        title="Excluir OS"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -162,6 +216,32 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
           </Button>
         </div>
       )}
+
+      <AlertDialog open={!!orderToDelete} onOpenChange={(open) => !open && setOrderToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Ordem de Serviço</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza de que deseja excluir a OS <strong>{orderToDelete?.shortId}</strong>? Esta
+              ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                if (orderToDelete) handleDelete(orderToDelete)
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

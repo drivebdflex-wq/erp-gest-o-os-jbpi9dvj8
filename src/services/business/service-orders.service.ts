@@ -139,4 +139,25 @@ export class ServiceOrdersService {
 
     return updated
   }
+
+  static async delete(orderId: string, userId: string = 'system') {
+    const order = await ServiceOrdersRepository.findById(orderId)
+    if (!order) throw new BusinessError('Service order not found')
+
+    await this.checkAuthorization(order, userId)
+
+    if (ServiceOrdersRepository.delete) {
+      await ServiceOrdersRepository.delete(orderId)
+    }
+
+    await AuditsRepository.create({
+      table_name: 'service_orders',
+      record_id: orderId,
+      action: 'DELETE',
+      old_value: order,
+      new_value: null,
+    })
+
+    return { success: true }
+  }
 }

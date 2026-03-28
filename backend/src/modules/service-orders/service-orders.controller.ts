@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch } from '@nestjs/common'
+import { Controller, Get, Post, Body, Param, Patch, Delete } from '@nestjs/common'
 import { ServiceOrdersService } from './service-orders.service'
 
 export class CreateServiceOrderDto {
@@ -38,5 +38,10 @@ export class ServiceOrdersController {
   @Patch(':id/status')
   updateStatus(@Param('id') id: string, @Body() updateDto: UpdateStatusDto) {
     return this.serviceOrdersService.updateStatus(id, updateDto.status)
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.serviceOrdersService.remove(id)
   }
 }

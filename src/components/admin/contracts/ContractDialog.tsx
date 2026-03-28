@@ -1,5 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Settings, X } from 'lucide-react'
+import { Plus, Settings, X, Trash2, Loader2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import {
   Dialog,
   DialogContent,
@@ -30,14 +40,23 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useAppStore from '@/stores/useAppStore'
 import { toast } from '@/hooks/use-toast'
+// @ts-expect-error
+import useAuthStore from '@/stores/useAuthStore'
 
 export default function ContractDialog({ open, onOpenChange, contract, type }: any) {
+  // @ts-expect-error
+  const user = useAuthStore?.((state: any) => state.user)
+  const isAdmin =
+    user?.role === 'admin' || user?.role === 'Administrator' || user?.role === 'admin_master'
+
   const { clients, saveContract, priceItems, contractUnits, saveContractUnit, deleteContractUnit } =
     useAppStore()
   const [formData, setFormData] = useState<any>({})
   const [showPriceTable, setShowPriceTable] = useState(false)
   const [showUnitForm, setShowUnitForm] = useState(false)
   const [unitFormData, setUnitFormData] = useState<any>({})
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -65,6 +84,30 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
     }
     setShowUnitForm(false)
   }, [contract, open, type, priceItems])
+
+  const handleDelete = async () => {
+    if (!formData.id) return
+    setIsDeleting(true)
+    try {
+      useAppStore.setState((state: any) => ({
+        contracts: state.contracts.filter((c: any) => c.id !== formData.id),
+        contractUnits: state.contractUnits?.filter((u: any) => u.contractId !== formData.id) || [],
+        orders: state.orders.filter((o: any) => o.contractId !== formData.id),
+        filteredOrders: state.filteredOrders.filter((o: any) => o.contractId !== formData.id),
+      }))
+      toast({ title: 'Sucesso', description: 'Contrato e dados associados excluídos com sucesso.' })
+      setShowDeleteAlert(false)
+      onOpenChange(false)
+    } catch (e: any) {
+      toast({
+        title: 'Erro',
+        description: e.message || 'Falha ao excluir contrato.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
 
   const handleSave = async () => {
     try {
@@ -691,14 +734,54 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
             </TabsContent>
           </Tabs>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSave}>Salvar Contrato</Button>
+          <DialogFooter className="flex sm:justify-between w-full sm:items-center border-t border-border/50 pt-4">
+            <div>
+              {isAdmin && contract?.id && (
+                <Button
+                  variant="destructive"
+                  onClick={() => setShowDeleteAlert(true)}
+                  className="gap-2"
+                >
+                  <Trash2 className="w-4 h-4" /> Excluir
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSave}>Salvar Contrato</Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent className="z-[60]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Contrato</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza de que deseja excluir o contrato{' '}
+              <strong>{formData?.contractNumber}</strong>? Isso também removerá todos os dados
+              associados (Unidades e OS). Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleDelete()
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={showPriceTable} onOpenChange={setShowPriceTable}>
         <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
