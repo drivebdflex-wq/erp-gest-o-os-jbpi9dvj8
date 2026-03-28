@@ -294,6 +294,30 @@ CREATE TABLE IF NOT EXISTS audits (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    user_name VARCHAR(255),
+    action VARCHAR(50) NOT NULL,
+    table_name VARCHAR(255) NOT NULL,
+    record_id UUID NOT NULL,
+    old_value JSONB,
+    new_value JSONB,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS deleted_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    table_name VARCHAR(255) NOT NULL,
+    record_id UUID NOT NULL,
+    data JSONB NOT NULL,
+    deleted_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    deleted_by_name VARCHAR(255),
+    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     level VARCHAR(50) NOT NULL,

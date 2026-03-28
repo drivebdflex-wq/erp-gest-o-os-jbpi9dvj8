@@ -12,6 +12,7 @@ import { NotificationProvider } from './stores/useNotificationStore'
 import { FleetProvider } from './stores/useFleetStore'
 import { InventoryProvider } from './stores/useInventoryStore'
 import { OperationalProvider } from './stores/useOperationalStore'
+import { useSystemStore } from './stores/useSystemStore'
 
 // Pages
 import Login from './pages/Login'
@@ -22,6 +23,8 @@ import ContractsWorks from './pages/admin/ContractsWorks'
 import MapPage from './pages/admin/MapPage'
 import AuditPage from './pages/admin/AuditPage'
 import SettingsPage from './pages/admin/SettingsPage'
+import AuditLogsPage from './pages/admin/AuditLogsPage'
+import RecycleBinPage from './pages/admin/RecycleBinPage'
 import NotFound from './pages/NotFound'
 
 // Estoque
@@ -68,7 +71,11 @@ import HistoryPage from './pages/admin/operational/HistoryPage'
 import TechQueue from './pages/tech/TechQueue'
 import TechExecution from './pages/tech/TechExecution'
 
-const App = () => (
+const App = () => {
+  // Run retention policy on mount
+  useSystemStore.getState().runRetentionPolicy()
+
+  return (
   <AuthProvider>
     <AppProvider>
       <NotificationProvider>
@@ -118,6 +125,8 @@ const App = () => (
 
                           <Route element={<ProtectedRoute requiredPermission="manage_users" />}>
                             <Route path="/configs" element={<SettingsPage />} />
+                            <Route path="/logs-auditoria" element={<AuditLogsPage />} />
+                            <Route path="/lixeira" element={<RecycleBinPage />} />
                           </Route>
 
                           <Route element={<ProtectedRoute requiredPermission="manage_stock" />}>

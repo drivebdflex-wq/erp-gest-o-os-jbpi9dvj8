@@ -110,7 +110,16 @@ const navItems: NavItem[] = [
       { title: 'Histórico', url: '/frotas/historico' },
     ],
   },
-  { title: 'Configurações', url: '/configs', icon: Settings, permission: 'manage_users' },
+  {
+    title: 'Sistema',
+    icon: Settings,
+    permission: 'manage_users',
+    subItems: [
+      { title: 'Configurações', url: '/configs' },
+      { title: 'Logs de Auditoria', url: '/logs-auditoria' },
+      { title: 'Lixeira', url: '/lixeira' },
+    ],
+  },
 ]
 
 export default function AdminSidebar() {
