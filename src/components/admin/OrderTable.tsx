@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Eye, Trash2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Eye, Trash2, ChevronLeft, ChevronRight, Loader2, RotateCcw } from 'lucide-react'
 import useAppStore, {
   OSStatus,
   Order,
@@ -44,13 +44,20 @@ const getStatusColor = (status: OSStatus) => {
 interface OrderTableProps {
   orders?: Order[]
   onRowClick?: (order: Order) => void
+  isDeletedView?: boolean
+  onRestore?: (order: Order) => void
 }
 
 import { useToast } from '@/hooks/use-toast'
 // @ts-expect-error
 import useAuthStore from '@/stores/useAuthStore'
 
-export default function OrderTable({ orders: propOrders, onRowClick }: OrderTableProps) {
+export default function OrderTable({
+  orders: propOrders,
+  onRowClick,
+  isDeletedView,
+  onRestore,
+}: OrderTableProps) {
   const { toast } = useToast()
   const { filteredOrders } = useAppStore()
   // @ts-expect-error
@@ -71,11 +78,17 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
         throw new Error('Não é possível excluir uma OS em execução ou auditoria.')
       }
 
-      useAppStore.setState((state: any) => ({
-        orders: state.orders.filter((o: any) => o.id !== order.id),
-        filteredOrders: state.filteredOrders.filter((o: any) => o.id !== order.id),
-      }))
-      toast({ title: 'Sucesso', description: 'Ordem de Serviço excluída com sucesso.' })
+      useAppStore.setState((state: any) => {
+        const orderToDel = state.orders.find((o: any) => o.id === order.id) || order
+        return {
+          orders: state.orders.filter((o: any) => o.id !== order.id),
+          filteredOrders: state.filteredOrders.filter((o: any) => o.id !== order.id),
+          deletedOrders: state.deletedOrders
+            ? [...state.deletedOrders, { ...orderToDel, deletedAt: new Date().toISOString() }]
+            : [{ ...orderToDel, deletedAt: new Date().toISOString() }],
+        }
+      })
+      toast({ title: 'Sucesso', description: 'Ordem de Serviço movida para a lixeira.' })
     } catch (e: any) {
       toast({
         title: 'Erro',
@@ -106,7 +119,7 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
               <TableHead>Título</TableHead>
               <TableHead>Contrato / Agência</TableHead>
               <TableHead>Categoria</TableHead>
-              <TableHead>Data / Prazo</TableHead>
+              <TableHead>{isDeletedView ? 'Data de Exclusão' : 'Data / Prazo'}</TableHead>
               <TableHead>Técnico</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Prioridade</TableHead>
@@ -145,7 +158,9 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
                   </Badge>
                 </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
-                  {new Date(order.date).toLocaleDateString()}
+                  {isDeletedView && (order as any).deletedAt
+                    ? new Date((order as any).deletedAt).toLocaleDateString()
+                    : new Date(order.date).toLocaleDateString()}
                 </TableCell>
                 <TableCell>{order.tech}</TableCell>
                 <TableCell>
@@ -165,22 +180,39 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon">
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    {isAdmin && (
+                    {!isDeletedView && (
+                      <Button variant="ghost" size="icon">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {isDeletedView ? (
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="text-primary hover:text-primary hover:bg-primary/10"
                         onClick={(e) => {
                           e.stopPropagation()
-                          setOrderToDelete(order)
+                          onRestore?.(order)
                         }}
-                        title="Excluir OS"
+                        title="Restaurar OS"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <RotateCcw className="h-4 w-4" />
                       </Button>
+                    ) : (
+                      isAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setOrderToDelete(order)
+                          }}
+                          title="Excluir OS"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )
                     )}
                   </div>
                 </TableCell>
@@ -189,7 +221,9 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
             {displayOrders.length === 0 && (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                  Nenhuma ordem de serviço encontrada para os filtros aplicados.
+                  {isDeletedView
+                    ? 'Nenhuma ordem de serviço na lixeira.'
+                    : 'Nenhuma ordem de serviço encontrada para os filtros aplicados.'}
                 </TableCell>
               </TableRow>
             )}

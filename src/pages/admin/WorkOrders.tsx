@@ -23,6 +23,7 @@ import {
   ClipboardList,
   CalendarIcon,
   X,
+  Trash2,
 } from 'lucide-react'
 import OrderTable from '@/components/admin/OrderTable'
 import OrderKanban from '@/components/admin/OrderKanban'
@@ -30,13 +31,16 @@ import CreateOrderDialog from '@/components/admin/CreateOrderDialog'
 import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog'
 import useAppStore, { Order, Contract } from '@/stores/useAppStore'
 import useAuthStore from '@/stores/useAuthStore'
+import { useToast } from '@/hooks/use-toast'
 
 export default function WorkOrders() {
-  const { contracts, orders, contractUnits } = useAppStore()
+  const { toast } = useToast()
+  const { contracts, orders, contractUnits, deletedOrders = [] } = useAppStore() as any
   const { hasPermission } = useAuthStore()
   const canCreateOS = hasPermission('create_service_order')
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null)
   const [view, setView] = useState('list')
+  const [activeTab, setActiveTab] = useState('active')
   const [createOpen, setCreateOpen] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -140,7 +144,34 @@ export default function WorkOrders() {
 
   const contractOrders = orders.filter((o) => o.contractId === selectedContractId)
 
-  const filteredOrders = contractOrders.filter((o) => {
+  const contractDeletedOrders = deletedOrders.filter(
+    (o: any) => o.contractId === selectedContractId,
+  )
+
+  const filteredDeletedOrders = contractDeletedOrders.filter((o: any) => {
+    if (
+      search &&
+      !o.title.toLowerCase().includes(search.toLowerCase()) &&
+      !o.shortId.toLowerCase().includes(search.toLowerCase()) &&
+      !(o.unitPrefix || '').toLowerCase().includes(search.toLowerCase()) &&
+      !(o.unitName || '').toLowerCase().includes(search.toLowerCase())
+    )
+      return false
+    if (statusFilter !== 'all' && o.status !== statusFilter) return false
+    if (serviceTypeFilter !== 'all' && o.serviceType !== serviceTypeFilter) return false
+    if (techFilter !== 'all' && o.technicianId !== techFilter && o.teamId !== techFilter)
+      return false
+    if (priorityFilter !== 'all' && o.priority !== priorityFilter) return false
+    if (unitFilter !== 'all' && o.unitId !== unitFilter) return false
+
+    const oDate = new Date(o.date).getTime()
+    if (dateFrom && oDate < new Date(dateFrom).getTime()) return false
+    if (dateTo && oDate > new Date(dateTo).getTime() + 86400000) return false
+
+    return true
+  })
+
+  const filteredOrders = contractOrders.filter((o: any) => {
     if (
       search &&
       !o.title.toLowerCase().includes(search.toLowerCase()) &&
@@ -172,7 +203,20 @@ export default function WorkOrders() {
     ).values(),
   )
 
-  const availableUnits = contractUnits.filter((u) => u.contractId === selectedContractId)
+  const availableUnits = contractUnits.filter((u: any) => u.contractId === selectedContractId)
+
+  const handleRestore = (order: Order) => {
+    useAppStore.setState((state: any) => {
+      const restoredOrder = { ...order }
+      delete (restoredOrder as any).deletedAt
+      return {
+        deletedOrders: state.deletedOrders.filter((o: any) => o.id !== order.id),
+        orders: [...state.orders, restoredOrder],
+        filteredOrders: [...state.filteredOrders, restoredOrder],
+      }
+    })
+    toast({ title: 'Sucesso', description: 'Ordem de Serviço restaurada com sucesso.' })
+  }
 
   return (
     <div className="space-y-6 h-full flex flex-col animate-fade-in pb-10">
@@ -318,26 +362,45 @@ export default function WorkOrders() {
         </Popover>
       </div>
 
-      <div className="flex justify-end">
-        <Tabs value={view} onValueChange={setView} className="w-[200px]">
+      <div className="flex justify-between items-center">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-[300px]">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="list">
+            <TabsTrigger value="active">
               <List className="h-4 w-4 mr-2" />
-              Lista
+              Ativas
             </TabsTrigger>
-            <TabsTrigger value="kanban">
-              <Kanban className="h-4 w-4 mr-2" />
-              Quadro
+            <TabsTrigger value="deleted">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Lixeira
             </TabsTrigger>
           </TabsList>
         </Tabs>
+
+        {activeTab === 'active' && (
+          <Tabs value={view} onValueChange={setView} className="w-[200px]">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="list">
+                <List className="h-4 w-4 mr-2" />
+                Lista
+              </TabsTrigger>
+              <TabsTrigger value="kanban">
+                <Kanban className="h-4 w-4 mr-2" />
+                Quadro
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
       </div>
 
       <div className="flex-1 mt-2">
-        {view === 'list' ? (
-          <OrderTable orders={filteredOrders} onRowClick={handleOpenDetails} />
+        {activeTab === 'active' ? (
+          view === 'list' ? (
+            <OrderTable orders={filteredOrders} onRowClick={handleOpenDetails} />
+          ) : (
+            <OrderKanban orders={filteredOrders} onCardClick={handleOpenDetails} />
+          )
         ) : (
-          <OrderKanban orders={filteredOrders} onCardClick={handleOpenDetails} />
+          <OrderTable orders={filteredDeletedOrders} isDeletedView onRestore={handleRestore} />
         )}
       </div>
 
