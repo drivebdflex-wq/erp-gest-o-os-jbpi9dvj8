@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/table'
 import useAppStore from '@/stores/useAppStore'
 import useFinanceStore from '@/stores/useFinanceStore'
+import { useSystemStore } from '@/stores/useSystemStore'
 import ContractDialog from './ContractDialog'
 import ContractSimulatorDialog from './ContractSimulatorDialog'
 import { toast } from '@/hooks/use-toast'
@@ -64,13 +65,46 @@ export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' 
   const handleDelete = async (contract: any) => {
     setIsDeleting(true)
     try {
+      const state = useAppStore.getState()
+      const linkedOrders = state.orders.filter((o: any) => o.contractId === contract.id)
+
+      if (linkedOrders.length > 0) {
+        toast({
+          title: 'Erro de Integridade',
+          description: `Não é possível excluir o contrato. Existem ${linkedOrders.length} Ordem(ns) de Serviço vinculada(s).`,
+          variant: 'destructive',
+        })
+        return
+      }
+
       useAppStore.setState((state: any) => ({
         contracts: state.contracts.filter((c: any) => c.id !== contract.id),
         contractUnits: state.contractUnits?.filter((u: any) => u.contractId !== contract.id) || [],
-        orders: state.orders.filter((o: any) => o.contractId !== contract.id),
-        filteredOrders: state.filteredOrders.filter((o: any) => o.contractId !== contract.id),
       }))
-      toast({ title: 'Sucesso', description: 'Contrato e dados associados excluídos com sucesso.' })
+
+      const { logAudit, addDeletedRecord } = useSystemStore.getState()
+
+      addDeletedRecord({
+        table_name: 'contracts',
+        record_id: contract.id,
+        data: contract,
+        deleted_by: user?.id || 'unknown',
+        deleted_by_name: user?.name || 'Unknown User',
+      })
+
+      logAudit({
+        user_id: user?.id || 'unknown',
+        user_name: user?.name || 'Unknown User',
+        action: 'DELETE',
+        table_name: 'contracts',
+        record_id: contract.id,
+        old_value: contract,
+        new_value: null,
+        ip_address: '127.0.0.1',
+        user_agent: navigator.userAgent,
+      })
+
+      toast({ title: 'Sucesso', description: 'Contrato excluído com sucesso.' })
     } catch (e: any) {
       toast({
         title: 'Erro',
@@ -239,8 +273,8 @@ export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' 
             <AlertDialogTitle>Excluir Contrato</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza de que deseja excluir o contrato{' '}
-              <strong>{contractToDelete?.contractNumber}</strong>? Isso também removerá todos os
-              dados associados (Unidades e OS). Esta ação não pode ser desfeita.
+              <strong>{contractToDelete?.contractNumber}</strong>? Esta ação enviará o registro para
+              a lixeira e só poderá ser realizada se não houver Ordens de Serviço vinculadas.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
