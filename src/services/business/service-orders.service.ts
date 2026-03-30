@@ -38,12 +38,13 @@ export class ServiceOrdersService {
   }
 
   static async findAll(userId: string = 'system') {
-    return ServiceOrdersRepository.findAll()
+    const orders = await ServiceOrdersRepository.findAll()
+    return orders.filter((o: any) => !o.deleted_at)
   }
 
   static async findById(id: string, userId: string = 'system') {
     const order = await ServiceOrdersRepository.findById(id)
-    if (!order) throw new BusinessError('Service order not found')
+    if (!order || (order as any).deleted_at) throw new BusinessError('Service order not found')
     return order
   }
 
@@ -142,20 +143,24 @@ export class ServiceOrdersService {
 
   static async delete(orderId: string, userId: string = 'system') {
     const order = await ServiceOrdersRepository.findById(orderId)
-    if (!order) throw new BusinessError('Service order not found')
+    if (!order || (order as any).deleted_at) throw new BusinessError('Service order not found')
 
     await this.checkAuthorization(order, userId)
 
-    if (ServiceOrdersRepository.delete) {
-      await ServiceOrdersRepository.delete(orderId)
+    if (order.status === 'in_progress' || order.status === 'in_audit') {
+      throw new BusinessError('Cannot delete an active or in-audit service order')
     }
+
+    const updated = await ServiceOrdersRepository.update(orderId, {
+      deleted_at: new Date().toISOString(),
+    } as any)
 
     await AuditsRepository.create({
       table_name: 'service_orders',
       record_id: orderId,
-      action: 'DELETE',
+      action: 'SOFT_DELETE',
       old_value: order,
-      new_value: null,
+      new_value: updated,
     })
 
     return { success: true }

@@ -46,10 +46,12 @@ interface OrderTableProps {
   onRowClick?: (order: Order) => void
 }
 
+import { useToast } from '@/hooks/use-toast'
 // @ts-expect-error
 import useAuthStore from '@/stores/useAuthStore'
 
 export default function OrderTable({ orders: propOrders, onRowClick }: OrderTableProps) {
+  const { toast } = useToast()
   const { filteredOrders } = useAppStore()
   // @ts-expect-error
   const user = useAuthStore?.((state: any) => state.user)
@@ -65,15 +67,17 @@ export default function OrderTable({ orders: propOrders, onRowClick }: OrderTabl
   const handleDelete = async (order: Order) => {
     setIsDeleting(true)
     try {
+      if (order.status === 'Em Execução' || order.status === 'Em Auditoria') {
+        throw new Error('Não é possível excluir uma OS em execução ou auditoria.')
+      }
+
       useAppStore.setState((state: any) => ({
         orders: state.orders.filter((o: any) => o.id !== order.id),
         filteredOrders: state.filteredOrders.filter((o: any) => o.id !== order.id),
       }))
-      // @ts-expect-error - Assuming global toast is available here since it's used elsewhere
-      toast?.({ title: 'Sucesso', description: 'Ordem de Serviço excluída com sucesso.' })
+      toast({ title: 'Sucesso', description: 'Ordem de Serviço excluída com sucesso.' })
     } catch (e: any) {
-      // @ts-expect-error
-      toast?.({
+      toast({
         title: 'Erro',
         description: e.message || 'Falha ao excluir OS.',
         variant: 'destructive',

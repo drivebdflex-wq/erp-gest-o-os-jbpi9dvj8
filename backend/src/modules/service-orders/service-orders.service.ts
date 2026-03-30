@@ -37,6 +37,7 @@ export class ServiceOrdersService {
       .getClient()
       .from('service_orders')
       .select('*')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -51,6 +52,7 @@ export class ServiceOrdersService {
       .from('service_orders')
       .select('*')
       .eq('id', id)
+      .is('deleted_at', null)
       .single()
 
     if (error || !data) {
@@ -125,12 +127,16 @@ export class ServiceOrdersService {
   }
 
   async remove(id: string) {
-    await this.findOne(id)
+    const order = await this.findOne(id)
+
+    if (order.status === 'in_progress' || order.status === 'in_audit') {
+      throw new BadRequestException('Cannot delete an active or in-audit service order')
+    }
 
     const { data, error } = await this.supabaseService
       .getClient()
       .from('service_orders')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single()
