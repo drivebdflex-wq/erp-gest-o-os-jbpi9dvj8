@@ -29,6 +29,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { SidebarTrigger } from '@/components/ui/sidebar'
@@ -48,6 +58,7 @@ export default function Header() {
   const navigate = useNavigate()
 
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false)
   const [profileForm, setProfileForm] = useState({ name: '', avatar_url: '' })
 
   const roleName = roles.find((r) => r.id === currentUser?.role_id)?.name || 'Usuário'
@@ -237,7 +248,10 @@ export default function Header() {
               <span>Meu Perfil</span>
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={handleLogout}
+              onSelect={(e) => {
+                e.preventDefault()
+                setIsLogoutDialogOpen(true)
+              }}
               className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer"
             >
               <LogOut className="mr-2 h-4 w-4" />
@@ -298,6 +312,27 @@ export default function Header() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja sair?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você será desconectado da sua sessão atual e precisará fazer login novamente para
+              acessar o sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sair
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   )
 }

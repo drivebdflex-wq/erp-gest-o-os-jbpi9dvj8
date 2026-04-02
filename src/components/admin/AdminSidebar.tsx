@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   LayoutDashboard,
   ClipboardList,
@@ -10,11 +11,13 @@ import {
   ChevronRight,
   Box,
   Users,
+  LogOut,
 } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -27,6 +30,16 @@ import {
   SidebarMenuSubButton,
 } from '@/components/ui/sidebar'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import useAuthStore, { Permission } from '@/stores/useAuthStore'
 import useAppStore from '@/stores/useAppStore'
 
@@ -124,12 +137,19 @@ const navItems: NavItem[] = [
 
 export default function AdminSidebar() {
   const location = useLocation()
-  const { hasPermission } = useAuthStore()
+  const navigate = useNavigate()
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false)
+  const { hasPermission, logout } = useAuthStore()
   const { companyLogo } = useAppStore()
 
   const filteredNavItems = navItems.filter(
     (item) => !item.permission || hasPermission(item.permission),
   )
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
+  }
 
   return (
     <Sidebar variant="sidebar" className="border-r shadow-sm">
@@ -202,6 +222,41 @@ export default function AdminSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="border-t p-4">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => setIsLogoutOpen(true)}
+              tooltip="Sair"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive w-full flex items-center gap-3"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Sair</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+
+      <AlertDialog open={isLogoutOpen} onOpenChange={setIsLogoutOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza que deseja sair?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você será desconectado da sua sessão atual e precisará fazer login novamente para
+              acessar o sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sair
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sidebar>
   )
 }
