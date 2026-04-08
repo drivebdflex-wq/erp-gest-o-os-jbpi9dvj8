@@ -8,15 +8,40 @@ import { Clock } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 
 const INITIAL_SLA = [
-  { id: 'low', name: 'Baixa', respond: 24, resolve: 72, color: 'bg-secondary text-foreground' },
-  { id: 'medium', name: 'Média', respond: 12, resolve: 48, color: 'bg-primary/20 text-primary' },
-  { id: 'high', name: 'Alta', respond: 4, resolve: 24, color: 'bg-warning/20 text-warning' },
   {
-    id: 'urgent',
-    name: 'Urgente',
-    respond: 1,
-    resolve: 4,
+    id: 'emergencial',
+    name: 'Emergencial (48h)',
+    respond: 4,
+    resolve: 48,
     color: 'bg-destructive/20 text-destructive',
+  },
+  {
+    id: 'urgente',
+    name: 'Urgente (4 dias)',
+    respond: 12,
+    resolve: 96,
+    color: 'bg-warning/20 text-warning',
+  },
+  {
+    id: 'normal',
+    name: 'Normal (10 dias)',
+    respond: 24,
+    resolve: 240,
+    color: 'bg-secondary text-foreground',
+  },
+  {
+    id: 'parcial',
+    name: 'Parcial (3 dias)',
+    respond: 12,
+    resolve: 72,
+    color: 'bg-primary/20 text-primary',
+  },
+  {
+    id: 'garantia',
+    name: 'Garantia (3 dias)',
+    respond: 12,
+    resolve: 72,
+    color: 'bg-emerald-500/20 text-emerald-500',
   },
 ]
 

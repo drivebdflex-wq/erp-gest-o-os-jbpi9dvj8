@@ -172,7 +172,12 @@ export default function OrderTable({
                   <Badge
                     variant="outline"
                     className={
-                      order.priority === 'Alta' ? 'border-destructive text-destructive' : ''
+                      order.priority === 'Emergencial (48h)' ||
+                      order.priority === 'Urgente (4 dias)' ||
+                      order.priority === 'Alta' ||
+                      order.priority === 'urgent'
+                        ? 'border-destructive text-destructive'
+                        : ''
                     }
                   >
                     {order.priority}

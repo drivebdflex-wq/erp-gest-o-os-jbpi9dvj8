@@ -67,7 +67,17 @@ export default function OrderKanban({ orders: propOrders, onCardClick }: OrderKa
                           >
                             {SERVICE_TYPE_LABELS[order.serviceType]}
                           </Badge>
-                          <Badge variant="outline" className="text-[10px] h-4 px-1 leading-none">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'text-[10px] h-4 px-1 leading-none',
+                              (order.priority === 'Emergencial (48h)' ||
+                                order.priority === 'Urgente (4 dias)' ||
+                                order.priority === 'Alta' ||
+                                order.priority === 'urgent') &&
+                                'border-destructive text-destructive',
+                            )}
+                          >
                             {order.priority}
                           </Badge>
                         </div>

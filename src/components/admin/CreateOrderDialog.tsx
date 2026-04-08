@@ -44,7 +44,7 @@ export default function CreateOrderDialog({
 }: CreateOrderDialogProps) {
   const { clients, contracts, contractUnits, createOrder, priceItems, orders } = useAppStore()
   const { technicians, teams } = useOperationalStore()
-  const [formData, setFormData] = useState<any>({ priority: 'Média' })
+  const [formData, setFormData] = useState<any>({ priority: 'Normal (10 dias)' })
 
   // Schedule States
   const [scheduleDate, setScheduleDate] = useState<Date | undefined>()
@@ -54,7 +54,7 @@ export default function CreateOrderDialog({
 
   useEffect(() => {
     if (open) {
-      let initData: any = { priority: 'Média' }
+      let initData: any = { priority: 'Normal (10 dias)' }
 
       if (defaultContractId) {
         const contract = contracts.find((c) => c.id === defaultContractId)
@@ -192,8 +192,7 @@ export default function CreateOrderDialog({
         unit_id: formData.unitId,
         technician_id: formData.technicianId,
         team_id: formData.teamId,
-        priority:
-          formData.priority === 'Média' ? 'medium' : formData.priority === 'Alta' ? 'high' : 'low',
+        priority: formData.priority as any,
         service_type: formData.serviceType,
         status: finalScheduledAt ? 'scheduled' : 'pending',
         scheduled_at: finalScheduledAt,

@@ -107,7 +107,7 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
         description: order.description || '',
         serviceType: order.serviceType || 'civil',
         status: order.status || 'pending',
-        priority: order.priority || 'medium',
+        priority: order.priority || 'Normal (10 dias)',
         scheduledAt: order.scheduledAt
           ? new Date(order.scheduledAt).toISOString().slice(0, 16)
           : '',
@@ -331,7 +331,10 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
             </div>
             <Badge
               variant={
-                order.priority === 'Alta' || order.priority === 'urgent'
+                order.priority === 'Emergencial (48h)' ||
+                order.priority === 'Urgente (4 dias)' ||
+                order.priority === 'Alta' ||
+                order.priority === 'urgent'
                   ? 'destructive'
                   : 'secondary'
               }
@@ -425,10 +428,11 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="low">Baixa</SelectItem>
-                      <SelectItem value="medium">Média</SelectItem>
-                      <SelectItem value="high">Alta</SelectItem>
-                      <SelectItem value="urgent">Urgente</SelectItem>
+                      <SelectItem value="Emergencial (48h)">Emergencial (48h)</SelectItem>
+                      <SelectItem value="Urgente (4 dias)">Urgente (4 dias)</SelectItem>
+                      <SelectItem value="Normal (10 dias)">Normal (10 dias)</SelectItem>
+                      <SelectItem value="Parcial (3 dias)">Parcial (3 dias)</SelectItem>
+                      <SelectItem value="Garantia (3 dias)">Garantia (3 dias)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
