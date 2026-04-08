@@ -16,6 +16,24 @@ export class StorageService {
     */
   }
 
+  static async uploadFile(bucket: string, file: File): Promise<string> {
+    if (file.size > 10 * 1024 * 1024) {
+      throw new Error('Arquivo muito grande. O tamanho máximo permitido é 10MB.')
+    }
+
+    if (isMock) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+    }
+
+    // Mock implementation for Supabase
+    return URL.createObjectURL(file)
+  }
+
   /**
    * Mock implementation of image upload to a bucket.
    * Handles format and size validation.

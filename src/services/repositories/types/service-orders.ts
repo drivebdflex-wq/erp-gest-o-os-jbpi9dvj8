@@ -7,6 +7,14 @@ import {
   ServiceOrderServiceType,
 } from './common'
 
+export interface ServiceOrderAttachment extends Timestamps {
+  id: ID
+  service_order_id: ID
+  file_name: string
+  file_url: string
+  uploaded_by?: ID | null
+}
+
 export interface ServiceOrder extends Timestamps {
   id: ID
   client_id: ID

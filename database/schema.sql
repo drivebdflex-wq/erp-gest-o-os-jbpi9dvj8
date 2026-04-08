@@ -278,6 +278,16 @@ CREATE TABLE IF NOT EXISTS photos (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS service_order_attachments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_order_id UUID NOT NULL REFERENCES service_orders(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    file_name VARCHAR(255) NOT NULL,
+    file_url VARCHAR(1024) NOT NULL,
+    uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- ==========================================
 -- 7. TRACEABILITY
 -- ==========================================
@@ -359,6 +369,7 @@ DO $ BEGIN CREATE TRIGGER set_timestamp_checklist_items BEFORE UPDATE ON checkli
 DO $ BEGIN CREATE TRIGGER set_timestamp_service_order_checklists BEFORE UPDATE ON service_order_checklists FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
 DO $ BEGIN CREATE TRIGGER set_timestamp_checklist_responses BEFORE UPDATE ON checklist_responses FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
 DO $ BEGIN CREATE TRIGGER set_timestamp_photos BEFORE UPDATE ON photos FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TRIGGER set_timestamp_service_order_attachments BEFORE UPDATE ON service_order_attachments FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
 DO $ BEGIN CREATE TRIGGER set_timestamp_audits BEFORE UPDATE ON audits FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
 DO $ BEGIN CREATE TRIGGER set_timestamp_logs BEFORE UPDATE ON logs FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp(); EXCEPTION WHEN duplicate_object THEN null; END $;
 
@@ -417,6 +428,7 @@ CREATE INDEX IF NOT EXISTS idx_so_checklists_checklist_id ON service_order_check
 CREATE INDEX IF NOT EXISTS idx_checklist_responses_so_chk_id ON checklist_responses(service_order_checklist_id);
 CREATE INDEX IF NOT EXISTS idx_photos_service_order_id ON photos(service_order_id);
 CREATE INDEX IF NOT EXISTS idx_photos_uploaded_by ON photos(uploaded_by);
+CREATE INDEX IF NOT EXISTS idx_so_attachments_so_id ON service_order_attachments(service_order_id);
 CREATE INDEX IF NOT EXISTS idx_audits_user_id ON audits(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_service_orders_status ON service_orders(status);
