@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%; /* F8FAFC - Cinza Ultra-claro */
+    --foreground: 222 47% 11%; /* 1E293B - Azul Marinho Profundo */
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 238 81% 66%; /* 6366F1 - Indigo */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 214 32% 91%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 214 32% 91%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 238 81% 66%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%; /* EF4444 - Vermelho */
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 160 84% 39%; /* 10B981 - Verde */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%; /* F59E0B - Amarelo */
+    --warning-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 238 81% 66%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 238 81% 66%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 28% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 215 28% 17%;
+    --sidebar-ring: 238 81% 66%;
+
+    --chart-1: 238 81% 66%;
+    --chart-2: 160 84% 39%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 0 84% 60%;
+    --chart-5: 222 47% 11%;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 215 28% 17%;
+    --card-foreground: 210 40% 98%;
+    --popover: 215 28% 17%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 238 81% 66%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 215 28% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 215 28% 17%;
+    --muted-foreground: 215 16% 65%;
+    --accent: 238 81% 66%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 238 81% 66%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 238 81% 66%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 215 28% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 215 28% 17%;
+    --sidebar-ring: 238 81% 66%;
+  }
+
+  section[aria-label='Notifications alt+T'] {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+@layer utilities {
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes slide-up {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  @keyframes pulse-red {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out forwards;
+  }
+  .animate-slide-up {
+    animation: slide-up 0.5s ease-out forwards;
+  }
+  .animate-pulse-red {
+    animation: pulse-red 2s infinite;
+  }
+
+  .tech-mobile-container {
+    @apply w-full max-w-md mx-auto h-[100dvh] bg-background relative overflow-hidden flex flex-col shadow-2xl sm:border sm:border-border sm:rounded-3xl sm:h-[90vh] sm:my-[5vh];
+  }
+}
