@@ -1,0 +1,108 @@
+import useAppStore, {
+  OSStatus,
+  Order,
+  KANBAN_BORDER_COLORS,
+  SERVICE_TYPE_COLORS,
+  SERVICE_TYPE_LABELS,
+} from '@/stores/useAppStore'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { cn } from '@/lib/utils'
+
+const columns: OSStatus[] = [
+  'Pendente',
+  'Agendado',
+  'Em Deslocamento',
+  'Em Execução',
+  'Pausado',
+  'Em Auditoria',
+  'Rejeitada',
+  'Finalizada',
+]
+
+interface OrderKanbanProps {
+  orders?: Order[]
+  onCardClick?: (order: Order) => void
+}
+
+export default function OrderKanban({ orders: propOrders, onCardClick }: OrderKanbanProps) {
+  const { orders: storeOrders } = useAppStore()
+  const displayOrders = propOrders || storeOrders
+
+  return (
+    <div className="flex gap-4 h-[calc(100vh-250px)] overflow-x-auto pb-4">
+      {columns.map((status) => {
+        const columnOrders = displayOrders.filter((o) => o.status === status)
+        return (
+          <div
+            key={status}
+            className="flex-shrink-0 w-80 bg-secondary/50 rounded-lg p-3 flex flex-col"
+          >
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h3 className="font-semibold text-sm">{status}</h3>
+              <Badge variant="secondary">{columnOrders.length}</Badge>
+            </div>
+            <ScrollArea className="flex-1">
+              <div className="space-y-3 pr-2">
+                {columnOrders.map((order) => (
+                  <Card
+                    key={order.id}
+                    className={cn(
+                      'cursor-pointer hover:shadow-md transition-shadow border-t-4',
+                      KANBAN_BORDER_COLORS[order.serviceType] || 'border-t-primary',
+                    )}
+                    onClick={() => onCardClick?.(order)}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs font-bold">{order.shortId}</span>
+                        <div className="flex gap-1 items-center">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'text-[10px] h-4 px-1 leading-none shadow-sm',
+                              SERVICE_TYPE_COLORS[order.serviceType],
+                            )}
+                          >
+                            {SERVICE_TYPE_LABELS[order.serviceType]}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'text-[10px] h-4 px-1 leading-none',
+                              (order.priority === 'Emergencial (48h)' ||
+                                order.priority === 'Urgente (4 dias)' ||
+                                order.priority === 'Alta' ||
+                                order.priority === 'urgent') &&
+                                'border-destructive text-destructive',
+                            )}
+                          >
+                            {order.priority}
+                          </Badge>
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium leading-tight mb-2 line-clamp-2">
+                        {order.title}
+                      </p>
+                      <div className="flex justify-between items-center text-xs text-muted-foreground mt-3">
+                        <div className="flex flex-col truncate max-w-[150px]">
+                          <span className="truncate">{order.client}</span>
+                          <span className="truncate text-[10px] text-primary">{order.unit}</span>
+                        </div>
+                        <span className="flex items-center gap-1 shrink-0">
+                          <div className="w-2 h-2 rounded-full bg-primary/40" />
+                          {order.tech.split(' ')[0]}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        )
+      })}
+    </div>
+  )
+}

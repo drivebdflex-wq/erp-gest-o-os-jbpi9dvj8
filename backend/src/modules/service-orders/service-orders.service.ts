@@ -1,0 +1,149 @@
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common'
+import { SupabaseService } from '../../supabase.service'
+import { CreateServiceOrderDto } from './service-orders.controller'
+
+@Injectable()
+export class ServiceOrdersService {
+  constructor(private readonly supabaseService: SupabaseService) {}
+
+  async create(createDto: CreateServiceOrderDto) {
+    if (!createDto.client_id) {
+      throw new BadRequestException('client_id is mandatory')
+    }
+    if (!createDto.unit_id) {
+      throw new BadRequestException('unit_id is mandatory')
+    }
+
+    const { data, error } = await this.supabaseService
+      .getClient()
+      .from('service_orders')
+      .insert([createDto])
+      .select()
+      .single()
+
+    if (error) {
+      throw new InternalServerErrorException(error.message)
+    }
+    return data
+  }
+
+  async findAll() {
+    const { data, error } = await this.supabaseService
+      .getClient()
+      .from('service_orders')
+      .select('*')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      throw new InternalServerErrorException(error.message)
+    }
+    return data
+  }
+
+  async findOne(id: string) {
+    const { data, error } = await this.supabaseService
+      .getClient()
+      .from('service_orders')
+      .select('*')
+      .eq('id', id)
+      .is('deleted_at', null)
+      .single()
+
+    if (error || !data) {
+      throw new NotFoundException(`Service order with ID ${id} not found`)
+    }
+    return data
+  }
+
+  async updateStatus(id: string, newStatus: string) {
+    if (!newStatus) {
+      throw new BadRequestException('Status is required')
+    }
+
+    const order = await this.findOne(id)
+
+    const validTransitions: Record<string, string[]> = {
+      draft: ['pending'],
+      pending: ['scheduled', 'cancelled'],
+      scheduled: ['deslocamento', 'cancelled', 'pending'],
+      deslocamento: ['in_progress', 'cancelled', 'pending'],
+      in_progress: ['paused', 'in_audit', 'cancelled'],
+      paused: ['in_progress', 'cancelled'],
+      in_audit: ['completed', 'rejected'],
+      rejected: ['in_progress'],
+      completed: [],
+      cancelled: [],
+    }
+
+    const allowedNext = validTransitions[order.status] || []
+
+    if (!allowedNext.includes(newStatus)) {
+      throw new BadRequestException(
+        `Invalid status transition from '${order.status}' to '${newStatus}'. Allowed transitions are: ${allowedNext.join(', ')}.`,
+      )
+    }
+
+    const updateData: any = { status: newStatus }
+    const now = new Date()
+
+    if (newStatus === 'in_progress') {
+      if (!order.started_at) {
+        updateData.started_at = now.toISOString()
+      }
+    } else if (newStatus === 'completed') {
+      if (!order.started_at) {
+        throw new BadRequestException(
+          'Integrity Error: Cannot complete service order without a started_at timestamp.',
+        )
+      }
+
+      const finishedAt = now
+      const startedAt = new Date(order.started_at)
+
+      updateData.finished_at = finishedAt.toISOString()
+      updateData.total_duration_minutes = Math.floor(
+        (finishedAt.getTime() - startedAt.getTime()) / 60000,
+      )
+    }
+
+    const { data, error } = await this.supabaseService
+      .getClient()
+      .from('service_orders')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      throw new InternalServerErrorException(error.message)
+    }
+    return data
+  }
+
+  async remove(id: string) {
+    const order = await this.findOne(id)
+
+    if (order.status === 'in_progress' || order.status === 'in_audit') {
+      throw new BadRequestException('Cannot delete an active or in-audit service order')
+    }
+
+    const { data, error } = await this.supabaseService
+      .getClient()
+      .from('service_orders')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      throw new InternalServerErrorException(error.message)
+    }
+    return { success: true, message: 'Service order deleted successfully' }
+  }
+}
