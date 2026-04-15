@@ -10,6 +10,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
   Table,
   TableBody,
   TableCell,
@@ -19,13 +27,25 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Eye, Trash2, ChevronLeft, ChevronRight, Loader2, RotateCcw } from 'lucide-react'
+import {
+  Eye,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  RotateCcw,
+  MoreHorizontal,
+  Edit,
+  UserPlus,
+} from 'lucide-react'
 import useAppStore, {
   OSStatus,
   Order,
   SERVICE_TYPE_COLORS,
   SERVICE_TYPE_LABELS,
 } from '@/stores/useAppStore'
+import AssignOrderDialog from '@/components/admin/contracts/AssignOrderDialog'
+import EditOrderDialog from '@/components/admin/contracts/EditOrderDialog'
 import { cn } from '@/lib/utils'
 
 const getStatusColor = (status: OSStatus) => {
@@ -46,6 +66,7 @@ interface OrderTableProps {
   onRowClick?: (order: Order) => void
   isDeletedView?: boolean
   onRestore?: (order: Order) => void
+  onRefresh?: () => void
 }
 
 import { useToast } from '@/hooks/use-toast'
@@ -57,6 +78,7 @@ export default function OrderTable({
   onRowClick,
   isDeletedView,
   onRestore,
+  onRefresh,
 }: OrderTableProps) {
   const { toast } = useToast()
   const { filteredOrders } = useAppStore()
@@ -72,6 +94,8 @@ export default function OrderTable({
 
   const [page, setPage] = useState(1)
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null)
+  const [orderToAssign, setOrderToAssign] = useState<Order | null>(null)
+  const [orderToEdit, setOrderToEdit] = useState<Order | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDelete = async (order: Order) => {
@@ -102,7 +126,8 @@ export default function OrderTable({
             : [{ ...orderToDel, deletedAt: now, deleted_at: now }],
         }
       })
-      toast({ title: 'Sucesso', description: 'Service Order deleted successfully.' })
+      toast({ title: 'Sucesso', description: 'OS excluída com sucesso.' })
+      onRefresh?.()
     } catch (e: any) {
       toast({
         title: 'Erro',
@@ -137,7 +162,7 @@ export default function OrderTable({
               <TableHead>Técnico</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Prioridade</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
+              {isAdmin && <TableHead className="text-right">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -197,49 +222,79 @@ export default function OrderTable({
                     {order.priority}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {!isDeletedView && (
-                      <Button variant="ghost" size="icon">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {isDeletedView ? (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-primary hover:text-primary hover:bg-primary/10"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onRestore?.(order)
-                        }}
-                        title="Restaurar OS"
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      isAdmin && (
+                {isAdmin && (
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {isDeletedView ? (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          className="text-primary hover:text-primary hover:bg-primary/10"
                           onClick={(e) => {
                             e.stopPropagation()
-                            setOrderToDelete(order)
+                            onRestore?.(order)
                           }}
-                          title="Excluir OS"
+                          title="Restaurar OS"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <RotateCcw className="h-4 w-4" />
                         </Button>
-                      )
-                    )}
-                  </div>
-                </TableCell>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              className="h-8 w-8 p-0 hover:bg-muted"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <span className="sr-only">Abrir menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setOrderToAssign(order)
+                              }}
+                            >
+                              <UserPlus className="mr-2 h-4 w-4" />
+                              Atribuir
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setOrderToEdit(order)
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setOrderToDelete(order)
+                              }}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
             {displayOrders.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell
+                  colSpan={isAdmin ? 9 : 8}
+                  className="text-center py-8 text-muted-foreground"
+                >
                   {isDeletedView
                     ? 'Nenhuma ordem de serviço na lixeira.'
                     : 'Nenhuma ordem de serviço encontrada para os filtros aplicados.'}
@@ -272,6 +327,30 @@ export default function OrderTable({
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
+      )}
+
+      {orderToAssign && (
+        <AssignOrderDialog
+          open={!!orderToAssign}
+          onOpenChange={(open) => !open && setOrderToAssign(null)}
+          order={orderToAssign}
+          onSuccess={() => {
+            setOrderToAssign(null)
+            onRefresh?.()
+          }}
+        />
+      )}
+
+      {orderToEdit && (
+        <EditOrderDialog
+          open={!!orderToEdit}
+          onOpenChange={(open) => !open && setOrderToEdit(null)}
+          order={orderToEdit}
+          onSuccess={() => {
+            setOrderToEdit(null)
+            onRefresh?.()
+          }}
+        />
       )}
 
       <AlertDialog open={!!orderToDelete} onOpenChange={(open) => !open && setOrderToDelete(null)}>
