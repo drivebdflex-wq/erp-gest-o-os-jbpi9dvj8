@@ -68,6 +68,9 @@ export default function OperationalAgendaPage() {
 
   useEffect(() => {
     fetchOrders()
+    const handleOrderUpdated = () => fetchOrders()
+    window.addEventListener('service-order-updated', handleOrderUpdated)
+    return () => window.removeEventListener('service-order-updated', handleOrderUpdated)
   }, [])
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
@@ -80,6 +83,7 @@ export default function OperationalAgendaPage() {
       })
       if (response.ok) {
         toast({ title: 'Status atualizado com sucesso' })
+        window.dispatchEvent(new Event('service-order-updated'))
         // Optimistically remove from view if it's no longer scheduled
         if (newStatus !== 'scheduled') {
           setOrders((prev) => prev.filter((o) => o.id !== id))
@@ -243,10 +247,11 @@ export default function OperationalAgendaPage() {
                                 </DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(o.id, 'deslocamento')}
+                                  onClick={() => handleUpdateStatus(o.id, 'in_progress')}
                                   className="cursor-pointer"
                                 >
-                                  <Truck className="w-4 h-4 mr-2 text-orange-500" /> Em Deslocamento
+                                  <Truck className="w-4 h-4 mr-2 text-orange-500" /> Iniciar
+                                  Execução
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => handleUpdateStatus(o.id, 'pending')}
@@ -254,6 +259,12 @@ export default function OperationalAgendaPage() {
                                 >
                                   <Clock className="w-4 h-4 mr-2 text-blue-500" /> Retornar p/
                                   Pendente
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleUpdateStatus(o.id, 'completed')}
+                                  className="cursor-pointer text-green-600 focus:text-green-600"
+                                >
+                                  <AlertCircle className="w-4 h-4 mr-2" /> Concluir OS
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem

@@ -33,15 +33,10 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 const mapStatusToPt = (status: string) => {
   const map: Record<string, string> = {
-    draft: 'Pendente',
     pending: 'Pendente',
     scheduled: 'Agendado',
-    deslocamento: 'Em Deslocamento',
     in_progress: 'Em Execução',
-    paused: 'Pausado',
-    in_audit: 'Em Auditoria',
     completed: 'Finalizada',
-    rejected: 'Rejeitada',
     cancelled: 'Cancelada',
   }
   return map[status?.toLowerCase()] || status || 'Pendente'
@@ -108,6 +103,13 @@ export default function Index() {
 
   useEffect(() => {
     fetchOrders()
+    const handleOrderUpdated = () => fetchOrders()
+    window.addEventListener('service-order-updated', handleOrderUpdated)
+    window.addEventListener('service-order-created', handleOrderUpdated)
+    return () => {
+      window.removeEventListener('service-order-updated', handleOrderUpdated)
+      window.removeEventListener('service-order-created', handleOrderUpdated)
+    }
   }, [])
 
   const handleExportCSV = () => exportOrdersToCSV(orders)

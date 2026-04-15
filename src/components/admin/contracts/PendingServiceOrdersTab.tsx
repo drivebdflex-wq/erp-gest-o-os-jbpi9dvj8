@@ -46,10 +46,15 @@ export default function PendingServiceOrdersTab() {
     const handleOrderCreated = () => {
       fetchOrders()
     }
+    const handleOrderUpdated = () => {
+      fetchOrders()
+    }
 
     window.addEventListener('service-order-created', handleOrderCreated)
+    window.addEventListener('service-order-updated', handleOrderUpdated)
     return () => {
       window.removeEventListener('service-order-created', handleOrderCreated)
+      window.removeEventListener('service-order-updated', handleOrderUpdated)
     }
   }, [])
 
@@ -93,45 +98,57 @@ export default function PendingServiceOrdersTab() {
   }
 
   return (
-    <div className="rounded-md border bg-card animate-fade-in">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>ID da OS</TableHead>
-            <TableHead>Cliente ID</TableHead>
-            <TableHead>Descrição</TableHead>
-            <TableHead>Data Criação</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {orders.map((order) => (
-            <TableRow key={order.id}>
-              <TableCell className="font-medium text-xs">
-                {order.id.split('-')[0].toUpperCase()}
-              </TableCell>
-              <TableCell className="text-xs">
-                <div className="font-medium truncate max-w-[150px]" title={order.client_id}>
-                  {order.client_id}
-                </div>
-              </TableCell>
-              <TableCell className="max-w-[300px] truncate text-sm" title={order.description}>
-                {order.description}
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
-                {order.created_at
-                  ? format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
-                  : '-'}
-              </TableCell>
-              <TableCell>
-                <Badge variant="outline" className="text-warning border-warning/50 bg-warning/10">
-                  Pendente
-                </Badge>
-              </TableCell>
+    <div className="space-y-4 animate-fade-in">
+      <Alert className="bg-amber-500/10 text-amber-600 border-amber-500/20 py-3">
+        <AlertCircle className="h-5 w-5 mr-3 shrink-0" />
+        <div>
+          <AlertTitle className="text-sm font-semibold mb-1">Aviso de Volatilidade</AlertTitle>
+          <AlertDescription className="text-xs">
+            Nenhum banco de dados conectado. Os dados persistem apenas em memória e serão perdidos
+            ao reiniciar o servidor.
+          </AlertDescription>
+        </div>
+      </Alert>
+      <div className="rounded-md border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>ID da OS</TableHead>
+              <TableHead>Cliente ID</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead>Data Criação</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {orders.map((order) => (
+              <TableRow key={order.id}>
+                <TableCell className="font-medium text-xs">
+                  {order.id.split('-')[0].toUpperCase()}
+                </TableCell>
+                <TableCell className="text-xs">
+                  <div className="font-medium truncate max-w-[150px]" title={order.client_id}>
+                    {order.client_id}
+                  </div>
+                </TableCell>
+                <TableCell className="max-w-[300px] truncate text-sm" title={order.description}>
+                  {order.description}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {order.created_at
+                    ? format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+                    : '-'}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-warning border-warning/50 bg-warning/10">
+                    Pendente
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

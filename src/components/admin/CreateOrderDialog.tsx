@@ -83,7 +83,7 @@ export default function CreateOrderDialog({
         client_id: formData.clientId,
         description: formData.description,
         priority: formData.priority,
-        status: formData.status,
+        status: 'pending',
       }
 
       if (formData.technicianId) {
@@ -195,24 +195,12 @@ export default function CreateOrderDialog({
 
             <div className="space-y-2">
               <Label>Status</Label>
-              <Select
-                value={formData.status || 'pending'}
-                onValueChange={(v) => setFormData({ ...formData, status: v })}
-              >
-                <SelectTrigger>
+              <Select value="pending" disabled>
+                <SelectTrigger className="bg-muted">
                   <SelectValue placeholder="Selecione o status..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="draft">Rascunho</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="scheduled">Agendada</SelectItem>
-                  <SelectItem value="deslocamento">Em Deslocamento</SelectItem>
-                  <SelectItem value="in_progress">Em Andamento</SelectItem>
-                  <SelectItem value="paused">Pausada</SelectItem>
-                  <SelectItem value="in_audit">Em Auditoria</SelectItem>
-                  <SelectItem value="completed">Concluída</SelectItem>
-                  <SelectItem value="rejected">Rejeitada</SelectItem>
-                  <SelectItem value="cancelled">Cancelada</SelectItem>
                 </SelectContent>
               </Select>
             </div>

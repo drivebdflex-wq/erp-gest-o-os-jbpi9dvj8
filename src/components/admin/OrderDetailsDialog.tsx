@@ -195,6 +195,7 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
       }
 
       await updateOrder(order.id, updates)
+      window.dispatchEvent(new Event('service-order-updated'))
 
       // Integrates with useFinanceStore directly to inject Revenue
       if (updates.serviceValue > 0 && order.contractId) {
@@ -412,15 +413,10 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="draft">Rascunho</SelectItem>
-                      <SelectItem value="pending">Pendente</SelectItem>
-                      <SelectItem value="scheduled">Agendado</SelectItem>
-                      <SelectItem value="deslocamento">Em Deslocamento</SelectItem>
-                      <SelectItem value="in_progress">Em Andamento</SelectItem>
-                      <SelectItem value="paused">Pausado</SelectItem>
-                      <SelectItem value="in_audit">Em Auditoria</SelectItem>
+                      <SelectItem value="pending">Pendente (Fila)</SelectItem>
+                      <SelectItem value="scheduled">Agendado (Agenda)</SelectItem>
+                      <SelectItem value="in_progress">Em Execução</SelectItem>
                       <SelectItem value="completed">Concluído</SelectItem>
-                      <SelectItem value="rejected">Rejeitado</SelectItem>
                       <SelectItem value="cancelled">Cancelado</SelectItem>
                     </SelectContent>
                   </Select>
