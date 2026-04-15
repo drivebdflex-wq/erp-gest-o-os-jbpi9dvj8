@@ -7,20 +7,24 @@
 
 // Dynamically determine the API URL based on the environment
 export const API_URL = (() => {
-  const envUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
+  let envUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
 
   if (envUrl) {
+    // Prevent double /api/api if envUrl already has /api and path provides it
+    if (envUrl.endsWith('/api')) {
+      envUrl = envUrl.substring(0, envUrl.length - 4)
+    }
     return envUrl
   }
 
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname
     if (hostname.includes('goskip.app')) {
-      return `${window.location.origin}/api`
+      return window.location.origin
     }
   }
 
-  return '/api'
+  return ''
 })()
 
 /**
