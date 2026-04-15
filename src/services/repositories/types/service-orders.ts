@@ -15,6 +15,16 @@ export interface ServiceOrderAttachment extends Timestamps {
   uploaded_by?: ID | null
 }
 
+export interface ServiceOrderItem extends Timestamps {
+  id: ID
+  service_order_id: ID
+  description: string
+  unit: string
+  quantity: number
+  unit_price: number
+  total_price: number
+}
+
 export interface ServiceOrder extends Timestamps {
   id: ID
   client_id: ID
@@ -38,10 +48,30 @@ export interface ServiceOrder extends Timestamps {
   finished_at?: string
   total_duration_minutes: number
   estimated_duration_minutes?: number
-  labor_cost?: number
   latitude?: number
   longitude?: number
   customer_signature_url?: string
+
+  order_number?: string
+  call_code?: string
+  asset_number?: string
+  client_unit?: string
+  address?: string
+  floor?: string
+  distance_km?: number
+  environment?: string
+  criticality?: string
+  is_incident?: boolean
+  requested_by?: string
+  requester_registration?: string
+  requester_phone?: string
+  situation_code?: number
+  displacement_cost?: number
+  labor_cost?: number
+  material_cost?: number
+  total_cost?: number
+  notes?: string
+  items?: ServiceOrderItem[]
 }
 
 export interface CreateServiceOrderDTO {
@@ -50,6 +80,26 @@ export interface CreateServiceOrderDTO {
   status?: ServiceOrderStatus
   priority?: ServiceOrderPriority
   description?: string
+  order_number?: string
+  call_code?: string
+  asset_number?: string
+  client_unit?: string
+  address?: string
+  floor?: string
+  distance_km?: number
+  environment?: string
+  criticality?: string
+  is_incident?: boolean
+  requested_by?: string
+  requester_registration?: string
+  requester_phone?: string
+  situation_code?: number
+  displacement_cost?: number
+  labor_cost?: number
+  material_cost?: number
+  total_cost?: number
+  notes?: string
+  items?: ServiceOrderItem[]
 }
 
 export type UpdateServiceOrderDTO = Partial<CreateServiceOrderDTO> & {

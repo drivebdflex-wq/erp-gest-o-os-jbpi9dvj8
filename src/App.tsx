@@ -19,6 +19,7 @@ import { useSystemStore } from './stores/useSystemStore'
 import Login from './pages/Login'
 import Index from './pages/Index'
 import WorkOrders from './pages/admin/WorkOrders'
+import WorkOrderDetail from './pages/admin/WorkOrderDetail'
 import ContractsMaintenance from './pages/admin/ContractsMaintenance'
 import ContractsWorks from './pages/admin/ContractsWorks'
 import MapPage from './pages/admin/MapPage'
@@ -104,6 +105,8 @@ const App = () => {
                             {/* Common Authenticated Routes */}
                             <Route path="/" element={<Index />} />
                             <Route path="/ordens" element={<WorkOrders />} />
+                            <Route path="/ordens/:id" element={<WorkOrderDetail />} />
+                            <Route path="/service-orders/:id" element={<WorkOrderDetail />} />
 
                             <Route
                               element={<ProtectedRoute requiredPermission="view_operational" />}

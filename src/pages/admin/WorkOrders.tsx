@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -29,7 +30,6 @@ import {
 import OrderTable from '@/components/admin/OrderTable'
 import OrderKanban from '@/components/admin/OrderKanban'
 import CreateOrderDialog from '@/components/admin/CreateOrderDialog'
-import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog'
 import useAppStore, { Order, Contract } from '@/stores/useAppStore'
 import useAuthStore from '@/stores/useAuthStore'
 import { useToast } from '@/hooks/use-toast'
@@ -49,8 +49,7 @@ export default function WorkOrders() {
   const [view, setView] = useState('list')
   const [activeTab, setActiveTab] = useState('active')
   const [createOpen, setCreateOpen] = useState(false)
-  const [detailsOpen, setDetailsOpen] = useState(false)
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const navigate = useNavigate()
 
   // Contract Panel Filters
   const [search, setSearch] = useState('')
@@ -63,8 +62,7 @@ export default function WorkOrders() {
   const [dateTo, setDateTo] = useState('')
 
   const handleOpenDetails = (order: Order) => {
-    setSelectedOrder(order)
-    setDetailsOpen(true)
+    navigate(`/ordens/${order.id}`)
   }
 
   const getContractStatus = (c: Contract) => {
@@ -445,7 +443,6 @@ export default function WorkOrders() {
           defaultContractId={contract.id}
         />
       )}
-      <OrderDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen} order={selectedOrder} />
     </div>
   )
 }
