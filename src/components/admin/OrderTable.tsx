@@ -65,7 +65,10 @@ export default function OrderTable({
   const isAdmin =
     user?.role === 'admin' || user?.role === 'Administrator' || user?.role === 'admin_master'
 
-  const displayOrders = propOrders || filteredOrders
+  const baseOrders = propOrders || filteredOrders
+  const displayOrders = isDeletedView
+    ? baseOrders.filter((o: any) => o.deletedAt || o.deleted_at)
+    : baseOrders.filter((o: any) => !o.deletedAt && !o.deleted_at)
 
   const [page, setPage] = useState(1)
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null)
@@ -78,14 +81,26 @@ export default function OrderTable({
         throw new Error('Não é possível excluir uma OS em execução ou auditoria.')
       }
 
+      const apiUrl = import.meta.env.VITE_API_URL || '/api'
+      try {
+        await fetch(`${apiUrl}/service-orders/${order.id}`, { method: 'DELETE' })
+      } catch (e) {
+        console.error('API delete failed, continuing with local state', e)
+      }
+
       useAppStore.setState((state: any) => {
         const orderToDel = state.orders.find((o: any) => o.id === order.id) || order
+        const now = new Date().toISOString()
         return {
-          orders: state.orders.filter((o: any) => o.id !== order.id),
-          filteredOrders: state.filteredOrders.filter((o: any) => o.id !== order.id),
+          orders: state.orders.map((o: any) =>
+            o.id === order.id ? { ...o, deletedAt: now, deleted_at: now } : o,
+          ),
+          filteredOrders: state.filteredOrders.map((o: any) =>
+            o.id === order.id ? { ...o, deletedAt: now, deleted_at: now } : o,
+          ),
           deletedOrders: state.deletedOrders
-            ? [...state.deletedOrders, { ...orderToDel, deletedAt: new Date().toISOString() }]
-            : [{ ...orderToDel, deletedAt: new Date().toISOString() }],
+            ? [...state.deletedOrders, { ...orderToDel, deletedAt: now, deleted_at: now }]
+            : [{ ...orderToDel, deletedAt: now, deleted_at: now }],
         }
       })
       toast({ title: 'Sucesso', description: 'Ordem de Serviço movida para a lixeira.' })

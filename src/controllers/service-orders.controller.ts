@@ -4,6 +4,16 @@ import { AuthGuard } from './core/auth.guard'
 import { CreateServiceOrderDto, UpdateStatusDto } from './dtos/service-orders.dto'
 
 export class ServiceOrdersController {
+  static async remove(id: string, token?: string) {
+    try {
+      await AuthGuard.verify(token)
+      const result = await ServiceOrdersService.delete(id)
+      return ResponseHandler.success(result)
+    } catch (error) {
+      return ResponseHandler.error(error)
+    }
+  }
+
   static async create(body: unknown, token?: string) {
     try {
       const ctx = await AuthGuard.verify(token)

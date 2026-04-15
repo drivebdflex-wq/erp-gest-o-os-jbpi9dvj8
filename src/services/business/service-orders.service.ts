@@ -39,7 +39,7 @@ export class ServiceOrdersService {
 
   static async findAll(userId: string = 'system') {
     const orders = await ServiceOrdersRepository.findAll()
-    return orders.filter((o: any) => !o.deleted_at)
+    return orders.filter((o: any) => !o.deleted_at && !o.deletedAt)
   }
 
   static async findById(id: string, userId: string = 'system') {
@@ -151,8 +151,10 @@ export class ServiceOrdersService {
       throw new BusinessError('Cannot delete an active or in-audit service order')
     }
 
+    const now = new Date().toISOString()
     const updated = await ServiceOrdersRepository.update(orderId, {
-      deleted_at: new Date().toISOString(),
+      deleted_at: now,
+      deletedAt: now,
     } as any)
 
     await AuditsRepository.create({

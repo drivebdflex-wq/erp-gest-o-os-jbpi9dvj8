@@ -32,7 +32,7 @@ export default function PendingServiceOrdersTab() {
       }
 
       const data = await response.json()
-      setOrders(Array.isArray(data) ? data : [])
+      setOrders(Array.isArray(data) ? data.filter((o: any) => !o.deleted_at && !o.deletedAt) : [])
     } catch (err: any) {
       setError(err.message || 'Erro desconhecido ao conectar com a API')
     } finally {

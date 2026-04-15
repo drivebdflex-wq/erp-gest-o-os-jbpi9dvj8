@@ -28,6 +28,7 @@ export interface DbContract {
   estimated_team_cost?: number
   created_at?: string
   updated_at?: string
+  deleted_at?: string
 }
 
 const MOCK_CONTRACTS: DbContract[] = [

@@ -54,7 +54,7 @@ export default function OperationalAgendaPage() {
       const response = await fetch(`${apiUrl}/service-orders?status=scheduled`)
       if (response.ok) {
         const data = await response.json()
-        setOrders(data)
+        setOrders(data.filter((o: any) => !o.deleted_at && !o.deletedAt))
       } else {
         toast({ title: 'Erro ao buscar ordens', variant: 'destructive' })
       }

@@ -46,7 +46,7 @@ export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' 
   const { contracts, generatePreventives } = useAppStore()
   const { costs } = useFinanceStore()
 
-  const filtered = contracts.filter((c) => c.type === type)
+  const filtered = contracts.filter((c) => c.type === type && !c.deletedAt && !c.deleted_at)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [simOpen, setSimOpen] = useState(false)
   const [selected, setSelected] = useState<any>(null)
@@ -68,7 +68,9 @@ export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' 
     setIsDeleting(true)
     try {
       const state = useAppStore.getState()
-      const linkedOrders = state.orders.filter((o: any) => o.contractId === contract.id)
+      const linkedOrders = state.orders.filter(
+        (o: any) => o.contractId === contract.id && !o.deletedAt && !o.deleted_at,
+      )
 
       if (linkedOrders.length > 0) {
         toast({
@@ -79,9 +81,19 @@ export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' 
         return
       }
 
+      const apiUrl = import.meta.env.VITE_API_URL || '/api'
+      try {
+        await fetch(`${apiUrl}/contracts/${contract.id}`, { method: 'DELETE' })
+      } catch (e) {
+        console.error('API delete failed, continuing with local state', e)
+      }
+
       useAppStore.setState((state: any) => ({
-        contracts: state.contracts.filter((c: any) => c.id !== contract.id),
-        contractUnits: state.contractUnits?.filter((u: any) => u.contractId !== contract.id) || [],
+        contracts: state.contracts.map((c: any) =>
+          c.id === contract.id
+            ? { ...c, deletedAt: new Date().toISOString(), deleted_at: new Date().toISOString() }
+            : c,
+        ),
       }))
 
       const { logAudit, addDeletedRecord } = useSystemStore.getState()
