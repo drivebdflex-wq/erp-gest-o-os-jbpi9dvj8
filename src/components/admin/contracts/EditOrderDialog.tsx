@@ -93,7 +93,7 @@ export default function EditOrderDialog({
     }
   }, [open])
 
-  const handleSave = async () => {
+  const handleUpdate = async () => {
     setLoading(true)
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '/api'
@@ -113,6 +113,8 @@ export default function EditOrderDialog({
         payload.technician_id = null
       }
 
+      console.log('Enviando atualização:', payload)
+
       const res = await fetch(`${apiUrl}/service-orders/${order.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -120,6 +122,8 @@ export default function EditOrderDialog({
       })
 
       if (!res.ok) throw new Error('Falha ao atualizar OS')
+
+      console.log('Atualizado com sucesso')
 
       let updatedData = payload
       try {
@@ -140,6 +144,7 @@ export default function EditOrderDialog({
 
       toast({ title: 'Sucesso', description: 'OS atualizada com sucesso.' })
       onSuccess()
+      onOpenChange(false)
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' })
     } finally {
@@ -272,7 +277,7 @@ export default function EditOrderDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
+          <Button onClick={handleUpdate} disabled={loading}>
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Salvar
           </Button>
