@@ -46,6 +46,17 @@ export class ServiceOrdersController {
     }
   }
 
+  static async update(id: string, body: unknown, token?: string) {
+    try {
+      await AuthGuard.verify(token)
+      console.log('Payload recebido:', body)
+      const result = await ServiceOrdersService.update(id, body as any)
+      return ResponseHandler.success(result)
+    } catch (error) {
+      return ResponseHandler.error(error)
+    }
+  }
+
   static async updateStatus(id: string, body: unknown, token?: string) {
     try {
       await AuthGuard.verify(token)

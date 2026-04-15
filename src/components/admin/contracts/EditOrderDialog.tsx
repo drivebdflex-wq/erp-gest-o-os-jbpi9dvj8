@@ -97,7 +97,12 @@ export default function EditOrderDialog({
     setLoading(true)
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '/api'
-      const payload: any = { ...formData }
+      const payload: any = {
+        ...formData,
+        client_id: order?.client_id || order?.clientId || null,
+        unit_id: order?.unit_id || order?.unitId || null,
+      }
+
       if (payload.scheduled_at) payload.scheduled_at = new Date(payload.scheduled_at).toISOString()
       else payload.scheduled_at = null
 

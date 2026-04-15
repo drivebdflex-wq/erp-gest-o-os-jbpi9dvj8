@@ -92,11 +92,18 @@ export class ServiceOrdersService {
   async update(id: string, updateDto: any) {
     const order = await this.findOne(id)
 
+    console.log('Payload recebido:', updateDto)
+
+    const updateData = {
+      ...updateDto,
+      updated_at: new Date().toISOString(),
+    }
+
     try {
       const { data, error } = await this.supabaseService
         .getClient()
         .from('service_orders')
-        .update(updateDto)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single()
