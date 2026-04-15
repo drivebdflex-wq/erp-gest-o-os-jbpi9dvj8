@@ -18,9 +18,6 @@ export class ServiceOrdersService {
     if (!createDto.client_id) {
       throw new BadRequestException('client_id is mandatory')
     }
-    if (!createDto.unit_id) {
-      throw new BadRequestException('unit_id is mandatory')
-    }
 
     try {
       const { data, error } = await this.supabaseService
