@@ -24,20 +24,25 @@ export const supabase = {
 
     const url = new URL(`${SUPABASE_URL}/rest/v1/${path}`)
 
-    const response = await fetch(url.toString(), {
-      ...options,
-      headers,
-    })
+    try {
+      const response = await fetch(url.toString(), {
+        ...options,
+        headers,
+      })
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Unknown error' }))
-      throw new Error(error.message || 'Supabase request failed')
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Unknown error' }))
+        throw new Error(error.message || 'Supabase request failed')
+      }
+
+      if (response.status === 204) {
+        return {} as T
+      }
+
+      return await response.json()
+    } catch (error: any) {
+      console.error(`[Supabase Fetch Error] ${options.method || 'GET'} ${path}:`, error.message)
+      throw new Error(error.message || 'Network error occurred while contacting the database')
     }
-
-    if (response.status === 204) {
-      return {} as T
-    }
-
-    return response.json()
   },
 }

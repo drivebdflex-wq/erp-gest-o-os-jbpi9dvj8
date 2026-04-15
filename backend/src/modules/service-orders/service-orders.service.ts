@@ -3,12 +3,15 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common'
 import { SupabaseService } from '../../supabase.service'
 import { CreateServiceOrderDto } from './service-orders.controller'
 
 @Injectable()
 export class ServiceOrdersService {
+  private readonly logger = new Logger(ServiceOrdersService.name)
+
   constructor(private readonly supabaseService: SupabaseService) {}
 
   async create(createDto: CreateServiceOrderDto) {
@@ -19,46 +22,68 @@ export class ServiceOrdersService {
       throw new BadRequestException('unit_id is mandatory')
     }
 
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from('service_orders')
-      .insert([createDto])
-      .select()
-      .single()
+    try {
+      const { data, error } = await this.supabaseService
+        .getClient()
+        .from('service_orders')
+        .insert([createDto])
+        .select()
+        .single()
 
-    if (error) {
-      throw new InternalServerErrorException(error.message)
+      if (error) {
+        this.logger.error(`Error creating service order: ${error.message}`, error)
+        throw new InternalServerErrorException('Failed to create service order')
+      }
+      return data
+    } catch (err: any) {
+      this.logger.error(`Exception in create service order: ${err.message}`, err.stack)
+      if (err instanceof InternalServerErrorException || err instanceof BadRequestException)
+        throw err
+      throw new InternalServerErrorException('Unexpected error creating service order')
     }
-    return data
   }
 
   async findAll() {
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from('service_orders')
-      .select('*')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false })
+    try {
+      const { data, error } = await this.supabaseService
+        .getClient()
+        .from('service_orders')
+        .select('*')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      throw new InternalServerErrorException(error.message)
+      if (error) {
+        this.logger.error(`Error fetching service orders: ${error.message}`, error)
+        throw new InternalServerErrorException('Failed to fetch service orders')
+      }
+      return data
+    } catch (err: any) {
+      this.logger.error(`Exception in findAll service orders: ${err.message}`, err.stack)
+      if (err instanceof InternalServerErrorException) throw err
+      throw new InternalServerErrorException('Unexpected error fetching service orders')
     }
-    return data
   }
 
   async findOne(id: string) {
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from('service_orders')
-      .select('*')
-      .eq('id', id)
-      .is('deleted_at', null)
-      .single()
+    try {
+      const { data, error } = await this.supabaseService
+        .getClient()
+        .from('service_orders')
+        .select('*')
+        .eq('id', id)
+        .is('deleted_at', null)
+        .single()
 
-    if (error || !data) {
-      throw new NotFoundException(`Service order with ID ${id} not found`)
+      if (error || !data) {
+        if (error) this.logger.warn(`Supabase error finding order ${id}: ${error.message}`)
+        throw new NotFoundException(`Service order with ID ${id} not found`)
+      }
+      return data
+    } catch (err: any) {
+      this.logger.error(`Exception in findOne service order: ${err.message}`, err.stack)
+      if (err instanceof NotFoundException) throw err
+      throw new InternalServerErrorException(`Unexpected error fetching service order ${id}`)
     }
-    return data
   }
 
   async updateStatus(id: string, newStatus: string) {
@@ -112,18 +137,26 @@ export class ServiceOrdersService {
       )
     }
 
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from('service_orders')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single()
+    try {
+      const { data, error } = await this.supabaseService
+        .getClient()
+        .from('service_orders')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
 
-    if (error) {
-      throw new InternalServerErrorException(error.message)
+      if (error) {
+        this.logger.error(`Error updating service order status: ${error.message}`, error)
+        throw new InternalServerErrorException('Failed to update service order status')
+      }
+      return data
+    } catch (err: any) {
+      this.logger.error(`Exception in updateStatus service order: ${err.message}`, err.stack)
+      if (err instanceof InternalServerErrorException || err instanceof BadRequestException)
+        throw err
+      throw new InternalServerErrorException('Unexpected error updating service order status')
     }
-    return data
   }
 
   async remove(id: string) {
@@ -133,17 +166,25 @@ export class ServiceOrdersService {
       throw new BadRequestException('Cannot delete an active or in-audit service order')
     }
 
-    const { data, error } = await this.supabaseService
-      .getClient()
-      .from('service_orders')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single()
+    try {
+      const { data, error } = await this.supabaseService
+        .getClient()
+        .from('service_orders')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single()
 
-    if (error) {
-      throw new InternalServerErrorException(error.message)
+      if (error) {
+        this.logger.error(`Error deleting service order: ${error.message}`, error)
+        throw new InternalServerErrorException('Failed to delete service order')
+      }
+      return { success: true, message: 'Service order deleted successfully' }
+    } catch (err: any) {
+      this.logger.error(`Exception in remove service order: ${err.message}`, err.stack)
+      if (err instanceof InternalServerErrorException || err instanceof BadRequestException)
+        throw err
+      throw new InternalServerErrorException('Unexpected error deleting service order')
     }
-    return { success: true, message: 'Service order deleted successfully' }
   }
 }

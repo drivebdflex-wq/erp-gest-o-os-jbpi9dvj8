@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
@@ -72,8 +73,14 @@ import TechQueue from './pages/tech/TechQueue'
 import TechExecution from './pages/tech/TechExecution'
 
 const App = () => {
-  // Run retention policy on mount
-  useSystemStore.getState().runRetentionPolicy()
+  useEffect(() => {
+    try {
+      // Run retention policy safely
+      useSystemStore.getState().runRetentionPolicy()
+    } catch (err) {
+      console.error('Failed to run retention policy during app initialization:', err)
+    }
+  }, [])
 
   return (
     <AuthProvider>
