@@ -58,7 +58,11 @@ const mapPriorityToPt = (priority: string) => {
 }
 
 export default function Index() {
-  const { filteredOrders: orders, companyLogo, companyName } = useAppStore()
+  const store = useAppStore() as any
+  const orders = store?.filteredOrders || []
+  const companyLogo = store?.companyLogo
+  const companyName = store?.companyName
+
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -84,8 +88,17 @@ export default function Index() {
         contractName: o.contract_id ? 'Contrato Vinculado' : '',
       }))
 
-      // Reset the filters and set the data exactly as returned from the backend
-      useAppStore.setState({ orders: mappedOrders, filteredOrders: mappedOrders })
+      // Properly invoke state updaters avoiding "is not a function" crashes depending on store type
+      if (typeof store?.setOrders === 'function') {
+        store.setOrders(mappedOrders)
+      }
+      if (typeof store?.setFilteredOrders === 'function') {
+        store.setFilteredOrders(mappedOrders)
+      }
+      // Fallback if the context specifically exposes setState or if it's a direct Zustand hook reference
+      if (typeof store?.setState === 'function') {
+        store.setState({ orders: mappedOrders, filteredOrders: mappedOrders })
+      }
     } catch (err: any) {
       setError(err.message || 'Falha ao conectar com a API')
     } finally {
@@ -103,42 +116,45 @@ export default function Index() {
   const alerts: any[] = []
   const now = new Date().getTime()
 
-  orders.forEach((o) => {
-    if (['Finalizada', 'Cancelada', 'Rejeitada'].includes(o.status)) return
+  // Guard against undefined to prevent prototype function errors
+  if (Array.isArray(orders)) {
+    orders.forEach((o) => {
+      if (['Finalizada', 'Cancelada', 'Rejeitada'].includes(o.status)) return
 
-    const updatedAt = new Date(o.updatedAt).getTime()
-    const hoursSinceUpdate = (now - updatedAt) / (1000 * 60 * 60)
+      const updatedAt = new Date(o.updatedAt).getTime()
+      const hoursSinceUpdate = (now - updatedAt) / (1000 * 60 * 60)
 
-    if (hoursSinceUpdate > 24) {
-      alerts.push({
-        id: `${o.id}-stuck`,
-        type: 'stuck',
-        title: `OS ${o.shortId} estagnada`,
-        message: `Há mais de 24h em '${o.status}'`,
-        tech: o.tech,
-      })
-    }
+      if (hoursSinceUpdate > 24) {
+        alerts.push({
+          id: `${o.id}-stuck`,
+          type: 'stuck',
+          title: `OS ${o.shortId} estagnada`,
+          message: `Há mais de 24h em '${o.status}'`,
+          tech: o.tech,
+        })
+      }
 
-    if (o.slaStatus === 'warning') {
-      alerts.push({
-        id: `${o.id}-warning`,
-        type: 'warning',
-        title: `OS ${o.shortId} perto do prazo`,
-        message: `SLA expira em breve`,
-        tech: o.tech,
-      })
-    }
+      if (o.slaStatus === 'warning') {
+        alerts.push({
+          id: `${o.id}-warning`,
+          type: 'warning',
+          title: `OS ${o.shortId} perto do prazo`,
+          message: `SLA expira em breve`,
+          tech: o.tech,
+        })
+      }
 
-    if (o.status === 'Em Auditoria' && hoursSinceUpdate > 12) {
-      alerts.push({
-        id: `${o.id}-audit`,
-        type: 'audit',
-        title: `OS ${o.shortId} em auditoria prolongada`,
-        message: `Revisão pendente > 12h`,
-        tech: o.tech,
-      })
-    }
-  })
+      if (o.status === 'Em Auditoria' && hoursSinceUpdate > 12) {
+        alerts.push({
+          id: `${o.id}-audit`,
+          type: 'audit',
+          title: `OS ${o.shortId} em auditoria prolongada`,
+          message: `Revisão pendente > 12h`,
+          tech: o.tech,
+        })
+      }
+    })
+  }
 
   if (!isLoading && !error && alerts.length === 0) {
     alerts.push({
@@ -150,9 +166,9 @@ export default function Index() {
     })
   }
 
-  const designationQueueOrders = orders.filter((o: any) =>
-    ['Pendente', 'Agendado', 'Em Execução'].includes(o.status),
-  )
+  const designationQueueOrders = Array.isArray(orders)
+    ? orders.filter((o: any) => ['Pendente', 'Agendado', 'Em Execução'].includes(o.status))
+    : []
 
   if (isLoading) {
     return (
