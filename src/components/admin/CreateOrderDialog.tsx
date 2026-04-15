@@ -43,7 +43,8 @@ export default function CreateOrderDialog({
   defaultTeamId,
   defaultDate,
 }: CreateOrderDialogProps) {
-  const { clients, contracts, contractUnits, createOrder, priceItems, orders } = useAppStore()
+  const appStore = useAppStore() as any
+  const { clients, contracts, contractUnits, createOrder, priceItems, orders } = appStore
   const { technicians, teams } = useOperationalStore()
   const [formData, setFormData] = useState<any>({ priority: 'Normal (10 dias)' })
 
@@ -202,10 +203,23 @@ export default function CreateOrderDialog({
         service_code: formData.serviceCode === 'none' ? undefined : formData.serviceCode,
         service_value: formData.serviceValue,
       })
+
+      if (typeof appStore.fetchOrders === 'function') {
+        await appStore.fetchOrders()
+      } else if (typeof appStore.loadOrders === 'function') {
+        await appStore.loadOrders()
+      } else if (typeof appStore.fetchData === 'function') {
+        await appStore.fetchData()
+      }
+
       toast({ title: 'Sucesso', description: 'OS criada com sucesso.' })
       onOpenChange(false)
     } catch (e: any) {
-      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+      toast({
+        title: 'Erro ao criar OS',
+        description: e.message || 'Ocorreu um erro inesperado',
+        variant: 'destructive',
+      })
     }
   }
 
