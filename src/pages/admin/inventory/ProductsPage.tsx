@@ -100,7 +100,23 @@ export default function ProductsPage() {
             </div>
             <div className="space-y-2">
               <Label>Categoria</Label>
-              <Input onChange={(e) => setForm({ ...form, category: e.target.value })} />
+              <Select
+                value={form.category}
+                onValueChange={(v) => setForm({ ...form, category: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="eletrica">Elétrica</SelectItem>
+                  <SelectItem value="hidraulica">Hidráulica</SelectItem>
+                  <SelectItem value="civil">Civil</SelectItem>
+                  <SelectItem value="serralheria">Serralheria</SelectItem>
+                  <SelectItem value="marmoraria">Marmoraria</SelectItem>
+                  <SelectItem value="marcenaria">Marcenaria</SelectItem>
+                  <SelectItem value="geral">Geral / Outros</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Unidade de Medida</Label>

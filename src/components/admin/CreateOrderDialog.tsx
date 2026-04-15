@@ -46,7 +46,7 @@ export default function CreateOrderDialog({
   const appStore = useAppStore() as any
   const { clients, contracts, contractUnits, createOrder, priceItems, orders } = appStore
   const { technicians, teams } = useOperationalStore()
-  const [formData, setFormData] = useState<any>({ priority: 'Normal (10 dias)' })
+  const [formData, setFormData] = useState<any>({ priority: 'medium' })
 
   // Schedule States
   const [scheduleDate, setScheduleDate] = useState<Date | undefined>()
@@ -57,7 +57,7 @@ export default function CreateOrderDialog({
 
   useEffect(() => {
     if (open) {
-      let initData: any = { priority: 'Normal (10 dias)' }
+      let initData: any = { priority: 'medium' }
 
       if (defaultContractId) {
         const contract = contracts.find((c) => c.id === defaultContractId)
@@ -353,6 +353,24 @@ export default function CreateOrderDialog({
                   <SelectItem value="serralheria">Serralheria</SelectItem>
                   <SelectItem value="marmoraria">Marmoraria</SelectItem>
                   <SelectItem value="marcenaria">Marcenaria</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Prioridade</Label>
+              <Select
+                value={formData.priority || 'medium'}
+                onValueChange={(v) => setFormData({ ...formData, priority: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a prioridade..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Baixa</SelectItem>
+                  <SelectItem value="medium">Média (10 dias)</SelectItem>
+                  <SelectItem value="high">Alta</SelectItem>
+                  <SelectItem value="urgent">Urgente (48h)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -82,9 +82,12 @@ export default function DashboardFilters() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">Todos os Tipos</SelectItem>
-          <SelectItem value="Preventiva">Preventiva</SelectItem>
-          <SelectItem value="Corretiva">Corretiva</SelectItem>
-          <SelectItem value="Obra">Obra</SelectItem>
+          <SelectItem value="eletrica">Elétrica</SelectItem>
+          <SelectItem value="hidraulica">Hidráulica</SelectItem>
+          <SelectItem value="civil">Civil</SelectItem>
+          <SelectItem value="serralheria">Serralheria</SelectItem>
+          <SelectItem value="marmoraria">Marmoraria</SelectItem>
+          <SelectItem value="marcenaria">Marcenaria</SelectItem>
         </SelectContent>
       </Select>
 

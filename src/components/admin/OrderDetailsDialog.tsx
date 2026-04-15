@@ -107,7 +107,7 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
         description: order.description || '',
         serviceType: order.serviceType || 'civil',
         status: order.status || 'pending',
-        priority: order.priority || 'Normal (10 dias)',
+        priority: order.priority || 'medium',
         scheduledAt: order.scheduledAt
           ? new Date(order.scheduledAt).toISOString().slice(0, 16)
           : '',
@@ -209,7 +209,7 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
                 orderId: order.id,
                 date: new Date().toISOString(),
                 value: updates.serviceValue,
-                status: updates.status === 'completed' ? 'recebido' : 'pendente',
+                status: updates.status === 'completed' ? 'completed' : 'pending',
                 type: 'servico_os',
                 isFixed: false,
                 category: 'receita_operacional',
@@ -331,15 +331,20 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
             </div>
             <Badge
               variant={
-                order.priority === 'Emergencial (48h)' ||
-                order.priority === 'Urgente (4 dias)' ||
-                order.priority === 'Alta' ||
-                order.priority === 'urgent'
+                order.priority === 'urgent' || order.priority === 'high'
                   ? 'destructive'
                   : 'secondary'
               }
             >
-              {order.priority}
+              {order.priority === 'low'
+                ? 'Baixa'
+                : order.priority === 'medium'
+                  ? 'Média'
+                  : order.priority === 'high'
+                    ? 'Alta'
+                    : order.priority === 'urgent'
+                      ? 'Urgente'
+                      : order.priority}
             </Badge>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
@@ -410,9 +415,12 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
                       <SelectItem value="draft">Rascunho</SelectItem>
                       <SelectItem value="pending">Pendente</SelectItem>
                       <SelectItem value="scheduled">Agendado</SelectItem>
+                      <SelectItem value="deslocamento">Em Deslocamento</SelectItem>
                       <SelectItem value="in_progress">Em Andamento</SelectItem>
                       <SelectItem value="paused">Pausado</SelectItem>
+                      <SelectItem value="in_audit">Em Auditoria</SelectItem>
                       <SelectItem value="completed">Concluído</SelectItem>
+                      <SelectItem value="rejected">Rejeitado</SelectItem>
                       <SelectItem value="cancelled">Cancelado</SelectItem>
                     </SelectContent>
                   </Select>
@@ -428,11 +436,10 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Emergencial (48h)">Emergencial (48h)</SelectItem>
-                      <SelectItem value="Urgente (4 dias)">Urgente (4 dias)</SelectItem>
-                      <SelectItem value="Normal (10 dias)">Normal (10 dias)</SelectItem>
-                      <SelectItem value="Parcial (3 dias)">Parcial (3 dias)</SelectItem>
-                      <SelectItem value="Garantia (3 dias)">Garantia (3 dias)</SelectItem>
+                      <SelectItem value="low">Baixa</SelectItem>
+                      <SelectItem value="medium">Média (10 dias)</SelectItem>
+                      <SelectItem value="high">Alta</SelectItem>
+                      <SelectItem value="urgent">Urgente (48h)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

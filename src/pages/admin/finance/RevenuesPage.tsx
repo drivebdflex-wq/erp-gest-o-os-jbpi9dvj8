@@ -34,7 +34,7 @@ export default function RevenuesPage() {
   const { revenues, addRevenue } = useFinanceStore()
   const { contracts } = useAppStore()
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState<any>({ type: 'mensal', status: 'previsto' })
+  const [form, setForm] = useState<any>({ type: 'mensal', status: 'pending' })
 
   const handleSave = () => {
     if (!form.contractId || !form.value || !form.date) return
@@ -46,7 +46,7 @@ export default function RevenuesPage() {
       status: form.status,
     })
     setOpen(false)
-    setForm({ type: 'mensal', status: 'previsto' })
+    setForm({ type: 'mensal', status: 'pending' })
   }
 
   return (
@@ -84,8 +84,12 @@ export default function RevenuesPage() {
                     <TableCell>{new Date(r.date).toLocaleDateString()}</TableCell>
                     <TableCell className="capitalize">{r.type}</TableCell>
                     <TableCell>
-                      <Badge variant={r.status === 'recebido' ? 'default' : 'secondary'}>
-                        {r.status}
+                      <Badge variant={r.status === 'completed' ? 'default' : 'secondary'}>
+                        {r.status === 'completed'
+                          ? 'Concluído'
+                          : r.status === 'pending'
+                            ? 'Pendente'
+                            : r.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-mono">R$ {r.value.toFixed(2)}</TableCell>
@@ -151,8 +155,9 @@ export default function RevenuesPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="previsto">Previsto</SelectItem>
-                    <SelectItem value="recebido">Recebido</SelectItem>
+                    <SelectItem value="pending">Pendente (Previsto)</SelectItem>
+                    <SelectItem value="completed">Concluído (Recebido)</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

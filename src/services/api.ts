@@ -14,16 +14,23 @@ export const api = {
       }
 
       let priority = data.priority
-      if (priority === 'Normal (10 dias)' || priority === 'Normal') priority = 'medium'
-      else if (priority === 'Alta') priority = 'high'
-      else if (priority === 'Baixa') priority = 'low'
-      else if (priority === 'Urgente') priority = 'urgent'
-      else if (priority && !['low', 'medium', 'high', 'urgent'].includes(priority))
-        priority = 'medium'
+      if (!['low', 'medium', 'high', 'urgent'].includes(priority)) priority = 'medium'
 
       let status = data.status || 'pending'
-      if (status === 'scheduled') status = 'pending'
-      if (!['pending', 'in_progress', 'completed'].includes(status)) {
+      if (
+        ![
+          'draft',
+          'pending',
+          'scheduled',
+          'deslocamento',
+          'in_progress',
+          'paused',
+          'in_audit',
+          'completed',
+          'rejected',
+          'cancelled',
+        ].includes(status)
+      ) {
         status = 'pending'
       }
 

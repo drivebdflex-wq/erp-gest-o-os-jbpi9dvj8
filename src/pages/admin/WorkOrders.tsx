@@ -284,16 +284,33 @@ export default function WorkOrders() {
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[120px]">
+          <SelectTrigger className="w-[130px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos Status</SelectItem>
-            <SelectItem value="Pendente">Pendente</SelectItem>
-            <SelectItem value="Agendado">Agendado</SelectItem>
-            <SelectItem value="Em Execução">Em Execução</SelectItem>
-            <SelectItem value="Em Auditoria">Em Auditoria</SelectItem>
-            <SelectItem value="Finalizada">Finalizada</SelectItem>
+            <SelectItem value="draft">Rascunho</SelectItem>
+            <SelectItem value="pending">Pendente</SelectItem>
+            <SelectItem value="scheduled">Agendado</SelectItem>
+            <SelectItem value="deslocamento">Em Deslocamento</SelectItem>
+            <SelectItem value="in_progress">Em Andamento</SelectItem>
+            <SelectItem value="paused">Pausado</SelectItem>
+            <SelectItem value="in_audit">Em Auditoria</SelectItem>
+            <SelectItem value="completed">Concluído</SelectItem>
+            <SelectItem value="rejected">Rejeitado</SelectItem>
+            <SelectItem value="cancelled">Cancelado</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+          <SelectTrigger className="w-[120px]">
+            <SelectValue placeholder="Prioridade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            <SelectItem value="low">Baixa</SelectItem>
+            <SelectItem value="medium">Média</SelectItem>
+            <SelectItem value="high">Alta</SelectItem>
+            <SelectItem value="urgent">Urgente</SelectItem>
           </SelectContent>
         </Select>
         <Select value={serviceTypeFilter} onValueChange={setServiceTypeFilter}>
