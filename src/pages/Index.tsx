@@ -28,7 +28,8 @@ import useAppStore from '@/stores/useAppStore'
 import { exportOrdersToCSV } from '@/lib/export'
 import { api } from '@/services/api'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { InfoIcon, Loader2 } from 'lucide-react'
+import { InfoIcon } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const mapStatusToPt = (status: string) => {
   const map: Record<string, string> = {
@@ -61,43 +62,39 @@ export default function Index() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const fetchOrders = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const data = await api.serviceOrders.list()
+
+      const dataArray = Array.isArray(data) ? data : data.data || []
+      const mappedOrders = dataArray.map((o: any) => ({
+        id: o.id,
+        shortId: o.id?.split('-')[0]?.toUpperCase()?.substring(0, 8) || 'OS-000',
+        title: o.description || 'Manutenção',
+        client: o.client_id || 'Cliente não informado',
+        unit: o.unit_id || 'Unidade não informada',
+        serviceType: o.service_type || 'preventiva',
+        date: o.scheduled_at || o.created_at || new Date().toISOString(),
+        tech: o.technician_id || 'Não Atribuído',
+        status: mapStatusToPt(o.status),
+        priority: mapPriorityToPt(o.priority),
+        updatedAt: o.updated_at || o.created_at || new Date().toISOString(),
+        contractName: o.contract_id ? 'Contrato Vinculado' : '',
+      }))
+
+      // Reset the filters and set the data exactly as returned from the backend
+      useAppStore.setState({ orders: mappedOrders, filteredOrders: mappedOrders })
+    } catch (err: any) {
+      setError(err.message || 'Falha ao conectar com a API')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   useEffect(() => {
-    let mounted = true
-    const fetchOrders = async () => {
-      try {
-        setIsLoading(true)
-        setError(null)
-        const data = await api.serviceOrders.list()
-        if (!mounted) return
-
-        const dataArray = Array.isArray(data) ? data : data.data || []
-        const mappedOrders = dataArray.map((o: any) => ({
-          id: o.id,
-          shortId: o.id?.split('-')[0]?.toUpperCase()?.substring(0, 8) || 'OS-000',
-          title: o.description || 'Manutenção',
-          client: o.client_id || 'Cliente não informado',
-          unit: o.unit_id || 'Unidade não informada',
-          serviceType: o.service_type || 'preventiva',
-          date: o.scheduled_at || o.created_at || new Date().toISOString(),
-          tech: o.technician_id || 'Não Atribuído',
-          status: mapStatusToPt(o.status),
-          priority: mapPriorityToPt(o.priority),
-          updatedAt: o.updated_at || o.created_at || new Date().toISOString(),
-          contractName: o.contract_id ? 'Contrato Vinculado' : '',
-        }))
-
-        // Reset the filters and set the data exactly as returned from the backend
-        useAppStore.setState({ orders: mappedOrders, filteredOrders: mappedOrders })
-      } catch (err: any) {
-        if (mounted) setError('Failed to fetch')
-      } finally {
-        if (mounted) setIsLoading(false)
-      }
-    }
     fetchOrders()
-    return () => {
-      mounted = false
-    }
   }, [])
 
   const handleExportCSV = () => exportOrdersToCSV(orders)
@@ -143,7 +140,7 @@ export default function Index() {
     }
   })
 
-  if (alerts.length === 0) {
+  if (!isLoading && !error && alerts.length === 0) {
     alerts.push({
       id: 'mock-1',
       type: 'stuck',
@@ -159,9 +156,36 @@ export default function Index() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[60vh] flex-col gap-4">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-muted-foreground">Carregando ordens de serviço...</p>
+      <div className="space-y-6 print:hidden">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-14 w-14 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-64 sm:w-80" />
+              <Skeleton className="h-4 w-48 sm:w-96" />
+            </div>
+          </div>
+          <Skeleton className="h-10 w-full sm:w-40" />
+        </div>
+
+        <div className="flex gap-4">
+          <Skeleton className="h-10 w-full sm:w-64" />
+          <Skeleton className="h-10 w-full sm:w-64" />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          ))}
+        </div>
+
+        <div className="space-y-4 mt-6">
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-6 w-24 rounded-full" />
+          </div>
+          <Skeleton className="h-[300px] w-full rounded-xl" />
+        </div>
       </div>
     )
   }
@@ -171,13 +195,15 @@ export default function Index() {
       <div className="flex items-center justify-center h-[60vh] flex-col gap-4 p-4">
         <Alert variant="destructive" className="max-w-md shadow-sm border-destructive/50">
           <ShieldAlert className="h-4 w-4" />
-          <AlertTitle className="font-semibold">Erro na comunicação: Failed to fetch</AlertTitle>
-          <AlertDescription>
-            Não foi possível conectar ao servidor. Verifique sua conexão com a API e tente
-            novamente.
+          <AlertTitle className="font-semibold">Erro na comunicação com o servidor</AlertTitle>
+          <AlertDescription className="mt-2 space-y-2">
+            <p>Não foi possível carregar os dados do dashboard.</p>
+            <p className="text-xs opacity-80 font-mono bg-destructive/10 p-2 rounded break-words">
+              Detalhes: {error}
+            </p>
           </AlertDescription>
         </Alert>
-        <Button onClick={() => window.location.reload()} variant="outline" className="mt-2">
+        <Button onClick={fetchOrders} variant="outline" className="mt-2">
           Tentar Novamente
         </Button>
       </div>
@@ -187,12 +213,15 @@ export default function Index() {
   return (
     <>
       <div className="space-y-6 print:hidden">
-        <Alert className="bg-primary/5 border-primary/20 animate-fade-in">
-          <InfoIcon className="h-4 w-4 text-primary" />
-          <AlertTitle>Aviso sobre Persistência</AlertTitle>
-          <AlertDescription className="text-sm text-muted-foreground">
-            Os dados são persistidos apenas na memória do backend atual. Se o servidor for
-            reiniciado, as alterações feitas nesta sessão poderão ser perdidas.
+        <Alert className="bg-amber-500/10 border-amber-500/20 animate-fade-in">
+          <InfoIcon className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800 dark:text-amber-500 font-semibold">
+            Aviso sobre Persistência de Dados
+          </AlertTitle>
+          <AlertDescription className="text-sm text-amber-700 dark:text-amber-400 mt-1">
+            Como o projeto ainda não está conectado a um banco de dados definitivo (Supabase ou Skip
+            Cloud), qualquer dado recuperado do backend está residindo atualmente na memória do
+            servidor e será redefinido caso o servidor seja reiniciado.
           </AlertDescription>
         </Alert>
 

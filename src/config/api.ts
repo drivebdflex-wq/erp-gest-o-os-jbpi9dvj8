@@ -9,7 +9,7 @@
 export const API_URL = (() => {
   const envUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
 
-  if (envUrl && !envUrl.includes('localhost')) {
+  if (envUrl) {
     return envUrl
   }
 
@@ -20,7 +20,7 @@ export const API_URL = (() => {
     }
   }
 
-  return 'http://localhost:3000/api'
+  return '/api'
 })()
 
 /**

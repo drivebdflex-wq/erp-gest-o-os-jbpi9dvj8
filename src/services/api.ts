@@ -5,10 +5,17 @@ export const api = {
     list: async () => {
       try {
         const res = await fetch(buildApiUrl('/service-orders'))
-        if (!res.ok) throw new Error('Failed to fetch')
+        if (!res.ok) {
+          throw new Error(`Erro do Servidor (${res.status}): Falha ao buscar as ordens de serviço.`)
+        }
         return await res.json()
-      } catch (error) {
-        throw new Error('Failed to fetch')
+      } catch (error: any) {
+        if (error.name === 'TypeError' || error.message === 'Failed to fetch') {
+          throw new Error(
+            'Erro de Rede: Não foi possível conectar ao servidor. Verifique se a API está online.',
+          )
+        }
+        throw new Error(error.message || 'Erro desconhecido ao buscar ordens de serviço.')
       }
     },
     create: async (data: any) => {
