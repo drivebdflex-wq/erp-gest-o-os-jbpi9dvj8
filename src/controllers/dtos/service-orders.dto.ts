@@ -7,14 +7,16 @@ export const CreateServiceOrderDto = z.object({
   description: z.string().min(1, 'description is mandatory'),
   status: z
     .enum([
+      'draft',
       'pending',
       'scheduled',
+      'deslocamento',
       'in_progress',
       'paused',
       'in_audit',
       'completed',
-      'cancelled',
       'rejected',
+      'cancelled',
     ])
     .optional()
     .default('pending'),

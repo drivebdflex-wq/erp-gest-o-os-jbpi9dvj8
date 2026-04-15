@@ -198,14 +198,16 @@ export default function CreateOrderDialog({
                   <SelectValue placeholder="Selecione o status..." />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="draft">Rascunho</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="scheduled">Agendada</SelectItem>
+                  <SelectItem value="deslocamento">Em Deslocamento</SelectItem>
                   <SelectItem value="in_progress">Em Andamento</SelectItem>
                   <SelectItem value="paused">Pausada</SelectItem>
                   <SelectItem value="in_audit">Em Auditoria</SelectItem>
                   <SelectItem value="completed">Concluída</SelectItem>
-                  <SelectItem value="cancelled">Cancelada</SelectItem>
                   <SelectItem value="rejected">Rejeitada</SelectItem>
+                  <SelectItem value="cancelled">Cancelada</SelectItem>
                 </SelectContent>
               </Select>
             </div>
