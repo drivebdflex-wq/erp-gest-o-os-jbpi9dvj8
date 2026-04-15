@@ -49,7 +49,9 @@ export const api = {
           const errBody = await res.json()
           if (errBody.message) errorMsg = errBody.message
           else if (errBody.error) errorMsg = errBody.error
-        } catch (e) {}
+        } catch (e) {
+          // Ignore JSON parse error
+        }
         throw new Error(errorMsg)
       }
       return res.json()
