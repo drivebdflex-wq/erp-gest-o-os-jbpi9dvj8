@@ -25,8 +25,26 @@ import {
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Trash2, Loader2 } from 'lucide-react'
+// @ts-expect-error
+import useAuthStore from '@/stores/useAuthStore'
 
 export default function TechExecution() {
+  // @ts-expect-error
+  const user = useAuthStore?.((state: any) => state.user)
+  const isAdmin =
+    user?.role === 'admin' || user?.role === 'Administrator' || user?.role === 'admin_master'
+
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -41,10 +59,37 @@ export default function TechExecution() {
   const [loading, setLoading] = useState(true)
   const [checklists, setChecklists] = useState<any[]>([])
   const [photos, setPhotos] = useState<any[]>([])
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     loadOrderData()
   }, [id])
+
+  const handleDelete = async () => {
+    if (!id) return
+    setIsDeleting(true)
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api'
+      const res = await fetch(`${apiUrl}/service-orders/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        throw new Error('Error deleting record. Please try again.')
+      }
+
+      window.dispatchEvent(new Event('service-order-deleted'))
+      toast({ title: 'Sucesso', description: 'Service Order deleted successfully.' })
+      navigate('/ordens')
+    } catch (e: any) {
+      toast({
+        title: 'Erro',
+        description: e.message || 'Falha ao excluir OS.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteAlert(false)
+    }
+  }
 
   const loadOrderData = async () => {
     if (!id) return
@@ -167,12 +212,19 @@ export default function TechExecution() {
           <h1 className="text-2xl font-bold tracking-tight">OS #{order.id.split('-')[0]}</h1>
           <p className="text-muted-foreground">{order.description}</p>
         </div>
-        <Badge
-          variant={order.status === 'in_progress' ? 'default' : 'secondary'}
-          className="text-lg px-4 py-1"
-        >
-          {order.status.toUpperCase()}
-        </Badge>
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <Button variant="destructive" size="sm" onClick={() => setShowDeleteAlert(true)}>
+              <Trash2 className="w-4 h-4 mr-2" /> Excluir
+            </Button>
+          )}
+          <Badge
+            variant={order.status === 'in_progress' ? 'default' : 'secondary'}
+            className="text-lg px-4 py-1"
+          >
+            {order.status.toUpperCase()}
+          </Badge>
+        </div>
       </div>
 
       <Card className="border-primary/20 bg-primary/5">
@@ -451,6 +503,31 @@ export default function TechExecution() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Ordem de Serviço</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza de que deseja excluir esta OS? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                handleDelete()
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

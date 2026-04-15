@@ -131,11 +131,18 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
     if (!order) return
     setIsDeleting(true)
     try {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api'
+      const res = await fetch(`${apiUrl}/service-orders/${order.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        throw new Error('Error deleting record. Please try again.')
+      }
+
       useAppStore.setState((state: any) => ({
         orders: state.orders.filter((o: any) => o.id !== order.id),
         filteredOrders: state.filteredOrders.filter((o: any) => o.id !== order.id),
       }))
-      toast({ title: 'Sucesso', description: 'Ordem de Serviço excluída com sucesso.' })
+      window.dispatchEvent(new Event('service-order-deleted'))
+      toast({ title: 'Sucesso', description: 'Service Order deleted successfully.' })
       onOpenChange(false)
     } catch (e: any) {
       toast({

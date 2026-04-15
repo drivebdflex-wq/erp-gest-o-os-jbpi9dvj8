@@ -22,6 +22,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Trash2, Loader2 } from 'lucide-react'
+// @ts-expect-error
+import useAuthStore from '@/stores/useAuthStore'
 import { cn } from '@/lib/utils'
 
 interface ServiceOrder {
@@ -43,9 +56,16 @@ const HOURS_COUNT = END_HOUR - START_HOUR
 const HOUR_HEIGHT = 90
 
 export default function OperationalAgendaPage() {
+  // @ts-expect-error
+  const user = useAuthStore?.((state: any) => state.user)
+  const isAdmin =
+    user?.role === 'admin' || user?.role === 'Administrator' || user?.role === 'admin_master'
+
   const [orders, setOrders] = useState<ServiceOrder[]>([])
   const [loading, setLoading] = useState(true)
   const [date, setDate] = useState(new Date())
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchOrders = async () => {
     setLoading(true)
@@ -69,9 +89,38 @@ export default function OperationalAgendaPage() {
   useEffect(() => {
     fetchOrders()
     const handleOrderUpdated = () => fetchOrders()
+    const handleOrderDeleted = () => fetchOrders()
     window.addEventListener('service-order-updated', handleOrderUpdated)
-    return () => window.removeEventListener('service-order-updated', handleOrderUpdated)
+    window.addEventListener('service-order-deleted', handleOrderDeleted)
+    return () => {
+      window.removeEventListener('service-order-updated', handleOrderUpdated)
+      window.removeEventListener('service-order-deleted', handleOrderDeleted)
+    }
   }, [])
+
+  const handleDeleteOrder = async (id: string) => {
+    setIsDeleting(true)
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+      const res = await fetch(`${apiUrl}/service-orders/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        throw new Error('Error deleting record. Please try again.')
+      }
+
+      setOrders((prev) => prev.filter((o) => o.id !== id))
+      window.dispatchEvent(new Event('service-order-deleted'))
+      toast({ title: 'Sucesso', description: 'Service Order deleted successfully.' })
+    } catch (error: any) {
+      toast({
+        title: 'Erro ao excluir OS',
+        description: error.message || 'Falha ao excluir.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+      setOrderToDelete(null)
+    }
+  }
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
@@ -273,6 +322,17 @@ export default function OperationalAgendaPage() {
                                 >
                                   <AlertCircle className="w-4 h-4 mr-2" /> Cancelar OS
                                 </DropdownMenuItem>
+                                {isAdmin && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={() => setOrderToDelete(o.id)}
+                                      className="cursor-pointer text-destructive focus:text-destructive"
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-2" /> Excluir OS
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -307,6 +367,31 @@ export default function OperationalAgendaPage() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={!!orderToDelete} onOpenChange={(open) => !open && setOrderToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Ordem de Serviço</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza de que deseja excluir esta OS? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                if (orderToDelete) handleDeleteOrder(orderToDelete)
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

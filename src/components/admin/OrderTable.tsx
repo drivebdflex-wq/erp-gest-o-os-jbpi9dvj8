@@ -82,10 +82,9 @@ export default function OrderTable({
       }
 
       const apiUrl = import.meta.env.VITE_API_URL || '/api'
-      try {
-        await fetch(`${apiUrl}/service-orders/${order.id}`, { method: 'DELETE' })
-      } catch (e) {
-        console.error('API delete failed, continuing with local state', e)
+      const res = await fetch(`${apiUrl}/service-orders/${order.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        throw new Error('Error deleting record. Please try again.')
       }
 
       useAppStore.setState((state: any) => {
@@ -103,7 +102,7 @@ export default function OrderTable({
             : [{ ...orderToDel, deletedAt: now, deleted_at: now }],
         }
       })
-      toast({ title: 'Sucesso', description: 'Ordem de Serviço movida para a lixeira.' })
+      toast({ title: 'Sucesso', description: 'Service Order deleted successfully.' })
     } catch (e: any) {
       toast({
         title: 'Erro',

@@ -82,10 +82,9 @@ export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' 
       }
 
       const apiUrl = import.meta.env.VITE_API_URL || '/api'
-      try {
-        await fetch(`${apiUrl}/contracts/${contract.id}`, { method: 'DELETE' })
-      } catch (e) {
-        console.error('API delete failed, continuing with local state', e)
+      const res = await fetch(`${apiUrl}/contracts/${contract.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        throw new Error('Error deleting record. Please try again.')
       }
 
       useAppStore.setState((state: any) => ({
@@ -118,7 +117,7 @@ export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' 
         user_agent: navigator.userAgent,
       })
 
-      toast({ title: 'Sucesso', description: 'Contrato excluído com sucesso.' })
+      toast({ title: 'Sucesso', description: 'Contract deleted successfully.' })
     } catch (e: any) {
       toast({
         title: 'Erro',

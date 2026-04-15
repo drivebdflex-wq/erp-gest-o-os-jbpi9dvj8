@@ -8,17 +8,38 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, RefreshCw } from 'lucide-react'
+import { AlertCircle, RefreshCw, Trash2, Loader2 } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useToast } from '@/hooks/use-toast'
+// @ts-expect-error
+import useAuthStore from '@/stores/useAuthStore'
 
 export default function PendingServiceOrdersTab() {
+  // @ts-expect-error
+  const user = useAuthStore?.((state: any) => state.user)
+  const isAdmin =
+    user?.role === 'admin' || user?.role === 'Administrator' || user?.role === 'admin_master'
+
+  const { toast } = useToast()
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [orderToDelete, setOrderToDelete] = useState<any>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchOrders = async () => {
     setLoading(true)
@@ -50,13 +71,41 @@ export default function PendingServiceOrdersTab() {
       fetchOrders()
     }
 
+    const handleOrderDeleted = () => fetchOrders()
+
     window.addEventListener('service-order-created', handleOrderCreated)
     window.addEventListener('service-order-updated', handleOrderUpdated)
+    window.addEventListener('service-order-deleted', handleOrderDeleted)
     return () => {
       window.removeEventListener('service-order-created', handleOrderCreated)
       window.removeEventListener('service-order-updated', handleOrderUpdated)
+      window.removeEventListener('service-order-deleted', handleOrderDeleted)
     }
   }, [])
+
+  const handleDelete = async (order: any) => {
+    setIsDeleting(true)
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api'
+      const res = await fetch(`${apiUrl}/service-orders/${order.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        throw new Error('Error deleting record. Please try again.')
+      }
+
+      setOrders((prev) => prev.filter((o) => o.id !== order.id))
+      window.dispatchEvent(new Event('service-order-deleted'))
+      toast({ title: 'Sucesso', description: 'Service Order deleted successfully.' })
+    } catch (e: any) {
+      toast({
+        title: 'Erro',
+        description: e.message || 'Falha ao excluir OS.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsDeleting(false)
+      setOrderToDelete(null)
+    }
+  }
 
   if (loading) {
     return (
@@ -118,6 +167,7 @@ export default function PendingServiceOrdersTab() {
               <TableHead>Descrição</TableHead>
               <TableHead>Data Criação</TableHead>
               <TableHead>Status</TableHead>
+              {isAdmin && <TableHead className="text-right">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -144,11 +194,49 @@ export default function PendingServiceOrdersTab() {
                     Pendente
                   </Badge>
                 </TableCell>
+                {isAdmin && (
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => setOrderToDelete(order)}
+                      title="Excluir OS"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+
+      <AlertDialog open={!!orderToDelete} onOpenChange={(open) => !open && setOrderToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Ordem de Serviço</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza de que deseja excluir esta OS? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault()
+                if (orderToDelete) handleDelete(orderToDelete)
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
