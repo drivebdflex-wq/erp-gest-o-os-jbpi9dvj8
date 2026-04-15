@@ -89,6 +89,31 @@ export class ServiceOrdersService {
     }
   }
 
+  async update(id: string, updateDto: any) {
+    const order = await this.findOne(id)
+
+    try {
+      const { data, error } = await this.supabaseService
+        .getClient()
+        .from('service_orders')
+        .update(updateDto)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) {
+        this.logger.error(`Error updating service order: ${error.message}`, error)
+        throw new InternalServerErrorException('Failed to update service order')
+      }
+      return data
+    } catch (err: any) {
+      this.logger.error(`Exception in update service order: ${err.message}`, err.stack)
+      if (err instanceof InternalServerErrorException || err instanceof BadRequestException)
+        throw err
+      throw new InternalServerErrorException('Unexpected error updating service order')
+    }
+  }
+
   async updateStatus(id: string, newStatus: string) {
     if (!newStatus) {
       throw new BadRequestException('Status is required')
