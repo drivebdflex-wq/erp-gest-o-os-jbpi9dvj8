@@ -58,10 +58,22 @@ export default function CreateOrderDialog({
 
   const handleSave = async () => {
     try {
+      const isUUID = (str: string) =>
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str)
+
       if (!formData.description || !formData.clientId) {
         toast({
           title: 'Aviso',
           description: 'Preencha a descrição e o cliente.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      if (!isUUID(formData.clientId)) {
+        toast({
+          title: 'Aviso',
+          description: 'O cliente selecionado é inválido. Por favor, selecione um cliente real.',
           variant: 'destructive',
         })
         return
@@ -132,7 +144,13 @@ export default function CreateOrderDialog({
                   </SelectTrigger>
                   <SelectContent>
                     {clients
-                      ?.filter((c: any) => c.id && c.id.trim() !== '')
+                      ?.filter(
+                        (c: any) =>
+                          c.id &&
+                          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+                            c.id,
+                          ),
+                      )
                       .map((c: any) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name || 'Sem Nome'}
@@ -205,13 +223,20 @@ export default function CreateOrderDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {technicians
-                    ?.filter((t: any) => t.status === 'active' && t.id && t.id.trim() !== '')
+                    ?.filter(
+                      (t: any) =>
+                        t.status === 'active' &&
+                        t.id &&
+                        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+                          t.id,
+                        ),
+                    )
                     .map((t: any) => (
                       <SelectItem key={t.id} value={t.id}>
                         {t.name || 'Sem Nome'}
                       </SelectItem>
                     ))}
-                </SelectContent>
+                </SelectContent>{' '}
               </Select>
             </div>
           </div>

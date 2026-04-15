@@ -36,6 +36,10 @@ export const api = {
 
       const payload = { ...data, priority, status }
 
+      if (!payload.client_id || !isUUID(String(payload.client_id))) {
+        throw new Error('Invalid client ID')
+      }
+
       if (!payload.team_id || !isUUID(String(payload.team_id))) {
         delete payload.team_id
       }
