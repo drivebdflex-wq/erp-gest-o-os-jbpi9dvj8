@@ -8,7 +8,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, RefreshCw, Trash2, Loader2 } from 'lucide-react'
+import { AlertCircle, RefreshCw, Trash2, Loader2, UserPlus, Edit } from 'lucide-react'
+import AssignOrderDialog from './AssignOrderDialog'
+import EditOrderDialog from './EditOrderDialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -39,6 +41,8 @@ export default function PendingServiceOrdersTab() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [orderToDelete, setOrderToDelete] = useState<any>(null)
+  const [orderToAssign, setOrderToAssign] = useState<any>(null)
+  const [orderToEdit, setOrderToEdit] = useState<any>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchOrders = async () => {
@@ -196,15 +200,35 @@ export default function PendingServiceOrdersTab() {
                 </TableCell>
                 {isAdmin && (
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setOrderToDelete(order)}
-                      title="Excluir OS"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={() => setOrderToAssign(order)}
+                        title="Atribuir Técnico"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-muted-foreground hover:text-foreground hover:bg-muted"
+                        onClick={() => setOrderToEdit(order)}
+                        title="Editar OS"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setOrderToDelete(order)}
+                        title="Excluir OS"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 )}
               </TableRow>
@@ -237,6 +261,28 @@ export default function PendingServiceOrdersTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AssignOrderDialog
+        open={!!orderToAssign}
+        onOpenChange={(open: boolean) => !open && setOrderToAssign(null)}
+        order={orderToAssign}
+        onSuccess={() => {
+          setOrderToAssign(null)
+          fetchOrders()
+          window.dispatchEvent(new Event('service-order-updated'))
+        }}
+      />
+
+      <EditOrderDialog
+        open={!!orderToEdit}
+        onOpenChange={(open: boolean) => !open && setOrderToEdit(null)}
+        order={orderToEdit}
+        onSuccess={() => {
+          setOrderToEdit(null)
+          fetchOrders()
+          window.dispatchEvent(new Event('service-order-updated'))
+        }}
+      />
     </div>
   )
 }
