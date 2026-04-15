@@ -3,9 +3,13 @@ import { buildApiUrl } from '@/config/api'
 export const api = {
   serviceOrders: {
     list: async () => {
-      const res = await fetch(buildApiUrl('/service-orders'))
-      if (!res.ok) throw new Error('Failed to fetch service orders')
-      return res.json()
+      try {
+        const res = await fetch(buildApiUrl('/service-orders'))
+        if (!res.ok) throw new Error('Failed to fetch')
+        return await res.json()
+      } catch (error) {
+        throw new Error('Failed to fetch')
+      }
     },
     create: async (data: any) => {
       const isUUID = (str: string) => {

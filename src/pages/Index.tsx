@@ -88,7 +88,7 @@ export default function Index() {
         // Reset the filters and set the data exactly as returned from the backend
         useAppStore.setState({ orders: mappedOrders, filteredOrders: mappedOrders })
       } catch (err: any) {
-        if (mounted) setError(err.message || 'Erro ao carregar ordens de serviço')
+        if (mounted) setError('Failed to fetch')
       } finally {
         if (mounted) setIsLoading(false)
       }
@@ -163,12 +163,16 @@ export default function Index() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-[60vh] flex-col gap-4">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertTitle>Erro na comunicação</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+      <div className="flex items-center justify-center h-[60vh] flex-col gap-4 p-4">
+        <Alert variant="destructive" className="max-w-md shadow-sm border-destructive/50">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle className="font-semibold">Erro na comunicação: Failed to fetch</AlertTitle>
+          <AlertDescription>
+            Não foi possível conectar ao servidor. Verifique sua conexão com a API e tente
+            novamente.
+          </AlertDescription>
         </Alert>
-        <Button onClick={() => window.location.reload()} variant="outline">
+        <Button onClick={() => window.location.reload()} variant="outline" className="mt-2">
           Tentar Novamente
         </Button>
       </div>
