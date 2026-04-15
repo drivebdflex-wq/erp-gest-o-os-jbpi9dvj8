@@ -2,6 +2,7 @@ import DashboardCards from '@/components/admin/DashboardCards'
 import DashboardCharts from '@/components/admin/DashboardCharts'
 import DashboardFilters from '@/components/admin/DashboardFilters'
 import KanbanSummary from '@/components/admin/KanbanSummary'
+import OrderTable from '@/components/admin/OrderTable'
 import ContractWidgets from '@/components/admin/ContractWidgets'
 import TechnicianLeaderboard from '@/components/admin/TechnicianLeaderboard'
 import PrintableReport from '@/components/admin/PrintableReport'
@@ -152,6 +153,10 @@ export default function Index() {
     })
   }
 
+  const designationQueueOrders = orders.filter((o: any) =>
+    ['Pendente', 'Agendado', 'Em Execução'].includes(o.status),
+  )
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[60vh] flex-col gap-4">
@@ -233,6 +238,19 @@ export default function Index() {
         <DashboardFilters />
 
         <DashboardCards />
+
+        <div className="space-y-4 my-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold tracking-tight flex items-center gap-2">
+              <Clock className="w-5 h-5 text-primary" />
+              Fila de Designação
+            </h3>
+            <Badge variant="secondary" className="px-3 py-1 text-sm font-medium">
+              {designationQueueOrders.length} OS Pendentes/Ativas
+            </Badge>
+          </div>
+          <OrderTable orders={designationQueueOrders} />
+        </div>
 
         <KanbanSummary />
 

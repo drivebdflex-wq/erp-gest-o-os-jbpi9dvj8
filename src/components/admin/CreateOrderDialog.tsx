@@ -98,9 +98,12 @@ export default function CreateOrderDialog({
         await appStore.loadOrders()
       } else if (typeof appStore.fetchData === 'function') {
         await appStore.fetchData()
+      } else {
+        // Fallback for Index page dynamic rendering refresh
+        setTimeout(() => window.location.reload(), 1000)
       }
 
-      toast({ title: 'Sucesso', description: 'OS criada com sucesso.' })
+      toast({ title: 'Sucesso', description: 'OS criada com sucesso. A lista será atualizada.' })
       onOpenChange(false)
     } catch (e: any) {
       toast({
