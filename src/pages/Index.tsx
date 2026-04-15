@@ -22,11 +22,82 @@ import {
   FileText,
   Table as TableIcon,
 } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import useAppStore from '@/stores/useAppStore'
 import { exportOrdersToCSV } from '@/lib/export'
+import { api } from '@/services/api'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { InfoIcon, Loader2 } from 'lucide-react'
+
+const mapStatusToPt = (status: string) => {
+  const map: Record<string, string> = {
+    draft: 'Pendente',
+    pending: 'Pendente',
+    scheduled: 'Agendado',
+    deslocamento: 'Em Deslocamento',
+    in_progress: 'Em Execução',
+    paused: 'Pausado',
+    in_audit: 'Em Auditoria',
+    completed: 'Finalizada',
+    rejected: 'Rejeitada',
+    cancelled: 'Cancelada',
+  }
+  return map[status?.toLowerCase()] || status || 'Pendente'
+}
+
+const mapPriorityToPt = (priority: string) => {
+  const map: Record<string, string> = {
+    low: 'Baixa',
+    medium: 'Média',
+    high: 'Alta',
+    urgent: 'Emergencial (48h)',
+  }
+  return map[priority?.toLowerCase()] || priority || 'Média'
+}
 
 export default function Index() {
   const { filteredOrders: orders, companyLogo, companyName } = useAppStore()
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    const fetchOrders = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const data = await api.serviceOrders.list()
+        if (!mounted) return
+
+        const dataArray = Array.isArray(data) ? data : data.data || []
+        const mappedOrders = dataArray.map((o: any) => ({
+          id: o.id,
+          shortId: o.id?.split('-')[0]?.toUpperCase()?.substring(0, 8) || 'OS-000',
+          title: o.description || 'Manutenção',
+          client: o.client_id || 'Cliente não informado',
+          unit: o.unit_id || 'Unidade não informada',
+          serviceType: o.service_type || 'preventiva',
+          date: o.scheduled_at || o.created_at || new Date().toISOString(),
+          tech: o.technician_id || 'Não Atribuído',
+          status: mapStatusToPt(o.status),
+          priority: mapPriorityToPt(o.priority),
+          updatedAt: o.updated_at || o.created_at || new Date().toISOString(),
+          contractName: o.contract_id ? 'Contrato Vinculado' : '',
+        }))
+
+        // Reset the filters and set the data exactly as returned from the backend
+        useAppStore.setState({ orders: mappedOrders, filteredOrders: mappedOrders })
+      } catch (err: any) {
+        if (mounted) setError(err.message || 'Erro ao carregar ordens de serviço')
+      } finally {
+        if (mounted) setIsLoading(false)
+      }
+    }
+    fetchOrders()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const handleExportCSV = () => exportOrdersToCSV(orders)
   const handleExportPDF = () => window.print()
@@ -81,9 +152,41 @@ export default function Index() {
     })
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[60vh] flex-col gap-4">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Carregando ordens de serviço...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-[60vh] flex-col gap-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertTitle>Erro na comunicação</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <Button onClick={() => window.location.reload()} variant="outline">
+          Tentar Novamente
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <>
       <div className="space-y-6 print:hidden">
+        <Alert className="bg-primary/5 border-primary/20 animate-fade-in">
+          <InfoIcon className="h-4 w-4 text-primary" />
+          <AlertTitle>Aviso sobre Persistência</AlertTitle>
+          <AlertDescription className="text-sm text-muted-foreground">
+            Os dados são persistidos apenas na memória do backend atual. Se o servidor for
+            reiniciado, as alterações feitas nesta sessão poderão ser perdidas.
+          </AlertDescription>
+        </Alert>
+
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
             {companyLogo && (
