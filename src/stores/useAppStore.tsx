@@ -7,9 +7,11 @@ import React, {
   useCallback,
   useMemo,
 } from 'react'
+import { api } from '@/services/api'
 import { ServiceOrdersService } from '@/services/business/service-orders.service'
 import { ClientsRepository } from '@/services/repositories/clients.repository'
 import { TechniciansRepository, UsersRepository } from '@/services/repositories/users.repository'
+import { toast } from '@/hooks/use-toast'
 import { ContractsRepository } from '@/services/repositories/contracts.repository'
 import { ContractPriceItemsRepository } from '@/services/repositories/contract-price-items.repository'
 import { ContractUnitsRepository } from '@/services/repositories/contract-units.repository'
@@ -197,6 +199,8 @@ interface AppState {
   deleteContractUnit: (id: string) => Promise<void>
   loadOrders: () => Promise<void>
   generatePreventives: (contractId: string) => Promise<void>
+  isLoadingOrders: boolean
+  createClient: (data: any) => Promise<void>
 }
 
 const AppContext = createContext<AppState | undefined>(undefined)
@@ -221,6 +225,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     period: 'all',
     contract: 'all',
   })
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false)
 
   const setCompanyLogo = useCallback((url: string | null) => {
     setCompanyLogoState(url)
@@ -239,8 +244,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const loadOrders = useCallback(async () => {
     try {
-      const dbOrders = await ServiceOrdersService.findAll()
-      const dbClients = await ClientsRepository.findAll()
+      setIsLoadingOrders(true)
+      const dbOrders = await api.serviceOrders.list().catch(() => [])
+      const dbClients = await api.clients.list().catch(() => [])
       const techs = await TechniciansRepository.findAll()
       const users = await UsersRepository.findAll()
       const dbContracts = await ContractsRepository.findAll()
@@ -342,6 +348,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setOrders(mappedOrders)
     } catch (error) {
       console.error('Error loading data', error)
+      toast({ title: 'Erro', description: 'Falha ao carregar dados.', variant: 'destructive' })
+    } finally {
+      setIsLoadingOrders(false)
     }
   }, [])
 
@@ -372,18 +381,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [orders, filters])
 
   const updateOrderStatus = async (id: string, status: OSStatus) => {
-    await ServiceOrdersService.changeStatus(id, DB_STATUS_MAP[status] as any)
-    await loadOrders()
+    try {
+      await api.serviceOrders.updateStatus(id, DB_STATUS_MAP[status])
+      await loadOrders()
+      toast({ title: 'Sucesso', description: 'Status atualizado com sucesso.' })
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
   }
 
   const updateOrder = async (id: string, data: any) => {
-    await ServiceOrdersService.update(id, data)
-    await loadOrders()
+    try {
+      await ServiceOrdersService.update(id, data)
+      await loadOrders()
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
   }
 
   const createOrder = async (data: any) => {
-    await ServiceOrdersService.create(data)
-    await loadOrders()
+    try {
+      await api.serviceOrders.create(data)
+      await loadOrders()
+      toast({ title: 'Sucesso', description: 'Ordem de serviço criada com sucesso.' })
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
+  }
+
+  const createClient = async (data: any) => {
+    try {
+      await api.clients.create(data)
+      await loadOrders()
+      toast({ title: 'Sucesso', description: 'Cliente criado com sucesso.' })
+    } catch (error: any) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    }
   }
 
   const generatePreventives = async (contractId: string) => {
@@ -484,6 +517,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deleteContractUnit,
         loadOrders,
         generatePreventives,
+        isLoadingOrders,
+        createClient,
       }}
     >
       {children}

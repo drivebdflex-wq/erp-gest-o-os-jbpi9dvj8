@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Plus, Settings, X, Trash2, Loader2 } from 'lucide-react'
+import { Plus, Settings, X, Trash2, Loader2, UserPlus } from 'lucide-react'
+import CreateClientDialog from '@/components/admin/CreateClientDialog'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,6 +58,7 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
   const [unitFormData, setUnitFormData] = useState<any>({})
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [showClientDialog, setShowClientDialog] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -262,21 +264,32 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
                 </div>
                 <div className="space-y-2 col-span-2 sm:col-span-1">
                   <Label>Cliente</Label>
-                  <Select
-                    value={formData.clientId || ''}
-                    onValueChange={(v) => setFormData({ ...formData, clientId: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clients.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex gap-2">
+                    <Select
+                      value={formData.clientId || ''}
+                      onValueChange={(v) => setFormData({ ...formData, clientId: v })}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setShowClientDialog(true)}
+                      title="Novo Cliente"
+                    >
+                      <UserPlus className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="space-y-2 col-span-2 sm:col-span-1">
                   <Label>Unidade / Local (Sede)</Label>
@@ -815,6 +828,8 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CreateClientDialog open={showClientDialog} onOpenChange={setShowClientDialog} />
     </>
   )
 }

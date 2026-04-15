@@ -23,9 +23,10 @@ import { Badge } from '@/components/ui/badge'
 import useAppStore from '@/stores/useAppStore'
 import useOperationalStore from '@/stores/useOperationalStore'
 import { toast } from '@/hooks/use-toast'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, UserPlus } from 'lucide-react'
 import { format, startOfDay } from 'date-fns'
 import { checkConflict } from '@/lib/schedule'
+import CreateClientDialog from '@/components/admin/CreateClientDialog'
 
 interface CreateOrderDialogProps {
   open: boolean
@@ -51,6 +52,7 @@ export default function CreateOrderDialog({
   const [scheduleTime, setScheduleTime] = useState<string>('08:00')
   const [duration, setDuration] = useState<number>(60)
   const [suggestedSlots, setSuggestedSlots] = useState<Date[]>([])
+  const [showClientDialog, setShowClientDialog] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -225,31 +227,44 @@ export default function CreateOrderDialog({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Cliente</Label>
-              <Select
-                disabled={!!defaultContractId}
-                value={formData.clientId || undefined}
-                onValueChange={(v) =>
-                  setFormData({
-                    ...formData,
-                    clientId: v,
-                    contractId: undefined,
-                    unitId: undefined,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients
-                    .filter((c) => c.id && c.id.trim() !== '')
-                    .map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name || 'Sem Nome'}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Select
+                  disabled={!!defaultContractId}
+                  value={formData.clientId || undefined}
+                  onValueChange={(v) =>
+                    setFormData({
+                      ...formData,
+                      clientId: v,
+                      contractId: undefined,
+                      unitId: undefined,
+                    })
+                  }
+                >
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients
+                      .filter((c) => c.id && c.id.trim() !== '')
+                      .map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name || 'Sem Nome'}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {!defaultContractId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setShowClientDialog(true)}
+                    title="Novo Cliente"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Contrato Vinculado</Label>
@@ -481,6 +496,7 @@ export default function CreateOrderDialog({
           <Button onClick={handleSave}>Criar OS</Button>
         </DialogFooter>
       </DialogContent>
+      <CreateClientDialog open={showClientDialog} onOpenChange={setShowClientDialog} />
     </Dialog>
   )
 }

@@ -24,6 +24,7 @@ import {
   CalendarIcon,
   X,
   Trash2,
+  Loader2,
 } from 'lucide-react'
 import OrderTable from '@/components/admin/OrderTable'
 import OrderKanban from '@/components/admin/OrderKanban'
@@ -35,7 +36,13 @@ import { useToast } from '@/hooks/use-toast'
 
 export default function WorkOrders() {
   const { toast } = useToast()
-  const { contracts, orders, contractUnits, deletedOrders = [] } = useAppStore() as any
+  const {
+    contracts,
+    orders,
+    contractUnits,
+    deletedOrders = [],
+    isLoadingOrders,
+  } = useAppStore() as any
   const { hasPermission } = useAuthStore()
   const canCreateOS = hasPermission('create_service_order')
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null)
@@ -72,7 +79,12 @@ export default function WorkOrders() {
   // --- CONTRACT SELECTION VIEW ---
   if (!selectedContractId) {
     return (
-      <div className="space-y-6 h-full flex flex-col animate-fade-in pb-10">
+      <div className="space-y-6 h-full flex flex-col animate-fade-in pb-10 relative">
+        {isLoadingOrders && (
+          <div className="absolute inset-0 z-50 bg-background/50 flex items-center justify-center backdrop-blur-sm rounded-lg">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        )}
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Painel de Contratos</h2>
           <p className="text-sm text-muted-foreground">
@@ -219,7 +231,12 @@ export default function WorkOrders() {
   }
 
   return (
-    <div className="space-y-6 h-full flex flex-col animate-fade-in pb-10">
+    <div className="space-y-6 h-full flex flex-col animate-fade-in pb-10 relative">
+      {isLoadingOrders && (
+        <div className="absolute inset-0 z-50 bg-background/50 flex items-center justify-center backdrop-blur-sm rounded-lg">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => setSelectedContractId(null)}>
