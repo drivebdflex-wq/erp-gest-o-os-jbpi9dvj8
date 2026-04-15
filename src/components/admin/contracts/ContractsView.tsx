@@ -27,7 +27,9 @@ import useFinanceStore from '@/stores/useFinanceStore'
 import { useSystemStore } from '@/stores/useSystemStore'
 import ContractDialog from './ContractDialog'
 import ContractSimulatorDialog from './ContractSimulatorDialog'
+import PendingServiceOrdersTab from './PendingServiceOrdersTab'
 import { toast } from '@/hooks/use-toast'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -152,109 +154,125 @@ export default function ContractsView({ type }: { type: 'Manutenção' | 'Obra' 
         </div>
       </div>
 
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Número</TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Vigência</TableHead>
-              <TableHead>Saúde/Orçamento</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((c) => {
-              const days = getDaysRemaining(c.endDate)
-              const overBudgetFlags = checkBudgetStatus(c)
+      <Tabs defaultValue="contracts" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="contracts">Lista de Contratos</TabsTrigger>
+          <TabsTrigger value="pending-os">OS Pendentes</TabsTrigger>
+        </TabsList>
 
-              return (
-                <TableRow key={c.id} className="hover:bg-muted/50 transition-colors">
-                  <TableCell className="font-medium cursor-pointer" onClick={() => openDialog(c)}>
-                    {c.contractNumber}
-                  </TableCell>
-                  <TableCell className="cursor-pointer" onClick={() => openDialog(c)}>
-                    {c.name}
-                  </TableCell>
-                  <TableCell className="cursor-pointer" onClick={() => openDialog(c)}>
-                    <div className="font-medium text-xs">{c.clientName}</div>
-                    <div className="text-muted-foreground text-[10px]">{c.location}</div>
-                  </TableCell>
-                  <TableCell className="text-xs cursor-pointer" onClick={() => openDialog(c)}>
-                    <Badge
-                      variant={days < 0 ? 'destructive' : days <= 30 ? 'secondary' : 'outline'}
-                      className={
-                        days <= 30 && days >= 0
-                          ? 'bg-warning/20 text-warning border-warning/50'
-                          : ''
-                      }
-                    >
-                      {days < 0 ? 'Vencido' : `${days} dias`}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="cursor-pointer" onClick={() => openDialog(c)}>
-                    {overBudgetFlags.length > 0 ? (
-                      <Badge variant="destructive" className="text-[10px]">
-                        Estouro: {overBudgetFlags.join(', ')}
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className="text-success border-success/50 text-[10px]"
-                      >
-                        No Orçamento
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <Settings className="w-4 h-4 text-muted-foreground" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openDialog(c)}>
-                          Editar Contrato
-                        </DropdownMenuItem>
-                        {c.hasPreventive && (
-                          <DropdownMenuItem
-                            onClick={() => {
-                              generatePreventives(c.id)
-                              toast({
-                                title: 'Preventivas Geradas',
-                                description: `OS de manutenção criadas com sucesso.`,
-                              })
-                            }}
-                          >
-                            Gerar Preventivas
-                          </DropdownMenuItem>
-                        )}
-                        {isAdmin && (
-                          <DropdownMenuItem
-                            onClick={() => setContractToDelete(c)}
-                            className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" /> Excluir Contrato
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+        <TabsContent value="contracts" className="space-y-4">
+          <div className="rounded-md border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Número</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Vigência</TableHead>
+                  <TableHead>Saúde/Orçamento</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              )
-            })}
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                  Nenhum contrato de {type} encontrado.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((c) => {
+                  const days = getDaysRemaining(c.endDate)
+                  const overBudgetFlags = checkBudgetStatus(c)
+
+                  return (
+                    <TableRow key={c.id} className="hover:bg-muted/50 transition-colors">
+                      <TableCell
+                        className="font-medium cursor-pointer"
+                        onClick={() => openDialog(c)}
+                      >
+                        {c.contractNumber}
+                      </TableCell>
+                      <TableCell className="cursor-pointer" onClick={() => openDialog(c)}>
+                        {c.name}
+                      </TableCell>
+                      <TableCell className="cursor-pointer" onClick={() => openDialog(c)}>
+                        <div className="font-medium text-xs">{c.clientName}</div>
+                        <div className="text-muted-foreground text-[10px]">{c.location}</div>
+                      </TableCell>
+                      <TableCell className="text-xs cursor-pointer" onClick={() => openDialog(c)}>
+                        <Badge
+                          variant={days < 0 ? 'destructive' : days <= 30 ? 'secondary' : 'outline'}
+                          className={
+                            days <= 30 && days >= 0
+                              ? 'bg-warning/20 text-warning border-warning/50'
+                              : ''
+                          }
+                        >
+                          {days < 0 ? 'Vencido' : `${days} dias`}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="cursor-pointer" onClick={() => openDialog(c)}>
+                        {overBudgetFlags.length > 0 ? (
+                          <Badge variant="destructive" className="text-[10px]">
+                            Estouro: {overBudgetFlags.join(', ')}
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-success border-success/50 text-[10px]"
+                          >
+                            No Orçamento
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <Settings className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openDialog(c)}>
+                              Editar Contrato
+                            </DropdownMenuItem>
+                            {c.hasPreventive && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  generatePreventives(c.id)
+                                  toast({
+                                    title: 'Preventivas Geradas',
+                                    description: `OS de manutenção criadas com sucesso.`,
+                                  })
+                                }}
+                              >
+                                Gerar Preventivas
+                              </DropdownMenuItem>
+                            )}
+                            {isAdmin && (
+                              <DropdownMenuItem
+                                onClick={() => setContractToDelete(c)}
+                                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" /> Excluir Contrato
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+                {filtered.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      Nenhum contrato de {type} encontrado.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="pending-os" className="space-y-4">
+          <PendingServiceOrdersTab />
+        </TabsContent>
+      </Tabs>
 
       <ContractDialog
         open={dialogOpen}

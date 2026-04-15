@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete } from '@nestjs/common'
+import { Controller, Get, Post, Body, Param, Patch, Delete, Query } from '@nestjs/common'
 import { ServiceOrdersService } from './service-orders.service'
 
 export class CreateServiceOrderDto {
@@ -26,8 +26,8 @@ export class ServiceOrdersController {
   }
 
   @Get()
-  findAll() {
-    return this.serviceOrdersService.findAll()
+  findAll(@Query('status') status?: string) {
+    return this.serviceOrdersService.findAll(status)
   }
 
   @Get(':id')

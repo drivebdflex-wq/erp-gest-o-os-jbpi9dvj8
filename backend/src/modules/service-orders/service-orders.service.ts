@@ -40,14 +40,20 @@ export class ServiceOrdersService {
     }
   }
 
-  async findAll() {
+  async findAll(status?: string) {
     try {
-      const { data, error } = await this.supabaseService
+      let query = this.supabaseService
         .getClient()
         .from('service_orders')
         .select('*')
         .is('deleted_at', null)
         .order('created_at', { ascending: false })
+
+      if (status) {
+        query = query.eq('status', status)
+      }
+
+      const { data, error } = await query
 
       if (error) {
         this.logger.error(`Error fetching service orders: ${error.message}`, error)

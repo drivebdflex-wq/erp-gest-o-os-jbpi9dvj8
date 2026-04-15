@@ -92,6 +92,8 @@ export default function CreateOrderDialog({
 
       await createOrder(payload)
 
+      window.dispatchEvent(new Event('service-order-created'))
+
       if (typeof appStore.fetchOrders === 'function') {
         await appStore.fetchOrders()
       } else if (typeof appStore.loadOrders === 'function') {
