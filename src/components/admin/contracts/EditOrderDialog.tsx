@@ -93,12 +93,12 @@ export default function EditOrderDialog({
     }
   }, [open])
 
-  const handleUpdate = async () => {
+  const handleUpdate = async (orderId: string, currentData: typeof formData) => {
     setLoading(true)
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '/api'
       const payload: any = {
-        ...formData,
+        ...currentData,
         client_id: order?.client_id || order?.clientId || null,
         unit_id: order?.unit_id || order?.unitId || null,
       }
@@ -113,13 +113,15 @@ export default function EditOrderDialog({
         payload.technician_id = null
       }
 
-      console.log('Enviando atualização:', payload)
+      console.log(`Atualizando OS: ${orderId}`, payload)
 
-      const res = await fetch(`${apiUrl}/service-orders/${order.id}`, {
+      const res = await fetch(`${apiUrl}/service-orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
+
+      console.log('Requisição enviada')
 
       if (!res.ok) throw new Error('Falha ao atualizar OS')
 
@@ -135,10 +137,10 @@ export default function EditOrderDialog({
       // Update local store for immediate UI refresh
       useAppStore.setState((state: any) => ({
         orders:
-          state.orders?.map((o: any) => (o.id === order.id ? { ...o, ...updatedData } : o)) || [],
+          state.orders?.map((o: any) => (o.id === orderId ? { ...o, ...updatedData } : o)) || [],
         filteredOrders:
           state.filteredOrders?.map((o: any) =>
-            o.id === order.id ? { ...o, ...updatedData } : o,
+            o.id === orderId ? { ...o, ...updatedData } : o,
           ) || [],
       }))
 
@@ -277,7 +279,7 @@ export default function EditOrderDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={handleUpdate} disabled={loading}>
+          <Button onClick={() => handleUpdate(order?.id, formData)} disabled={loading}>
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
             Salvar
           </Button>
