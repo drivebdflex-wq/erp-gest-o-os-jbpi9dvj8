@@ -31,7 +31,6 @@ export interface CreateServiceOrderDTO {
   client_id: string
   technician_id?: string | null
   priority?: string
-  service_type: string
   description: string
-  scheduled_at?: string
+  status?: ServiceOrderStatus
 }

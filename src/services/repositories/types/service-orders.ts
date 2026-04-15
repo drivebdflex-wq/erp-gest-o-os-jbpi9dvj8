@@ -46,24 +46,10 @@ export interface ServiceOrder extends Timestamps {
 
 export interface CreateServiceOrderDTO {
   client_id: ID
-  contract_id?: ID | null
-  unit_id: ID
   technician_id?: ID | null
-  team_id?: ID | null
-  vehicle_id?: ID | null
   status?: ServiceOrderStatus
   priority?: ServiceOrderPriority
-  service_type: ServiceOrderServiceType
   description?: string
-  service_code?: string
-  service_value?: number
-  scheduled_at?: string
-  deadline_at?: string
-  latitude?: number
-  longitude?: number
-  customer_signature_url?: string
-  labor_cost?: number
-  estimated_duration_minutes?: number
 }
 
 export type UpdateServiceOrderDTO = Partial<CreateServiceOrderDTO> & {
