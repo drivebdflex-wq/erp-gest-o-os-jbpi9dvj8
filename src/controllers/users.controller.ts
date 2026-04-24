@@ -9,7 +9,7 @@ export class UsersController {
       const ctx = await AuthGuard.verify(token)
       AuthGuard.requireRoles(ctx, ['Administrator'])
       const data = CreateUserDto.parse(body)
-      const result = await UsersService.createUser(data as any)
+      const result = await UsersService.create(data as any)
       return ResponseHandler.success(result, 201)
     } catch (error) {
       return ResponseHandler.error(error)

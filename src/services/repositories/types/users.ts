@@ -6,6 +6,7 @@ export interface User extends Timestamps {
   email: string
   password_hash: string
   status: string
+  role?: 'admin' | 'supervisor' | 'tecnico'
 }
 
 export interface UserRole extends Timestamps {
