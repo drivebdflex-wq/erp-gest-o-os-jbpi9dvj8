@@ -1,10 +1,17 @@
-import { UsersRepository } from '../repositories/users.repository'
-import type { CreateUserDTO, UpdateUserDTO } from '../repositories/types/users'
+import { UsersRepository, UserRolesRepository } from '../repositories/users.repository'
 import { BusinessError } from './errors'
+import { bcrypt } from '@/lib/bcrypt'
+
+const omitPassword = (user: any) => {
+  if (!user) return user
+  const { password_hash, ...rest } = user
+  return rest
+}
 
 export class UsersService {
   static async findAll() {
-    return UsersRepository.findAll()
+    const users = await UsersRepository.findAll()
+    return users.map(omitPassword)
   }
 
   static async findById(id: string) {
@@ -12,7 +19,7 @@ export class UsersService {
     if (!user) {
       throw new BusinessError('User not found')
     }
-    return user
+    return omitPassword(user)
   }
 
   static async deleteUser(id: string) {
@@ -23,11 +30,11 @@ export class UsersService {
     return true
   }
 
-  static async createUser(data: CreateUserDTO) {
+  static async createUser(data: any) {
     if (!data.email || !data.email.includes('@')) {
       throw new BusinessError('Invalid email format')
     }
-    if (!data.password_hash || data.password_hash.length < 6) {
+    if (!data.password || data.password.length < 6) {
       throw new BusinessError('Password must be at least 6 characters')
     }
 
@@ -36,10 +43,28 @@ export class UsersService {
       throw new BusinessError('Email already exists')
     }
 
-    return UsersRepository.create(data)
+    const password_hash = await bcrypt.hash(data.password, 10)
+
+    const newUser = {
+      name: data.name,
+      email: data.email,
+      password_hash,
+      status: data.status || 'active',
+    }
+
+    const created = await UsersRepository.create(newUser as any)
+
+    if (data.role) {
+      await UserRolesRepository.create({
+        user_id: created.id,
+        role_id: data.role,
+      } as any)
+    }
+
+    return omitPassword(created)
   }
 
-  static async updateUser(id: string, data: UpdateUserDTO) {
+  static async updateUser(id: string, data: any) {
     if (data.email) {
       if (!data.email.includes('@')) {
         throw new BusinessError('Invalid email format')
@@ -50,11 +75,17 @@ export class UsersService {
       }
     }
 
-    const updated = await UsersRepository.update(id, data)
+    const updateData = { ...data }
+    if (updateData.password) {
+      updateData.password_hash = await bcrypt.hash(updateData.password, 10)
+      delete updateData.password
+    }
+
+    const updated = await UsersRepository.update(id, updateData)
     if (!updated) {
       throw new BusinessError('User not found')
     }
-    return updated
+    return omitPassword(updated)
   }
 
   static async suspendUser(id: string) {
@@ -62,6 +93,6 @@ export class UsersService {
     if (!updated) {
       throw new BusinessError('User not found')
     }
-    return updated
+    return omitPassword(updated)
   }
 }

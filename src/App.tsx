@@ -17,6 +17,7 @@ import { useSystemStore } from './stores/useSystemStore'
 
 // Pages
 import Login from './pages/Login'
+import Register from './pages/Register'
 import Index from './pages/Index'
 import WorkOrders from './pages/admin/WorkOrders'
 import WorkOrderDetail from './pages/admin/WorkOrderDetail'
@@ -99,6 +100,7 @@ const App = () => {
                       <Sonner />
                       <Routes>
                         <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
 
                         <Route element={<ProtectedRoute />}>
                           <Route element={<Layout />}>

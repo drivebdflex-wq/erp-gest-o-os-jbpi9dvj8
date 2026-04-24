@@ -1,5 +1,5 @@
 import { useState, FormEvent, useEffect } from 'react'
-import { useNavigate, Navigate } from 'react-router-dom'
+import { useNavigate, Navigate, Link } from 'react-router-dom'
 import useAuthStore from '@/stores/useAuthStore'
 import useAppStore from '@/stores/useAppStore'
 import { Button } from '@/components/ui/button'
@@ -44,22 +44,15 @@ export default function Login() {
 
     setIsLoading(true)
 
-    // Simulate network request for UX
-    await new Promise((resolve) => setTimeout(resolve, 800))
+    const success = await login(email, password)
 
-    if (login(email, password)) {
+    if (success) {
       if (rememberMe) {
         localStorage.setItem('remembered_email', email)
       } else {
         localStorage.removeItem('remembered_email')
       }
       navigate('/')
-    } else {
-      toast({
-        title: 'Falha no Login',
-        description: 'E-mail ou senha incorretos. Tente novamente.',
-        variant: 'destructive',
-      })
     }
 
     setIsLoading(false)
@@ -236,21 +229,28 @@ export default function Login() {
             </Button>
           </form>
 
+          <div className="text-center text-sm">
+            Não possui uma conta?{' '}
+            <Link to="/register" className="font-medium text-primary hover:underline">
+              Crie agora
+            </Link>
+          </div>
+
           <div className="mt-8 pt-6 border-t">
             <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
               <p className="font-semibold text-foreground mb-2">Contas de Demonstração:</p>
               <ul className="space-y-1">
                 <li>
-                  <span className="font-medium">Admin:</span> admin@fieldops.com / admin123
+                  <span className="font-medium">Admin:</span> admin@example.com / admin123
                 </li>
                 <li>
-                  <span className="font-medium">Técnico:</span> carlos@fieldops.com / tech123
+                  <span className="font-medium">Técnico:</span> tech@example.com / tech123
                 </li>
                 <li>
-                  <span className="font-medium">Supervisor:</span> ana@fieldops.com / sup123
+                  <span className="font-medium">Supervisor:</span> ana@example.com / sup123
                 </li>
                 <li>
-                  <span className="font-medium">Financeiro:</span> fin@fieldops.com / fin123
+                  <span className="font-medium">Financeiro:</span> fin@example.com / fin123
                 </li>
               </ul>
             </div>

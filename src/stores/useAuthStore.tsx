@@ -1,5 +1,14 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useCallback,
+  useEffect,
+} from 'react'
 import { toast } from '@/hooks/use-toast'
+import { AuthService } from '@/services/business/auth.service'
+import { UsersService } from '@/services/business/users.service'
 
 export type Permission =
   | 'view_dashboard'
@@ -36,7 +45,6 @@ export interface User {
   id: string
   name: string
   email: string
-  password_hash: string
   role_id: string
   active: boolean
   created_at: string
@@ -48,7 +56,8 @@ interface AuthState {
   isAuthenticated: boolean
   users: User[]
   roles: Role[]
-  login: (email: string, pass: string) => boolean
+  login: (email: string, pass: string) => Promise<boolean>
+  registerUser: (data: any) => Promise<boolean>
   logout: () => void
   hasPermission: (perm: Permission) => boolean
   addUser: (u: Omit<User, 'id' | 'created_at'>) => void
@@ -92,47 +101,8 @@ const MOCK_ROLES: Role[] = [
   },
 ]
 
-const MOCK_USERS: User[] = [
-  {
-    id: 'u1',
-    name: 'Administrador Master',
-    email: 'admin@fieldops.com',
-    password_hash: 'admin123',
-    role_id: 'role-admin',
-    active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'u2',
-    name: 'Carlos Silva',
-    email: 'carlos@fieldops.com',
-    password_hash: 'tech123',
-    role_id: 'role-tecnico',
-    active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'u3',
-    name: 'Ana Souza',
-    email: 'ana@fieldops.com',
-    password_hash: 'sup123',
-    role_id: 'role-supervisor',
-    active: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'u4',
-    name: 'João Financeiro',
-    email: 'fin@fieldops.com',
-    password_hash: 'fin123',
-    role_id: 'role-financeiro',
-    active: true,
-    created_at: new Date().toISOString(),
-  },
-]
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<User[]>(MOCK_USERS)
+  const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<Role[]>(MOCK_ROLES)
 
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
@@ -140,27 +110,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : null
   })
 
-  const login = (email: string, pass: string) => {
-    const user = users.find((u) => u.email === email && u.password_hash === pass)
-    if (user) {
-      if (!user.active) {
-        toast({
-          title: 'Acesso Negado',
-          description: 'Sua conta está inativa. Contate o administrador.',
-          variant: 'destructive',
-        })
-        return false
-      }
-      setCurrentUser(user)
-      localStorage.setItem('fieldops_user', JSON.stringify(user))
+  useEffect(() => {
+    UsersService.findAll()
+      .then((data) => {
+        const mapped = data.map((u) => ({
+          ...u,
+          active: u.status === 'active',
+          role_id: u.id === 'admin-id' ? 'role-admin' : 'role-tecnico',
+        }))
+        setUsers(mapped as any)
+      })
+      .catch(console.error)
+  }, [])
+
+  const login = async (email: string, pass: string) => {
+    try {
+      const result = await AuthService.login(email, pass)
+      setCurrentUser(result.user as any)
+      localStorage.setItem('fieldops_user', JSON.stringify(result.user))
+      localStorage.setItem('fieldops_token', result.token)
       return true
+    } catch (error: any) {
+      toast({
+        title: 'Falha no Login',
+        description: error.message || 'E-mail ou senha incorretos.',
+        variant: 'destructive',
+      })
+      return false
     }
-    return false
+  }
+
+  const registerUser = async (data: any) => {
+    try {
+      const newUser = await UsersService.createUser(data)
+      setUsers((prev) => [...prev, { ...newUser, active: true, role_id: data.role } as any])
+      return true
+    } catch (error: any) {
+      toast({
+        title: 'Erro no Cadastro',
+        description: error.message || 'Não foi possível criar a conta.',
+        variant: 'destructive',
+      })
+      return false
+    }
   }
 
   const logout = () => {
     setCurrentUser(null)
     localStorage.removeItem('fieldops_user')
+    localStorage.removeItem('fieldops_token')
   }
 
   const hasPermission = useCallback(
@@ -177,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const addUser = (u: Omit<User, 'id' | 'created_at'>) => {
     setUsers((prev) => [
       ...prev,
-      { ...u, id: crypto.randomUUID(), created_at: new Date().toISOString() },
+      { ...u, id: crypto.randomUUID(), created_at: new Date().toISOString() } as any,
     ])
   }
 
@@ -185,7 +183,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsers((prev) => prev.map((x) => (x.id === id ? { ...x, ...u } : x)))
     if (currentUser?.id === id) {
       const updated = { ...currentUser, ...u }
-      setCurrentUser(updated)
+      setCurrentUser(updated as any)
       localStorage.setItem('fieldops_user', JSON.stringify(updated))
     }
   }
@@ -206,6 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         users,
         roles,
         login,
+        registerUser,
         logout,
         hasPermission,
         addUser,
