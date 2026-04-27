@@ -14,7 +14,8 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const { email, password } = loginDto
 
-    const { data: user, error } = await this.supabaseService.client
+    const supabase = this.supabaseService.getClient()
+    const { data: user, error } = await supabase
       .from('users')
       .select('*')
       .eq('email', email)
