@@ -36,6 +36,7 @@ export class UsersService {
           email: createUserDto.email,
           password_hash,
           status: createUserDto.status || 'active',
+          avatar_url: createUserDto.avatar_url || null,
         },
       ])
       .select('id, name, email, status, avatar_url, created_at, updated_at')

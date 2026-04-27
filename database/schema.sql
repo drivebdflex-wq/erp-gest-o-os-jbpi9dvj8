@@ -21,15 +21,16 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     status VARCHAR(50) DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'suspended')),
-    avatar_url VARCHAR(1024),
+    avatar_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 DO $$ BEGIN
-  ALTER TABLE users ADD COLUMN avatar_url VARCHAR(1024);
+  ALTER TABLE users ADD COLUMN avatar_url TEXT;
 EXCEPTION
-  WHEN duplicate_column THEN null;
+  WHEN duplicate_column THEN
+    ALTER TABLE users ALTER COLUMN avatar_url TYPE TEXT;
 END $$;
 
 CREATE TABLE IF NOT EXISTS roles (
