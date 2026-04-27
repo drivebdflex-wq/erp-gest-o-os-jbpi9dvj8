@@ -6,6 +6,7 @@ dotenv.config()
 dotenv.config({ path: join(__dirname, '../../.env') })
 
 import { NestFactory } from '@nestjs/core'
+import { ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
 
 async function bootstrap() {
@@ -13,6 +14,13 @@ async function bootstrap() {
 
   // Set global prefix to support proper routing in all environments
   app.setGlobalPrefix('api')
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
+  )
 
   app.enableCors({
     origin: '*',
