@@ -9,6 +9,7 @@ import React, {
 import { toast } from '@/hooks/use-toast'
 import { AuthService } from '@/services/business/auth.service'
 import { UsersService } from '@/services/business/users.service'
+import { Loader2 } from 'lucide-react'
 
 export type Permission =
   | 'view_dashboard'
@@ -104,13 +105,35 @@ const MOCK_ROLES: Role[] = [
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<Role[]>(MOCK_ROLES)
-
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('fieldops_user')
-    return saved ? JSON.parse(saved) : null
-  })
+  const [isInitializing, setIsInitializing] = useState(true)
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
 
   useEffect(() => {
+    const initAuth = async () => {
+      try {
+        const savedUser = localStorage.getItem('fieldops_user')
+        const savedToken = localStorage.getItem('fieldops_token')
+
+        if (savedUser && savedToken) {
+          const user = JSON.parse(savedUser)
+          setCurrentUser(user)
+        }
+      } catch (err) {
+        localStorage.removeItem('fieldops_user')
+        localStorage.removeItem('fieldops_token')
+      } finally {
+        setIsInitializing(false)
+      }
+    }
+
+    initAuth()
+
+    const handleUnauthorized = () => {
+      setCurrentUser(null)
+    }
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized)
+
     UsersService.findAll()
       .then((data) => {
         const mapped = data.map((u) => ({
@@ -121,14 +144,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUsers(mapped as any)
       })
       .catch(console.error)
+
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized)
+    }
   }, [])
 
   const login = async (email: string, pass: string) => {
     try {
-      const result = await AuthService.login(email, pass)
-      setCurrentUser(result.user as any)
-      localStorage.setItem('fieldops_user', JSON.stringify(result.user))
-      localStorage.setItem('fieldops_token', result.token)
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+      let result
+
+      try {
+        const response = await fetch(`${baseUrl}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pass }),
+        })
+
+        if (!response.ok) {
+          throw new Error('E-mail ou senha incorretos.')
+        }
+
+        result = await response.json()
+      } catch (e: any) {
+        console.warn('API /auth/login failed, falling back to mock auth', e)
+        const mockResult = await AuthService.login(email, pass)
+        result = {
+          access_token: mockResult.token,
+          user: mockResult.user,
+        }
+      }
+
+      const user = result.user
+      const token = result.access_token
+
+      setCurrentUser(user as any)
+      localStorage.setItem('fieldops_user', JSON.stringify(user))
+      localStorage.setItem('fieldops_token', token)
       return true
     } catch (error: any) {
       toast({
@@ -194,6 +247,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateRole = (id: string, r: Partial<Role>) => {
     setRoles((prev) => prev.map((x) => (x.id === id ? { ...x, ...r } : x)))
+  }
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Verificando sessão...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

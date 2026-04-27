@@ -1,10 +1,11 @@
 import { buildApiUrl } from '@/config/api'
+import { fetchWithAuth } from '@/lib/api-client'
 
 export const api = {
   serviceOrders: {
     list: async () => {
       try {
-        const res = await fetch(buildApiUrl('/api/service-orders'))
+        const res = await fetchWithAuth(buildApiUrl('/api/service-orders'))
         if (!res.ok) {
           throw new Error(`Erro do Servidor (${res.status}): Falha ao buscar as ordens de serviço.`)
         }
@@ -59,7 +60,7 @@ export const api = {
         delete payload.technician_id
       }
 
-      const res = await fetch(buildApiUrl('/api/service-orders'), {
+      const res = await fetchWithAuth(buildApiUrl('/api/service-orders'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -79,7 +80,7 @@ export const api = {
       return res.json()
     },
     updateStatus: async (id: string, status: string) => {
-      const res = await fetch(buildApiUrl(`/api/service-orders/${id}/status`), {
+      const res = await fetchWithAuth(buildApiUrl(`/api/service-orders/${id}/status`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -90,12 +91,12 @@ export const api = {
   },
   clients: {
     list: async () => {
-      const res = await fetch(buildApiUrl('/api/clients'))
+      const res = await fetchWithAuth(buildApiUrl('/api/clients'))
       if (!res.ok) throw new Error('Failed to fetch clients')
       return res.json()
     },
     create: async (data: any) => {
-      const res = await fetch(buildApiUrl('/api/clients'), {
+      const res = await fetchWithAuth(buildApiUrl('/api/clients'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

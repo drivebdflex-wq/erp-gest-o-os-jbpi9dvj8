@@ -36,7 +36,7 @@ export default function Login() {
     return /\S+@\S+\.\S+/.test(email)
   }
 
-  const isFormValid = isValidEmail(email) && password.length > 0
+  const isFormValid = isValidEmail(email) && password.length >= 6
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
@@ -186,6 +186,7 @@ export default function Login() {
                     className="h-11 pr-10"
                     autoComplete="current-password"
                     required
+                    minLength={6}
                   />
                   <button
                     type="button"
@@ -196,6 +197,11 @@ export default function Login() {
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+                {password.length > 0 && password.length < 6 && (
+                  <p className="text-xs text-destructive mt-1">
+                    A senha deve ter no mínimo 6 caracteres
+                  </p>
+                )}
               </div>
             </div>
 
