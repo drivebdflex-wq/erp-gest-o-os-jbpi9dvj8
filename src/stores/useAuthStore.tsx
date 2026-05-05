@@ -54,6 +54,7 @@ export interface User {
 
 interface AuthState {
   currentUser: User | null
+  accessToken: string | null
   isAuthenticated: boolean
   users: User[]
   roles: Role[]
@@ -107,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<Role[]>(MOCK_ROLES)
   const [isInitializing, setIsInitializing] = useState(true)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [accessToken, setAccessToken] = useState<string | null>(null)
 
   useEffect(() => {
     const initAuth = async () => {
@@ -117,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (savedUser && savedToken) {
           const user = JSON.parse(savedUser)
           setCurrentUser(user)
+          setAccessToken(savedToken)
         }
       } catch (err) {
         localStorage.removeItem('fieldops_user')
@@ -130,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const handleUnauthorized = () => {
       setCurrentUser(null)
+      setAccessToken(null)
     }
 
     window.addEventListener('auth:unauthorized', handleUnauthorized)
@@ -163,16 +167,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
 
         if (!response.ok) {
-          throw new Error('E-mail ou senha incorretos.')
+          const errorData = await response.json().catch(() => null)
+          throw new Error(errorData?.message || 'E-mail ou senha incorretos.')
         }
 
         result = await response.json()
       } catch (e: any) {
-        console.warn('API /auth/login failed, falling back to mock auth', e)
-        const mockResult = await AuthService.login(email, pass)
-        result = {
-          access_token: mockResult.token,
-          user: mockResult.user,
+        if (e.name === 'TypeError' || e.message === 'Failed to fetch') {
+          console.warn('API /auth/login unreachable, falling back to mock auth', e)
+          const mockResult = await AuthService.login(email, pass)
+          result = {
+            access_token: mockResult.token,
+            user: mockResult.user,
+          }
+        } else {
+          throw e
         }
       }
 
@@ -180,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = result.access_token
 
       setCurrentUser(user as any)
+      setAccessToken(token)
       localStorage.setItem('fieldops_user', JSON.stringify(user))
       localStorage.setItem('fieldops_token', token)
       return true
@@ -210,6 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setCurrentUser(null)
+    setAccessToken(null)
     localStorage.removeItem('fieldops_user')
     localStorage.removeItem('fieldops_token')
   }
@@ -264,7 +275,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         currentUser,
-        isAuthenticated: !!currentUser,
+        accessToken,
+        isAuthenticated: !!currentUser && !!accessToken,
         users,
         roles,
         login,

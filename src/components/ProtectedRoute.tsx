@@ -25,7 +25,7 @@ export default function ProtectedRoute({
   }
 
   if (requiredPermission && !hasPermission(requiredPermission)) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/dashboard" replace />
   }
 
   return <Outlet />

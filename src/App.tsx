@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -105,7 +105,8 @@ const App = () => {
                         <Route element={<ProtectedRoute />}>
                           <Route element={<Layout />}>
                             {/* Common Authenticated Routes */}
-                            <Route path="/" element={<Index />} />
+                            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                            <Route path="/dashboard" element={<Index />} />
                             <Route path="/ordens" element={<WorkOrders />} />
                             <Route path="/ordens/:id" element={<WorkOrderDetail />} />
                             <Route path="/service-orders/:id" element={<WorkOrderDetail />} />
