@@ -1,6 +1,38 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- 5. RESOURCE MANAGEMENT
 -- ==========================================
+=======
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN ticket_number VARCHAR(100); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN dependency VARCHAR(255); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN agency_code VARCHAR(100); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN os_type VARCHAR(100); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN warranty BOOLEAN DEFAULT false; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN opening_date TIMESTAMP WITH TIME ZONE; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN acceptance_date TIMESTAMP WITH TIME ZONE; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN client_request TEXT; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN procedures_executed TEXT; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN pending_issues TEXT; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN risks_found TEXT; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN general_observations TEXT; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN technical_recommendations TEXT; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN operational_checklist TEXT; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN supervisor_id UUID REFERENCES users(id) ON DELETE SET NULL; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN vehicle_used VARCHAR(255); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN tools_used TEXT; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN displacement_time INT; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN discount DECIMAL(12, 2) DEFAULT 0; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN client_signature_name VARCHAR(255); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN client_signature_position VARCHAR(255); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN internal_code VARCHAR(100); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN billing_type VARCHAR(100); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN supervisor_approval BOOLEAN DEFAULT false; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN client_approval BOOLEAN DEFAULT false; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN is_billed BOOLEAN DEFAULT false; EXCEPTION WHEN duplicate_column THEN null; END $$;
+
+-- ==========================================
+-- 5. RESOURCE MANAGEMENT
+-- ====================================================================================
 -- ENUMS
 -- ==========================================
 

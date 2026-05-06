@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Dialog,
   DialogContent,
@@ -38,7 +39,12 @@ export default function CreateOrderDialog({
   const appStore = useAppStore() as any
   const { clients, contracts, createOrder } = appStore
   const { technicians } = useOperationalStore()
-  const [formData, setFormData] = useState<any>({ priority: 'medium', status: 'pending' })
+  const navigate = useNavigate()
+  const [formData, setFormData] = useState<any>({
+    priority: 'medium',
+    status: 'pending',
+    service_type: 'preventiva',
+  })
   const [showClientDialog, setShowClientDialog] = useState(false)
 
   useEffect(() => {
@@ -81,8 +87,10 @@ export default function CreateOrderDialog({
 
       const payload: any = {
         client_id: formData.clientId,
+        contract_id: formData.contractId,
         description: formData.description,
         priority: formData.priority,
+        service_type: formData.service_type,
         status: 'pending',
       }
 
@@ -90,7 +98,7 @@ export default function CreateOrderDialog({
         payload.technician_id = formData.technicianId
       }
 
-      await createOrder(payload)
+      const createdOrder = await createOrder(payload)
 
       window.dispatchEvent(new Event('service-order-created'))
 
@@ -100,13 +108,16 @@ export default function CreateOrderDialog({
         await appStore.loadOrders()
       } else if (typeof appStore.fetchData === 'function') {
         await appStore.fetchData()
-      } else {
-        // Fallback for Index page dynamic rendering refresh
-        setTimeout(() => window.location.reload(), 1000)
       }
 
-      toast({ title: 'Sucesso', description: 'OS criada com sucesso. A lista será atualizada.' })
+      toast({ title: 'Sucesso', description: 'OS criada com sucesso.' })
       onOpenChange(false)
+
+      if (createdOrder && createdOrder.id) {
+        navigate(`/ordens/${createdOrder.id}`)
+      } else {
+        setTimeout(() => window.location.reload(), 1000)
+      }
     } catch (e: any) {
       toast({
         title: 'Erro ao criar OS',
@@ -133,7 +144,38 @@ export default function CreateOrderDialog({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Cliente</Label>
+              <Label>Contrato (Opcional)</Label>
+              <Select
+                value={formData.contractId || 'none'}
+                onValueChange={(v) => {
+                  if (v === 'none') {
+                    setFormData({ ...formData, contractId: undefined })
+                  } else {
+                    const contract = contracts?.find((c: any) => c.id === v)
+                    setFormData({
+                      ...formData,
+                      contractId: v,
+                      clientId: contract ? contract.clientId : formData.clientId,
+                    })
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um contrato..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum contrato</SelectItem>
+                  {contracts?.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Cliente *</Label>
               <div className="flex gap-2">
                 <Select
                   value={formData.clientId || undefined}
@@ -194,19 +236,34 @@ export default function CreateOrderDialog({
             </div>
 
             <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value="pending" disabled>
-                <SelectTrigger className="bg-muted">
-                  <SelectValue placeholder="Selecione o status..." />
+              <Label>Categoria *</Label>
+              <Select
+                value={formData.service_type || 'preventiva'}
+                onValueChange={(v) => setFormData({ ...formData, service_type: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a categoria..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="eletrica">Elétrica</SelectItem>
+                  <SelectItem value="hidraulica">Hidráulica</SelectItem>
+                  <SelectItem value="civil">Civil</SelectItem>
+                  <SelectItem value="climatizacao">Climatização</SelectItem>
+                  <SelectItem value="preventiva">Preventiva</SelectItem>
+                  <SelectItem value="corretiva">Corretiva</SelectItem>
+                  <SelectItem value="pintura">Pintura</SelectItem>
+                  <SelectItem value="estrutural">Estrutural</SelectItem>
+                  <SelectItem value="facilities">Facilities</SelectItem>
+                  <SelectItem value="infraestrutura">Infraestrutura</SelectItem>
+                  <SelectItem value="limpeza_tecnica">Limpeza Técnica</SelectItem>
+                  <SelectItem value="vistoria">Vistoria</SelectItem>
+                  <SelectItem value="emergencial">Emergencial</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label>Técnico Responsável</Label>
+              <Label>Técnico Responsável (Opcional)</Label>
               <Select
                 value={formData.technicianId || undefined}
                 onValueChange={(v) => {

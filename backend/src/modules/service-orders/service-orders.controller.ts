@@ -32,6 +32,32 @@ export class UpdateServiceOrderDto {
   service_type?: string
   technician_signature_url?: string
   client_signature_url?: string
+  ticket_number?: string
+  dependency?: string
+  agency_code?: string
+  os_type?: string
+  warranty?: boolean
+  opening_date?: string
+  acceptance_date?: string
+  client_request?: string
+  procedures_executed?: string
+  pending_issues?: string
+  risks_found?: string
+  general_observations?: string
+  technical_recommendations?: string
+  operational_checklist?: string
+  supervisor_id?: string
+  vehicle_used?: string
+  tools_used?: string
+  displacement_time?: number
+  discount?: number
+  client_signature_name?: string
+  client_signature_position?: string
+  internal_code?: string
+  billing_type?: string
+  supervisor_approval?: boolean
+  client_approval?: boolean
+  is_billed?: boolean
 }
 
 @Controller('service-orders')
