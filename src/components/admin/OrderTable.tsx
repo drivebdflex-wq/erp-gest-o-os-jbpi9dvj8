@@ -174,7 +174,9 @@ export default function OrderTable({
                 className="group cursor-pointer hover:bg-muted/50"
                 onClick={() => onRowClick?.(order)}
               >
-                <TableCell className="font-medium">{order.shortId}</TableCell>
+                <TableCell className="font-medium">
+                  {(order as any).order_number || order.shortId}
+                </TableCell>
                 <TableCell className="max-w-[200px] truncate">{order.title}</TableCell>
                 <TableCell>
                   <div className="font-medium text-xs text-primary">

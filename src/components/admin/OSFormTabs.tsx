@@ -93,6 +93,37 @@ export function GeneralTab({ data, set }: any) {
               onChange={(e) => set({ ...data, asset_number: e.target.value })}
             />
           </div>
+          <div className="space-y-2">
+            <Label>Setor</Label>
+            <Input
+              value={data.sector || ''}
+              onChange={(e) => set({ ...data, sector: e.target.value })}
+              placeholder="Ex: Térreo, Sala 2"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Ponto de Referência</Label>
+            <Input
+              value={data.reference_point || ''}
+              onChange={(e) => set({ ...data, reference_point: e.target.value })}
+              placeholder="Ex: Próximo à recepção"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Andar</Label>
+            <Input
+              value={data.floor || ''}
+              onChange={(e) => set({ ...data, floor: e.target.value })}
+              placeholder="Ex: 2º Andar"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Endereço Completo</Label>
+            <Input
+              value={data.address || ''}
+              onChange={(e) => set({ ...data, address: e.target.value })}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -304,7 +335,16 @@ export function ServiceTab({ data, set }: any) {
           />
         </div>
         <div className="space-y-2">
-          <Label>Procedimentos Executados</Label>
+          <Label>Causa Raiz</Label>
+          <Textarea
+            rows={2}
+            value={data.root_cause || ''}
+            onChange={(e) => set({ ...data, root_cause: e.target.value })}
+            placeholder="Qual foi a causa identificada?"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Solução Aplicada (Procedimentos Executados)</Label>
           <Textarea
             rows={4}
             value={data.procedures_executed}
@@ -484,9 +524,9 @@ export function ExecutionTab({ data, set, technicians, teams }: any) {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4 pt-2">
+          <div className="grid grid-cols-3 gap-4 pt-2">
             <div className="space-y-2">
-              <Label>Tempo Deslocamento (min)</Label>
+              <Label>Tempo Desloc. (min)</Label>
               <Input
                 type="number"
                 value={data.displacement_time}
@@ -494,11 +534,20 @@ export function ExecutionTab({ data, set, technicians, teams }: any) {
               />
             </div>
             <div className="space-y-2">
-              <Label>Tempo de Execução (min)</Label>
+              <Label>Execução (min)</Label>
               <Input
                 type="number"
                 value={data.execution_duration}
                 onChange={(e) => set({ ...data, execution_duration: Number(e.target.value) })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>KM Rodado</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={data.km_driven || 0}
+                onChange={(e) => set({ ...data, km_driven: Number(e.target.value) })}
               />
             </div>
           </div>
@@ -659,6 +708,7 @@ export function BudgetTab({
 export function EvidenceTab({ data, set, attachments, setAttachments, onUpload, onRemove }: any) {
   const techCanvas = useRef<HTMLCanvasElement>(null)
   const clientCanvas = useRef<HTMLCanvasElement>(null)
+  const supervisorCanvas = useRef<HTMLCanvasElement>(null)
 
   const setupCanvas = (ref: any, field: string) => {
     let isDrawing = false
@@ -701,6 +751,7 @@ export function EvidenceTab({ data, set, attachments, setAttachments, onUpload, 
 
   const tDraw = setupCanvas(techCanvas, 'technician_signature_url')
   const cDraw = setupCanvas(clientCanvas, 'client_signature_url')
+  const sDraw = setupCanvas(supervisorCanvas, 'supervisor_signature_url')
 
   const renderGallery = (type: string, title: string) => {
     const filtered = attachments?.filter((a: any) => a.type === type) || []
@@ -774,7 +825,7 @@ export function EvidenceTab({ data, set, attachments, setAttachments, onUpload, 
 
       {renderGallery('general', 'Documentos Gerais / Anexos Adicionais')}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8 border-t">
         <div className="space-y-4">
           <h4 className="font-semibold text-sm border-b pb-2">Assinatura do Técnico Responsável</h4>
           <div className="border bg-white rounded-md h-[180px] overflow-hidden relative touch-none shadow-inner">
@@ -857,6 +908,43 @@ export function EvidenceTab({ data, set, attachments, setAttachments, onUpload, 
               className="w-full"
             >
               Limpar Assinatura Cliente
+            </Button>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <h4 className="font-semibold text-sm border-b pb-2">Assinatura do Supervisor</h4>
+          <div className="border bg-white rounded-md h-[180px] overflow-hidden relative touch-none shadow-inner">
+            {data.supervisor_signature_url ? (
+              <img
+                src={data.supervisor_signature_url}
+                className="w-full h-full object-contain"
+                alt="Signature Supervisor"
+              />
+            ) : (
+              <canvas
+                ref={supervisorCanvas}
+                width={500}
+                height={180}
+                onMouseDown={sDraw.start}
+                onMouseMove={sDraw.draw}
+                onMouseUp={sDraw.stop}
+                onMouseLeave={sDraw.stop}
+                onTouchStart={sDraw.touchStart}
+                onTouchMove={sDraw.touchMove}
+                onTouchEnd={sDraw.stop}
+                className="w-full h-full cursor-crosshair"
+              />
+            )}
+          </div>
+          {data.supervisor_signature_url && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => set({ ...data, supervisor_signature_url: '' })}
+              className="w-full"
+            >
+              Limpar Assinatura Supervisor
             </Button>
           )}
         </div>

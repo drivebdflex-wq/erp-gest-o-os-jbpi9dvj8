@@ -113,6 +113,13 @@ export default function WorkOrderDetail() {
     client_signature_url: '',
     client_signature_name: '',
     client_signature_position: '',
+    supervisor_signature_url: '',
+    sector: '',
+    reference_point: '',
+    root_cause: '',
+    km_driven: 0,
+    floor: '',
+    address: '',
     attachments: [] as any[],
     cost_center: '',
     internal_code: '',
@@ -200,6 +207,13 @@ export default function WorkOrderDetail() {
           client_signature_url: found.client_signature_url || '',
           client_signature_name: found.client_signature_name || '',
           client_signature_position: found.client_signature_position || '',
+          supervisor_signature_url: found.supervisor_signature_url || '',
+          sector: found.sector || '',
+          reference_point: found.reference_point || '',
+          root_cause: found.root_cause || '',
+          km_driven: found.km_driven || 0,
+          floor: found.floor || '',
+          address: found.address || '',
           cost_center: found.cost_center || '',
           internal_code: found.internal_code || '',
           billing_type: found.billing_type || '',
@@ -331,16 +345,29 @@ export default function WorkOrderDetail() {
           </Button>
           <div>
             <h2 className="text-2xl font-bold tracking-tight leading-tight flex items-center gap-2">
-              OS {formData.order_number}
+              {formData.order_number ? `OS ${formData.order_number}` : 'Carregando OS...'}
               {readOnly && (
                 <span className="text-xs font-normal bg-secondary px-2 py-1 rounded">
                   Visualização
                 </span>
               )}
             </h2>
-            <p className="text-sm text-muted-foreground font-medium">
-              {formData.os_type || 'Facilities & Manutenção Predial'}
-            </p>
+            <div className="flex items-center gap-3 text-sm mt-1">
+              <span className="text-muted-foreground font-medium">
+                {formData.os_type || 'Facilities & Manutenção Predial'}
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                Status: {formData.status}
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-semibold">
+                SLA:{' '}
+                {formData.sla_status === 'within_sla'
+                  ? 'No Prazo'
+                  : formData.sla_status === 'breached'
+                    ? 'Atrasado'
+                    : 'Aviso'}
+              </span>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">

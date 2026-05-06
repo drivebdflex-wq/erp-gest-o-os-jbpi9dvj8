@@ -73,6 +73,12 @@ export interface ServiceOrder extends Timestamps {
   notes?: string
   items?: ServiceOrderItem[]
 
+  sector?: string
+  reference_point?: string
+  root_cause?: string
+  supervisor_signature_url?: string
+  km_driven?: number
+
   diagnostics?: string
   cost_center?: string
   billing_status?: string
@@ -135,6 +141,11 @@ export interface CreateServiceOrderDTO {
   notes?: string
   items?: ServiceOrderItem[]
   diagnostics?: string
+  sector?: string
+  reference_point?: string
+  root_cause?: string
+  supervisor_signature_url?: string
+  km_driven?: number
   cost_center?: string
   billing_status?: string
   approval_status?: string
@@ -174,4 +185,9 @@ export type UpdateServiceOrderDTO = Partial<CreateServiceOrderDTO> & {
   paused_at?: string
   finished_at?: string
   total_duration_minutes?: number
+  sector?: string
+  reference_point?: string
+  root_cause?: string
+  supervisor_signature_url?: string
+  km_driven?: number
 }

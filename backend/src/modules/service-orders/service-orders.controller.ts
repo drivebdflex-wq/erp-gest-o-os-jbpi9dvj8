@@ -10,6 +10,7 @@ export class CreateServiceOrderDto {
   service_type?: string
   description?: string
   scheduled_at?: string
+  order_number?: string
 }
 
 export class UpdateStatusDto {
@@ -58,6 +59,11 @@ export class UpdateServiceOrderDto {
   supervisor_approval?: boolean
   client_approval?: boolean
   is_billed?: boolean
+  sector?: string
+  reference_point?: string
+  root_cause?: string
+  supervisor_signature_url?: string
+  km_driven?: number
 }
 
 @Controller('service-orders')

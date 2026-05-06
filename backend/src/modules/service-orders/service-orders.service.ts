@@ -19,11 +19,18 @@ export class ServiceOrdersService {
       throw new BadRequestException('client_id is mandatory')
     }
 
+    const dtoWithOrderNumber = { ...createDto }
+    if (!dtoWithOrderNumber.order_number) {
+      const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
+      const randomStr = Math.floor(1000 + Math.random() * 9000).toString()
+      dtoWithOrderNumber.order_number = `OS-${dateStr}${randomStr}`
+    }
+
     try {
       const { data, error } = await this.supabaseService
         .getClient()
         .from('service_orders')
-        .insert([createDto])
+        .insert([dtoWithOrderNumber])
         .select()
         .single()
 

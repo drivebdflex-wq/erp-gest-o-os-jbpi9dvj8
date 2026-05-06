@@ -28,9 +28,21 @@ DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN internal_code VARCHAR(100); EX
 DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN billing_type VARCHAR(100); EXCEPTION WHEN duplicate_column THEN null; END $$;
 DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN supervisor_approval BOOLEAN DEFAULT false; EXCEPTION WHEN duplicate_column THEN null; END $$;
 DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN client_approval BOOLEAN DEFAULT false; EXCEPTION WHEN duplicate_column THEN null; END $$;
+-- 5. RESOURCE MANAGEMENT
+=======
 DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN is_billed BOOLEAN DEFAULT false; EXCEPTION WHEN duplicate_column THEN null; END $$;
 
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN sector VARCHAR(255); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN reference_point VARCHAR(255); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN root_cause TEXT; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN supervisor_signature_url VARCHAR(1024); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN km_driven DECIMAL(10, 2); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN floor VARCHAR(100); EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN address TEXT; EXCEPTION WHEN duplicate_column THEN null; END $$;
+DO $$ BEGIN ALTER TABLE service_orders ADD COLUMN order_number VARCHAR(100); EXCEPTION WHEN duplicate_column THEN null; END $$;
+
 -- ==========================================
+-- 5. RESOURCE MANAGEMENT==========================================
 -- 5. RESOURCE MANAGEMENT
 -- ====================================================================================
 -- ENUMS
