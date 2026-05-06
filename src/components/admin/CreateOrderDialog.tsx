@@ -110,7 +110,7 @@ export default function CreateOrderDialog({
       onOpenChange(false)
 
       if (createdOrder && createdOrder.id) {
-        navigate(`/ordens/${createdOrder.id}`)
+        navigate(`/orders/${createdOrder.id}`)
       } else {
         setTimeout(() => window.location.reload(), 1000)
       }

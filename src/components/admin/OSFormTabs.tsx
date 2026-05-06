@@ -458,9 +458,6 @@ export function BudgetTab({
           Tabela de Materiais e Serviços
         </h3>
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={calculateTotals}>
-            <Calculator className="w-4 h-4 mr-2" /> Recalcular Valores
-          </Button>
           <Button size="sm" onClick={handleAddItem}>
             <Plus className="w-4 h-4 mr-2" /> Adicionar Linha
           </Button>

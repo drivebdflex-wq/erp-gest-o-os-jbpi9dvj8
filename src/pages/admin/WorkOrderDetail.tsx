@@ -243,17 +243,24 @@ export default function WorkOrderDetail() {
     }
   }, [id, orders])
 
-  const calculateTotals = () => {
+  useEffect(() => {
     const itemsTotal = formData.items.reduce(
-      (sum, item) => sum + Number(item.quantity) * Number(item.unit_price),
+      (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0),
       0,
     )
     const total =
-      Number(formData.displacement_cost) +
-      Number(formData.labor_cost) +
+      (Number(formData.displacement_cost) || 0) +
+      (Number(formData.labor_cost) || 0) +
       itemsTotal -
-      Number(formData.discount)
-    setFormData((prev) => ({ ...prev, material_cost: itemsTotal, total_cost: total }))
+      (Number(formData.discount) || 0)
+
+    if (formData.material_cost !== itemsTotal || formData.total_cost !== total) {
+      setFormData((prev) => ({ ...prev, material_cost: itemsTotal, total_cost: total }))
+    }
+  }, [formData.items, formData.displacement_cost, formData.labor_cost, formData.discount])
+
+  const calculateTotals = () => {
+    // Automatic calculation via useEffect
   }
 
   const handleItemChange = (index: number, field: string, value: any) => {
@@ -261,7 +268,7 @@ export default function WorkOrderDetail() {
     newItems[index] = { ...newItems[index], [field]: value }
     if (field === 'quantity' || field === 'unit_price') {
       newItems[index].total_price =
-        Number(newItems[index].quantity) * Number(newItems[index].unit_price)
+        (Number(newItems[index].quantity) || 0) * (Number(newItems[index].unit_price) || 0)
     }
     setFormData((prev) => ({ ...prev, items: newItems }))
   }
