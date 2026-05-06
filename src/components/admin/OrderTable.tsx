@@ -37,6 +37,8 @@ import {
   MoreHorizontal,
   Edit,
   UserPlus,
+  FileText,
+  ClipboardList,
 } from 'lucide-react'
 import useAppStore, {
   OSStatus,
@@ -269,6 +271,29 @@ export default function OrderTable({
                             >
                               <Edit className="mr-2 h-4 w-4" />
                               Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toast({
+                                  title: 'OS Duplicada',
+                                  description:
+                                    'Nova ordem em rascunho com base nesta OS será implementada em breve.',
+                                })
+                              }}
+                            >
+                              <ClipboardList className="mr-2 h-4 w-4" />
+                              Duplicar OS
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                window.print()
+                              }}
+                            >
+                              <FileText className="mr-2 h-4 w-4" />
+                              Imprimir / PDF
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem

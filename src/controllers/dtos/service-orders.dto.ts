@@ -41,6 +41,11 @@ export const CreateServiceOrderDto = z.object({
   total_cost: z.number().optional(),
   notes: z.string().optional(),
   items: z.array(z.any()).optional(),
+  diagnostics: z.string().optional(),
+  cost_center: z.string().optional(),
+  billing_status: z.string().optional(),
+  approval_status: z.string().optional(),
+  service_type: z.string().optional(),
 })
 
 export const UpdateStatusDto = z.object({

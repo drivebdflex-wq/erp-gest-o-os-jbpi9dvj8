@@ -25,6 +25,13 @@ export class UpdateServiceOrderDto {
   deadline_at?: string
   notes?: string
   client_id?: string
+  diagnostics?: string
+  cost_center?: string
+  billing_status?: string
+  approval_status?: string
+  service_type?: string
+  technician_signature_url?: string
+  client_signature_url?: string
 }
 
 @Controller('service-orders')

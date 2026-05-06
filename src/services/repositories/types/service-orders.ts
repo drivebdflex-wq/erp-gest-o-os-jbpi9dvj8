@@ -72,6 +72,13 @@ export interface ServiceOrder extends Timestamps {
   total_cost?: number
   notes?: string
   items?: ServiceOrderItem[]
+
+  diagnostics?: string
+  cost_center?: string
+  billing_status?: string
+  approval_status?: string
+  technician_signature_url?: string
+  client_signature_url?: string
 }
 
 export interface CreateServiceOrderDTO {
@@ -100,6 +107,10 @@ export interface CreateServiceOrderDTO {
   total_cost?: number
   notes?: string
   items?: ServiceOrderItem[]
+  diagnostics?: string
+  cost_center?: string
+  billing_status?: string
+  approval_status?: string
 }
 
 export type UpdateServiceOrderDTO = Partial<CreateServiceOrderDTO> & {

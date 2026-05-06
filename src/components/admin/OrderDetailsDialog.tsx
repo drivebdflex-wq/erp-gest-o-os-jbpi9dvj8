@@ -403,9 +403,16 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
                       <SelectItem value="eletrica">Elétrica</SelectItem>
                       <SelectItem value="hidraulica">Hidráulica</SelectItem>
                       <SelectItem value="civil">Civil</SelectItem>
-                      <SelectItem value="serralheria">Serralheria</SelectItem>
-                      <SelectItem value="marmoraria">Marmoraria</SelectItem>
-                      <SelectItem value="marcenaria">Marcenaria</SelectItem>
+                      <SelectItem value="climatizacao">Climatização</SelectItem>
+                      <SelectItem value="preventiva">Preventiva</SelectItem>
+                      <SelectItem value="corretiva">Corretiva</SelectItem>
+                      <SelectItem value="pintura">Pintura</SelectItem>
+                      <SelectItem value="estrutural">Estrutural</SelectItem>
+                      <SelectItem value="facilities">Facilities</SelectItem>
+                      <SelectItem value="infraestrutura">Infraestrutura</SelectItem>
+                      <SelectItem value="limpeza_tecnica">Limpeza Técnica</SelectItem>
+                      <SelectItem value="vistoria">Vistoria</SelectItem>
+                      <SelectItem value="emergencial">Emergencial</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

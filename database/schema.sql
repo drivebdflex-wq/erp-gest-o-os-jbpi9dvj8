@@ -7,7 +7,17 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 DO $ BEGIN CREATE TYPE service_order_status AS ENUM ('draft', 'pending', 'scheduled', 'deslocamento', 'in_progress', 'paused', 'in_audit', 'completed', 'rejected', 'cancelled'); EXCEPTION WHEN duplicate_object THEN null; END $;
 DO $ BEGIN ALTER TYPE service_order_status ADD VALUE IF NOT EXISTS 'deslocamento'; EXCEPTION WHEN OTHERS THEN null; END $;
 DO $ BEGIN CREATE TYPE service_order_priority AS ENUM ('low', 'medium', 'high', 'urgent'); EXCEPTION WHEN duplicate_object THEN null; END $;
-DO $ BEGIN CREATE TYPE service_order_service_type AS ENUM ('eletrica', 'hidraulica', 'civil', 'serralheria', 'marmoraria', 'marcenaria'); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN CREATE TYPE service_order_service_type AS ENUM ('eletrica', 'hidraulica', 'civil', 'climatizacao', 'preventiva', 'corretiva', 'pintura', 'estrutural', 'facilities', 'infraestrutura', 'limpeza_tecnica', 'vistoria', 'emergencial', 'serralheria', 'marmoraria', 'marcenaria'); EXCEPTION WHEN duplicate_object THEN null; END $;
+DO $ BEGIN ALTER TYPE service_order_service_type ADD VALUE IF NOT EXISTS 'climatizacao'; EXCEPTION WHEN OTHERS THEN null; END $;
+DO $ BEGIN ALTER TYPE service_order_service_type ADD VALUE IF NOT EXISTS 'preventiva'; EXCEPTION WHEN OTHERS THEN null; END $;
+DO $ BEGIN ALTER TYPE service_order_service_type ADD VALUE IF NOT EXISTS 'corretiva'; EXCEPTION WHEN OTHERS THEN null; END $;
+DO $ BEGIN ALTER TYPE service_order_service_type ADD VALUE IF NOT EXISTS 'pintura'; EXCEPTION WHEN OTHERS THEN null; END $;
+DO $ BEGIN ALTER TYPE service_order_service_type ADD VALUE IF NOT EXISTS 'estrutural'; EXCEPTION WHEN OTHERS THEN null; END $;
+DO $ BEGIN ALTER TYPE service_order_service_type ADD VALUE IF NOT EXISTS 'facilities'; EXCEPTION WHEN OTHERS THEN null; END $;
+DO $ BEGIN ALTER TYPE service_order_service_type ADD VALUE IF NOT EXISTS 'infraestrutura'; EXCEPTION WHEN OTHERS THEN null; END $;
+DO $ BEGIN ALTER TYPE service_order_service_type ADD VALUE IF NOT EXISTS 'limpeza_tecnica'; EXCEPTION WHEN OTHERS THEN null; END $;
+DO $ BEGIN ALTER TYPE service_order_service_type ADD VALUE IF NOT EXISTS 'vistoria'; EXCEPTION WHEN OTHERS THEN null; END $;
+DO $ BEGIN ALTER TYPE service_order_service_type ADD VALUE IF NOT EXISTS 'emergencial'; EXCEPTION WHEN OTHERS THEN null; END $;
 DO $ BEGIN CREATE TYPE sla_status AS ENUM ('within_sla', 'warning', 'breached'); EXCEPTION WHEN duplicate_object THEN null; END $;
 DO $ BEGIN CREATE TYPE checklist_status AS ENUM ('pending', 'in_progress', 'completed'); EXCEPTION WHEN duplicate_object THEN null; END $;
 
@@ -177,6 +187,14 @@ CREATE TABLE IF NOT EXISTS service_orders (
     -- Spatial Data
     latitude DECIMAL(10, 8),
     longitude DECIMAL(11, 8),
+    
+    -- New Facilities Fields
+    diagnostics TEXT,
+    cost_center VARCHAR(100),
+    billing_status VARCHAR(50) DEFAULT 'pending',
+    approval_status VARCHAR(50) DEFAULT 'pending',
+    technician_signature_url VARCHAR(1024),
+    client_signature_url VARCHAR(1024),
     
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
