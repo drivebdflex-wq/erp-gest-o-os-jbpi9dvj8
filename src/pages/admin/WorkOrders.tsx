@@ -162,8 +162,8 @@ export default function WorkOrders() {
     if (
       search &&
       !o.title.toLowerCase().includes(search.toLowerCase()) &&
-      !o.shortId.toLowerCase().includes(search.toLowerCase()) &&
-      !(o.order_number || '').toLowerCase().includes(search.toLowerCase()) &&
+      !(o.shortId || '').toLowerCase().includes(search.toLowerCase()) &&
+      !(o.order_number || '').toString().toLowerCase().includes(search.toLowerCase()) &&
       !(o.unitPrefix || '').toLowerCase().includes(search.toLowerCase()) &&
       !(o.unitName || '').toLowerCase().includes(search.toLowerCase())
     )
@@ -186,8 +186,8 @@ export default function WorkOrders() {
     if (
       search &&
       !o.title.toLowerCase().includes(search.toLowerCase()) &&
-      !o.shortId.toLowerCase().includes(search.toLowerCase()) &&
-      !(o.order_number || '').toLowerCase().includes(search.toLowerCase()) &&
+      !(o.shortId || '').toLowerCase().includes(search.toLowerCase()) &&
+      !(o.order_number || '').toString().toLowerCase().includes(search.toLowerCase()) &&
       !(o.unitPrefix || '').toLowerCase().includes(search.toLowerCase()) &&
       !(o.unitName || '').toLowerCase().includes(search.toLowerCase())
     )

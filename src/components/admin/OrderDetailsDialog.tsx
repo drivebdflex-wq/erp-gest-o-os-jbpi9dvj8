@@ -324,7 +324,7 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <DialogTitle className="text-xl font-bold tracking-tight">
-                OS {order.shortId}
+                {order.order_number || order.shortId}
               </DialogTitle>
               <Badge
                 variant="outline"
@@ -657,8 +657,9 @@ export default function OrderDetailsDialog({ open, onOpenChange, order }: OrderD
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Ordem de Serviço</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza de que deseja excluir a OS <strong>{order?.shortId}</strong>? Esta ação
-              não pode ser desfeita.
+              Tem certeza de que deseja excluir a OS{' '}
+              <strong>{order?.order_number || order?.shortId}</strong>? Esta ação não pode ser
+              desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

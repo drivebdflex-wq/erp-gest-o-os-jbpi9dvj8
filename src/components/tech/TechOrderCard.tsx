@@ -10,7 +10,9 @@ export default function TechOrderCard({ order }: { order: Order }) {
       <Card className="hover:border-primary transition-colors cursor-pointer bg-card shadow-sm border border-border/50">
         <CardContent className="p-4">
           <div className="flex justify-between items-start mb-2">
-            <span className="font-bold text-sm">{order.shortId}</span>
+            <span className="font-bold text-sm">
+              {(order as any).order_number || order.shortId}
+            </span>
             <Badge variant={order.status === 'Em Execução' ? 'default' : 'secondary'}>
               {order.status}
             </Badge>

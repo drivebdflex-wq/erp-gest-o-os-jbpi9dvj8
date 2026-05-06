@@ -56,7 +56,9 @@ export default function OrderKanban({ orders: propOrders, onCardClick }: OrderKa
                   >
                     <CardContent className="p-3">
                       <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-bold">{order.shortId}</span>
+                        <span className="text-xs font-bold">
+                          {(order as any).order_number || order.shortId}
+                        </span>
                         <div className="flex gap-1 items-center">
                           <Badge
                             variant="outline"

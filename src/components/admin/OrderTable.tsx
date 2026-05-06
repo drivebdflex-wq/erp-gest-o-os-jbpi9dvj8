@@ -156,7 +156,7 @@ export default function OrderTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px]">ID</TableHead>
+              <TableHead className="w-[100px]">Nº OS</TableHead>
               <TableHead>Título</TableHead>
               <TableHead>Contrato / Agência</TableHead>
               <TableHead>Categoria</TableHead>
@@ -385,8 +385,9 @@ export default function OrderTable({
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Ordem de Serviço</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza de que deseja excluir a OS <strong>{orderToDelete?.shortId}</strong>? Esta
-              ação não pode ser desfeita.
+              Tem certeza de que deseja excluir a OS{' '}
+              <strong>{(orderToDelete as any)?.order_number || orderToDelete?.shortId}</strong>?
+              Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

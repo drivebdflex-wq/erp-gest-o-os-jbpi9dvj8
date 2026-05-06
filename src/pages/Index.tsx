@@ -70,7 +70,9 @@ export default function Index() {
       const dataArray = Array.isArray(data) ? data : data.data || []
       const mappedOrders = dataArray.map((o: any) => ({
         id: o.id,
-        shortId: o.id?.split('-')[0]?.toUpperCase()?.substring(0, 8) || 'OS-000',
+        shortId: o.id?.split('-')[0]?.toUpperCase()?.substring(0, 8) || '00000000',
+        order_number:
+          o.order_number || Math.floor(100000000 + Math.random() * 900000000).toString(),
         title: o.description || 'Manutenção',
         client: o.client_id || 'Cliente não informado',
         unit: o.unit_id || 'Unidade não informada',
@@ -130,7 +132,7 @@ export default function Index() {
         alerts.push({
           id: `${o.id}-stuck`,
           type: 'stuck',
-          title: `OS ${o.shortId} estagnada`,
+          title: `OS ${o.order_number || o.shortId} estagnada`,
           message: `Há mais de 24h em '${o.status}'`,
           tech: o.tech,
         })
@@ -140,7 +142,7 @@ export default function Index() {
         alerts.push({
           id: `${o.id}-warning`,
           type: 'warning',
-          title: `OS ${o.shortId} perto do prazo`,
+          title: `OS ${o.order_number || o.shortId} perto do prazo`,
           message: `SLA expira em breve`,
           tech: o.tech,
         })
@@ -150,7 +152,7 @@ export default function Index() {
         alerts.push({
           id: `${o.id}-audit`,
           type: 'audit',
-          title: `OS ${o.shortId} em auditoria prolongada`,
+          title: `OS ${o.order_number || o.shortId} em auditoria prolongada`,
           message: `Revisão pendente > 12h`,
           tech: o.tech,
         })

@@ -85,6 +85,10 @@ export default function CreateOrderDialog({
         return
       }
 
+      const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
+      const randomStr = Math.floor(1000 + Math.random() * 9000).toString()
+      const orderNumber = `${dateStr}${randomStr}`
+
       const payload: any = {
         client_id: formData.clientId,
         contract_id: formData.contractId,
@@ -92,6 +96,7 @@ export default function CreateOrderDialog({
         priority: formData.priority,
         service_type: formData.service_type,
         status: 'pending',
+        order_number: orderNumber,
       }
 
       const createdOrder = await createOrder(payload)

@@ -72,11 +72,11 @@ export default function WorkOrderDetail() {
       if (foundOrder) {
         setOrder(foundOrder)
       } else {
-        const orderNumber = `OS#${new Date().toISOString().slice(2, 10).replace(/-/g, '')}${(Math.random() * 1000).toFixed(0).padStart(3, '0')}`
+        const orderNumber = `${new Date().toISOString().slice(2, 10).replace(/-/g, '')}${(Math.random() * 1000).toFixed(0).padStart(3, '0')}`
         setOrder({
           id: id,
           order_number: orderNumber,
-          shortId: `OS-${id.slice(0, 5)}`,
+          shortId: id.slice(0, 8),
           title: 'Manutenção Preventiva Padrão',
           status: 'Pendente',
           priority: 'Média',
@@ -116,8 +116,7 @@ export default function WorkOrderDetail() {
   }
 
   const materialsTotal = materials.reduce((acc, m) => acc + m.quantity * m.unitValue, 0)
-  const displayId =
-    order.order_number || order.shortId || `OS #${order.id.slice(0, 8).toUpperCase()}`
+  const displayId = order.order_number || order.shortId || order.id.slice(0, 8).toUpperCase()
 
   return (
     <div className="space-y-6 pb-10 max-w-7xl mx-auto animate-fade-in">
@@ -147,10 +146,12 @@ export default function WorkOrderDetail() {
         <CardContent className="p-0">
           <div className="flex flex-col md:flex-row">
             <div className="p-6 md:w-1/2 flex flex-col justify-center border-b md:border-b-0 md:border-r bg-muted/10">
-              <div className="flex items-center gap-3 mb-3">
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
+              <div className="flex flex-col gap-1 mb-4">
+                <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-foreground">
                   {displayId}
                 </h1>
+              </div>
+              <div className="flex items-center gap-3 mb-3">
                 <Badge className={getStatusColor(order.status)} variant="secondary">
                   {order.status}
                 </Badge>
