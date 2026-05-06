@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import {
   ArrowLeft,
   Save,
@@ -12,6 +14,12 @@ import {
   Copy,
   FileText,
   FileSearch,
+  Building,
+  Briefcase,
+  Activity,
+  AlertCircle,
+  Clock,
+  Calendar,
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import useAppStore from '@/stores/useAppStore'
@@ -119,6 +127,8 @@ export default function WorkOrderDetail() {
     root_cause: '',
     km_driven: 0,
     floor: '',
+    city: '',
+    state: '',
     address: '',
     attachments: [] as any[],
     cost_center: '',
@@ -148,7 +158,7 @@ export default function WorkOrderDetail() {
       if (found) {
         setOrder(found)
         setFormData({
-          order_number: found.order_number || found.shortId || '',
+          order_number: found.order_number || found.shortId || `OS-${found.id?.substring(0, 8)}`,
           call_code: found.call_code || '',
           ticket_number: found.ticket_number || '',
           dependency: found.dependency || '',
@@ -157,11 +167,13 @@ export default function WorkOrderDetail() {
           warranty: found.warranty || false,
           opening_date: found.opening_date
             ? new Date(found.opening_date).toISOString().slice(0, 16)
-            : '',
+            : found.date
+              ? new Date(found.date).toISOString().slice(0, 16)
+              : '',
           acceptance_date: found.acceptance_date
             ? new Date(found.acceptance_date).toISOString().slice(0, 16)
             : '',
-          contract_id: found.contractId || found.contract_id || '',
+          contract_id: found.contractName || found.contractId || found.contract_id || '',
           asset_number: found.asset_number || '',
           requested_by: found.requested_by || '',
           client_unit: found.client_unit || found.unitName || '',
@@ -213,6 +225,8 @@ export default function WorkOrderDetail() {
           root_cause: found.root_cause || '',
           km_driven: found.km_driven || 0,
           floor: found.floor || '',
+          city: found.city || '',
+          state: found.state || '',
           address: found.address || '',
           cost_center: found.cost_center || '',
           internal_code: found.internal_code || '',
@@ -267,6 +281,7 @@ export default function WorkOrderDetail() {
         },
       ],
     }))
+
   const handleRemoveItem = (index: number) => {
     const n = [...formData.items]
     n.splice(index, 1)
@@ -305,7 +320,6 @@ export default function WorkOrderDetail() {
       await updateOrder(id, { ...formData, serviceValue: formData.total_cost })
       toast({ title: 'Sucesso', description: 'OS atualizada com sucesso.' })
       loadAudits()
-      setReadOnly(true)
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message || 'Falha ao salvar.', variant: 'destructive' })
     } finally {
@@ -337,37 +351,24 @@ export default function WorkOrderDetail() {
   if (!order) return <div className="p-8 text-center text-muted-foreground">Carregando...</div>
 
   return (
-    <div className="space-y-6 h-full flex flex-col pb-10 max-w-6xl mx-auto animate-fade-in pt-4">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 h-full flex flex-col pb-10 max-w-7xl mx-auto animate-fade-in pt-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-4">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon" onClick={() => navigate('/ordens')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight leading-tight flex items-center gap-2">
-              {formData.order_number ? `OS ${formData.order_number}` : 'Carregando OS...'}
+            <h1 className="text-3xl font-black tracking-tight flex items-center gap-3">
+              {formData.order_number ? `${formData.order_number}` : 'Carregando OS...'}
               {readOnly && (
                 <span className="text-xs font-normal bg-secondary px-2 py-1 rounded">
                   Visualização
                 </span>
               )}
-            </h2>
-            <div className="flex items-center gap-3 text-sm mt-1">
-              <span className="text-muted-foreground font-medium">
-                {formData.os_type || 'Facilities & Manutenção Predial'}
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                Status: {formData.status}
-              </span>
-              <span className="px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-semibold">
-                SLA:{' '}
-                {formData.sla_status === 'within_sla'
-                  ? 'No Prazo'
-                  : formData.sla_status === 'breached'
-                    ? 'Atrasado'
-                    : 'Aviso'}
-              </span>
-            </div>
+            </h1>
+            <p className="text-sm text-muted-foreground font-medium mt-1">
+              Gerenciamento de Ordem de Serviço
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
@@ -422,27 +423,122 @@ export default function WorkOrderDetail() {
         </div>
       </div>
 
+      {/* High Density ERP Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-2">
+        <Card className="bg-card shadow-sm border-l-4 border-l-primary">
+          <CardContent className="p-3 flex flex-col justify-center h-full">
+            <div className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1 mb-1">
+              <Building className="w-3 h-3" /> Cliente
+            </div>
+            <div className="font-bold text-sm truncate">{order?.client || 'N/A'}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card shadow-sm border-l-4 border-l-primary">
+          <CardContent className="p-3 flex flex-col justify-center h-full">
+            <div className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1 mb-1">
+              <Briefcase className="w-3 h-3" /> Contrato
+            </div>
+            <div className="font-bold text-sm truncate">{formData.contract_id || 'N/A'}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card shadow-sm border-l-4 border-l-primary">
+          <CardContent className="p-3 flex flex-col justify-center h-full">
+            <div className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1 mb-1">
+              <Activity className="w-3 h-3" /> Status
+            </div>
+            <div className="font-bold text-sm truncate uppercase text-primary">
+              {formData.status}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card shadow-sm border-l-4 border-l-primary">
+          <CardContent className="p-3 flex flex-col justify-center h-full">
+            <div className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1 mb-1">
+              <AlertCircle className="w-3 h-3" /> Prioridade
+            </div>
+            <div className="font-bold text-sm truncate uppercase">{formData.priority}</div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card shadow-sm border-l-4 border-l-primary">
+          <CardContent className="p-3 flex flex-col justify-center h-full">
+            <div className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1 mb-1">
+              <Clock className="w-3 h-3" /> SLA
+            </div>
+            <div
+              className={`font-bold text-sm truncate uppercase ${formData.sla_status === 'within_sla' ? 'text-green-600' : 'text-destructive'}`}
+            >
+              {formData.sla_status === 'within_sla' ? 'No Prazo' : formData.sla_status}
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-card shadow-sm border-l-4 border-l-primary">
+          <CardContent className="p-3 flex flex-col justify-center h-full">
+            <div className="text-[10px] text-muted-foreground uppercase font-bold flex items-center gap-1 mb-1">
+              <Calendar className="w-3 h-3" /> Abertura
+            </div>
+            <div className="font-bold text-sm truncate">
+              {formData.opening_date ? new Date(formData.opening_date).toLocaleDateString() : 'N/A'}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className={readOnly ? 'pointer-events-none opacity-90 select-none print-friendly' : ''}>
-        <Tabs defaultValue="geral" className="w-full border rounded-lg bg-card shadow-sm">
+        <Tabs defaultValue="geral" className="w-full bg-card rounded-lg shadow-sm border">
           <div className="border-b px-4 py-2 bg-muted/20 overflow-x-auto">
-            <TabsList className="flex md:grid md:grid-cols-7 h-auto p-1 min-w-[900px]">
-              <TabsTrigger value="geral">Geral</TabsTrigger>
-              <TabsTrigger value="servico">Atendimento</TabsTrigger>
-              <TabsTrigger value="execucao">Técnicos & Execução</TabsTrigger>
-              <TabsTrigger value="orcamento">Materiais & Orçamento</TabsTrigger>
-              <TabsTrigger value="evidencias">Evidências</TabsTrigger>
-              <TabsTrigger value="historico">Histórico</TabsTrigger>
-              <TabsTrigger value="admin">Administrativo</TabsTrigger>
+            <TabsList className="flex md:grid md:grid-cols-7 h-auto p-1 min-w-[900px] bg-transparent">
+              <TabsTrigger
+                value="geral"
+                className="data-[state=active]:bg-background data-[state=active]:shadow"
+              >
+                Geral / Local
+              </TabsTrigger>
+              <TabsTrigger
+                value="servico"
+                className="data-[state=active]:bg-background data-[state=active]:shadow"
+              >
+                Atendimento
+              </TabsTrigger>
+              <TabsTrigger
+                value="execucao"
+                className="data-[state=active]:bg-background data-[state=active]:shadow"
+              >
+                Execução
+              </TabsTrigger>
+              <TabsTrigger
+                value="orcamento"
+                className="data-[state=active]:bg-background data-[state=active]:shadow"
+              >
+                Materiais
+              </TabsTrigger>
+              <TabsTrigger
+                value="evidencias"
+                className="data-[state=active]:bg-background data-[state=active]:shadow"
+              >
+                Evidências
+              </TabsTrigger>
+              <TabsTrigger
+                value="historico"
+                className="data-[state=active]:bg-background data-[state=active]:shadow"
+              >
+                Auditoria
+              </TabsTrigger>
+              <TabsTrigger
+                value="admin"
+                className="data-[state=active]:bg-background data-[state=active]:shadow"
+              >
+                Admin
+              </TabsTrigger>
             </TabsList>
           </div>
-          <div className="p-4 md:p-6 min-h-[500px]">
-            <TabsContent value="geral" className="m-0">
+          <div className="p-6 min-h-[500px]">
+            <TabsContent value="geral" className="m-0 focus-visible:outline-none">
               <GeneralTab data={formData} set={setFormData} />
             </TabsContent>
-            <TabsContent value="servico" className="m-0">
+            <TabsContent value="servico" className="m-0 focus-visible:outline-none">
               <ServiceTab data={formData} set={setFormData} />
             </TabsContent>
-            <TabsContent value="execucao" className="m-0">
+            <TabsContent value="execucao" className="m-0 focus-visible:outline-none">
               <ExecutionTab
                 data={formData}
                 set={setFormData}
@@ -450,7 +546,7 @@ export default function WorkOrderDetail() {
                 teams={teams}
               />
             </TabsContent>
-            <TabsContent value="orcamento" className="m-0">
+            <TabsContent value="orcamento" className="m-0 focus-visible:outline-none">
               <BudgetTab
                 data={formData}
                 set={setFormData}
@@ -460,7 +556,7 @@ export default function WorkOrderDetail() {
                 handleItemChange={handleItemChange}
               />
             </TabsContent>
-            <TabsContent value="evidencias" className="m-0">
+            <TabsContent value="evidencias" className="m-0 focus-visible:outline-none">
               <EvidenceTab
                 data={formData}
                 set={setFormData}
@@ -475,43 +571,59 @@ export default function WorkOrderDetail() {
                 }
               />
             </TabsContent>
-            <TabsContent value="admin" className="m-0">
+            <TabsContent value="admin" className="m-0 focus-visible:outline-none">
               <AdminTab data={formData} set={setFormData} />
             </TabsContent>
-            <TabsContent value="historico" className="m-0">
-              <div className="space-y-4">
-                <h3 className="font-medium flex items-center gap-2 text-lg">
-                  <History className="w-5 h-5" /> Timeline de Histórico e Auditoria
+            <TabsContent value="historico" className="m-0 focus-visible:outline-none">
+              <div className="space-y-6">
+                <h3 className="font-bold flex items-center gap-2 text-xl text-primary">
+                  <History className="w-6 h-6" /> Timeline de Auditoria
                 </h3>
-                <div className="space-y-4 pt-2">
+                <div className="relative border-l-2 border-primary/30 ml-3 space-y-8 pb-4">
                   {audits.map((a) => (
-                    <div
-                      key={a.id}
-                      className="border-l-2 border-primary pl-4 py-2 bg-secondary/10 text-sm rounded-r-md"
-                    >
-                      <div className="text-xs text-muted-foreground mb-1">
-                        {new Date(a.created_at).toLocaleString()} • {a.user_name || 'Sistema'}
+                    <div key={a.id} className="relative pl-6">
+                      <div className="absolute -left-[11px] top-1 w-5 h-5 rounded-full bg-background border-2 border-primary flex items-center justify-center">
+                        <div className="w-2 h-2 rounded-full bg-primary" />
                       </div>
-                      <div className="font-medium">
-                        {a.action === 'CREATE'
-                          ? 'OS Criada'
-                          : a.new_value?.change || `Atualização (${a.action})`}
-                      </div>
-                      {a.action === 'UPDATE' && a.old_value?.status !== a.new_value?.status && (
-                        <div className="text-xs mt-1 bg-background inline-block px-2 py-1 rounded border">
-                          Status alterado:{' '}
-                          <span className="line-through text-muted-foreground">
-                            {a.old_value?.status}
-                          </span>{' '}
-                          ➔ <span className="text-primary font-bold">{a.new_value?.status}</span>
+                      <div className="bg-card border rounded-lg p-4 shadow-sm">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-2 gap-2">
+                          <div className="font-semibold text-base">
+                            {a.action === 'CREATE'
+                              ? 'Criação da Ordem de Serviço'
+                              : `Atualização de Registro (${a.action})`}
+                          </div>
+                          <span className="text-xs font-mono bg-secondary px-2 py-1 rounded-md">
+                            {new Date(a.created_at).toLocaleString()}
+                          </span>
                         </div>
-                      )}
+                        <div className="text-sm text-muted-foreground mb-3">
+                          Usuário Responsável:{' '}
+                          <span className="font-medium text-foreground">
+                            {a.user_name || 'Sistema ERP'}
+                          </span>
+                        </div>
+
+                        {a.action === 'UPDATE' && a.old_value?.status !== a.new_value?.status && (
+                          <div className="text-sm bg-secondary/30 p-3 rounded-md border flex items-center flex-wrap gap-3">
+                            <span className="font-semibold">Transição de Status:</span>
+                            <Badge variant="outline" className="line-through opacity-70">
+                              {a.old_value?.status || 'N/A'}
+                            </Badge>
+                            <ArrowLeft className="w-4 h-4 rotate-180 text-muted-foreground" />
+                            <Badge className="bg-primary">{a.new_value?.status}</Badge>
+                          </div>
+                        )}
+
+                        {a.action === 'UPDATE' && a.new_value?.change && (
+                          <div className="text-sm mt-2 font-medium">{a.new_value.change}</div>
+                        )}
+                      </div>
                     </div>
                   ))}
                   {audits.length === 0 && (
-                    <p className="text-muted-foreground text-sm border-l-2 border-muted pl-4 py-2">
+                    <div className="pl-6 text-muted-foreground">
                       Nenhum histórico de eventos encontrado.
-                    </p>
+                    </div>
                   )}
                 </div>
               </div>

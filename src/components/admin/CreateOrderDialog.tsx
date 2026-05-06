@@ -94,10 +94,6 @@ export default function CreateOrderDialog({
         status: 'pending',
       }
 
-      if (formData.technicianId) {
-        payload.technician_id = formData.technicianId
-      }
-
       const createdOrder = await createOrder(payload)
 
       window.dispatchEvent(new Event('service-order-created'))
@@ -259,36 +255,6 @@ export default function CreateOrderDialog({
                   <SelectItem value="vistoria">Vistoria</SelectItem>
                   <SelectItem value="emergencial">Emergencial</SelectItem>
                 </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Técnico Responsável (Opcional)</Label>
-              <Select
-                value={formData.technicianId || undefined}
-                onValueChange={(v) => {
-                  setFormData({ ...formData, technicianId: v })
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um Técnico..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {technicians
-                    ?.filter(
-                      (t: any) =>
-                        t.status === 'active' &&
-                        t.id &&
-                        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-                          t.id,
-                        ),
-                    )
-                    .map((t: any) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.name || 'Sem Nome'}
-                      </SelectItem>
-                    ))}
-                </SelectContent>{' '}
               </Select>
             </div>
           </div>

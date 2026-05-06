@@ -58,6 +58,8 @@ export interface ServiceOrder extends Timestamps {
   client_unit?: string
   address?: string
   floor?: string
+  city?: string
+  state?: string
   distance_km?: number
   environment?: string
   criticality?: string
@@ -126,6 +128,8 @@ export interface CreateServiceOrderDTO {
   client_unit?: string
   address?: string
   floor?: string
+  city?: string
+  state?: string
   distance_km?: number
   environment?: string
   criticality?: string

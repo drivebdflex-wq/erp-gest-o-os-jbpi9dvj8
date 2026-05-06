@@ -55,6 +55,14 @@ export class ServiceOrdersService {
         'unit_id is mandatory. Service Order must be associated with an agency.',
       )
 
+    if (!data.order_number) {
+      const datePart = new Date().toISOString().slice(2, 10).replace(/-/g, '')
+      const randomPart = Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, '0')
+      data.order_number = `OS#${datePart}${randomPart}`
+    }
+
     const created = await ServiceOrdersRepository.create(data as any)
     await AuditsRepository.create({
       table_name: 'service_orders',
