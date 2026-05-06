@@ -8,17 +8,19 @@ export default function ProtectedRoute({
 }: {
   requiredPermission?: Permission
 }) {
-  const { isAuthenticated, hasPermission } = useAuthStore()
+  const { isAuthenticated, isLoading, hasPermission } = useAuthStore()
 
   useEffect(() => {
-    if (isAuthenticated && requiredPermission && !hasPermission(requiredPermission)) {
+    if (!isLoading && isAuthenticated && requiredPermission && !hasPermission(requiredPermission)) {
       toast({
         title: 'Acesso Restrito',
         description: 'Você não tem permissão para acessar esta área.',
         variant: 'destructive',
       })
     }
-  }, [isAuthenticated, requiredPermission, hasPermission])
+  }, [isAuthenticated, isLoading, requiredPermission, hasPermission])
+
+  if (isLoading) return null
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />

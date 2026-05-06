@@ -7,8 +7,7 @@ import React, {
   useEffect,
 } from 'react'
 import { toast } from '@/hooks/use-toast'
-import { AuthService } from '@/services/business/auth.service'
-import { UsersService } from '@/services/business/users.service'
+import { supabase, isMock } from '@/lib/supabase'
 import { Loader2 } from 'lucide-react'
 
 export type Permission =
@@ -54,13 +53,14 @@ export interface User {
 
 interface AuthState {
   currentUser: User | null
-  accessToken: string | null
+  session: any | null
   isAuthenticated: boolean
+  isLoading: boolean
   users: User[]
   roles: Role[]
   login: (email: string, pass: string) => Promise<boolean>
   registerUser: (data: any) => Promise<boolean>
-  logout: () => void
+  logout: () => Promise<void>
   hasPermission: (perm: Permission) => boolean
   addUser: (u: Omit<User, 'id' | 'created_at'>) => void
   updateUser: (id: string, u: Partial<User>) => void
@@ -104,96 +104,116 @@ const MOCK_ROLES: Role[] = [
 ]
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<User[]>([])
-  const [roles, setRoles] = useState<Role[]>(MOCK_ROLES)
-  const [isInitializing, setIsInitializing] = useState(true)
+  const [session, setSession] = useState<any | null>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [roles, setRoles] = useState<Role[]>(MOCK_ROLES)
+  const [users, setUsers] = useState<User[]>([])
 
-  useEffect(() => {
-    const initAuth = async () => {
+  const fetchProfile = async (userId: string, email: string, userMetadata?: any) => {
+    try {
+      if (isMock) {
+        return {
+          id: userId,
+          name: userMetadata?.name || email.split('@')[0],
+          email,
+          role_id: userMetadata?.role_id || 'role-admin',
+          active: true,
+          created_at: new Date().toISOString(),
+        } as User
+      }
+
+      // Fetch extended user metadata from profiles table
       try {
-        const savedUser = localStorage.getItem('fieldops_user')
-        const savedToken = localStorage.getItem('fieldops_token')
-
-        if (savedUser && savedToken) {
-          const user = JSON.parse(savedUser)
-          setCurrentUser(user)
-          setAccessToken(savedToken)
+        const profiles = await supabase.request<any[]>(`profiles?id=eq.${userId}&select=*`)
+        if (profiles && profiles.length > 0) {
+          const profile = profiles[0]
+          return {
+            id: userId,
+            name: profile.full_name || profile.name || userMetadata?.name || email.split('@')[0],
+            email,
+            role_id: profile.role_id || 'role-tecnico',
+            active: profile.active !== false,
+            created_at: profile.created_at || new Date().toISOString(),
+            avatar_url: profile.avatar_url,
+          } as User
         }
       } catch (err) {
-        localStorage.removeItem('fieldops_user')
-        localStorage.removeItem('fieldops_token')
-      } finally {
-        setIsInitializing(false)
+        console.warn('Failed to fetch from profiles table, using auth metadata fallback')
+      }
+
+      // Fallback to metadata
+      return {
+        id: userId,
+        name: userMetadata?.name || email.split('@')[0],
+        email,
+        role_id: userMetadata?.role_id || 'role-tecnico',
+        active: true,
+        created_at: new Date().toISOString(),
+      } as User
+    } catch (e) {
+      console.error('Profile evaluation failed', e)
+      return null
+    }
+  }
+
+  useEffect(() => {
+    let mounted = true
+
+    const initializeAuth = async () => {
+      setIsLoading(true)
+      const { data } = await supabase.auth.getSession()
+
+      if (data.session && mounted) {
+        setSession(data.session)
+        const profile = await fetchProfile(
+          data.session.user.id,
+          data.session.user.email,
+          data.session.user.user_metadata,
+        )
+        setCurrentUser(profile)
+      }
+
+      if (mounted) {
+        setIsLoading(false)
       }
     }
 
-    initAuth()
+    initializeAuth()
 
-    const handleUnauthorized = () => {
-      setCurrentUser(null)
-      setAccessToken(null)
-    }
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        if (!mounted) return
 
-    window.addEventListener('auth:unauthorized', handleUnauthorized)
-
-    UsersService.findAll()
-      .then((data) => {
-        const mapped = data.map((u) => ({
-          ...u,
-          active: u.status === 'active',
-          role_id: u.id === 'admin-id' ? 'role-admin' : 'role-tecnico',
-        }))
-        setUsers(mapped as any)
-      })
-      .catch(console.error)
+        setSession(currentSession)
+        if (currentSession) {
+          const profile = await fetchProfile(
+            currentSession.user.id,
+            currentSession.user.email,
+            currentSession.user.user_metadata,
+          )
+          setCurrentUser(profile)
+        } else {
+          setCurrentUser(null)
+        }
+        setIsLoading(false)
+      },
+    )
 
     return () => {
-      window.removeEventListener('auth:unauthorized', handleUnauthorized)
+      mounted = false
+      if (authListener?.subscription) {
+        authListener.subscription.unsubscribe()
+      }
     }
   }, [])
 
   const login = async (email: string, pass: string) => {
-    try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-      let result
+    setIsLoading(true)
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass })
 
-      try {
-        const response = await fetch(`${baseUrl}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password: pass }),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null)
-          throw new Error(errorData?.message || 'E-mail ou senha incorretos.')
-        }
-
-        result = await response.json()
-      } catch (e: any) {
-        if (e.name === 'TypeError' || e.message === 'Failed to fetch') {
-          console.warn('API /auth/login unreachable, falling back to mock auth', e)
-          const mockResult = await AuthService.login(email, pass)
-          result = {
-            access_token: mockResult.token,
-            user: mockResult.user,
-          }
-        } else {
-          throw e
-        }
-      }
-
-      const user = result.user
-      const token = result.access_token
-
-      setCurrentUser(user as any)
-      setAccessToken(token)
-      localStorage.setItem('fieldops_user', JSON.stringify(user))
-      localStorage.setItem('fieldops_token', token)
-      return true
-    } catch (error: any) {
+    if (error) {
+      setIsLoading(false)
       toast({
         title: 'Falha no Login',
         description: error.message || 'E-mail ou senha incorretos.',
@@ -201,14 +221,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       return false
     }
+
+    return true
+  }
+
+  const logout = async () => {
+    setIsLoading(true)
+    await supabase.auth.signOut()
   }
 
   const registerUser = async (data: any) => {
-    try {
-      const newUser = await UsersService.createUser(data)
-      setUsers((prev) => [...prev, { ...newUser, active: true, role_id: data.role } as any])
-      return true
-    } catch (error: any) {
+    setIsLoading(true)
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+      options: {
+        data: {
+          name: data.name,
+          role_id: data.role,
+        },
+      },
+    })
+    setIsLoading(false)
+
+    if (error) {
       toast({
         title: 'Erro no Cadastro',
         description: error.message || 'Não foi possível criar a conta.',
@@ -216,13 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       return false
     }
-  }
-
-  const logout = () => {
-    setCurrentUser(null)
-    setAccessToken(null)
-    localStorage.removeItem('fieldops_user')
-    localStorage.removeItem('fieldops_token')
+    return true
   }
 
   const hasPermission = useCallback(
@@ -246,9 +276,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateUser = (id: string, u: Partial<User>) => {
     setUsers((prev) => prev.map((x) => (x.id === id ? { ...x, ...u } : x)))
     if (currentUser?.id === id) {
-      const updated = { ...currentUser, ...u }
-      setCurrentUser(updated as any)
-      localStorage.setItem('fieldops_user', JSON.stringify(updated))
+      setCurrentUser({ ...currentUser, ...u } as User)
     }
   }
 
@@ -260,7 +288,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRoles((prev) => prev.map((x) => (x.id === id ? { ...x, ...r } : x)))
   }
 
-  if (isInitializing) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -275,8 +303,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider
       value={{
         currentUser,
-        accessToken,
-        isAuthenticated: !!currentUser && !!accessToken,
+        session,
+        isAuthenticated: !!session && !!currentUser,
+        isLoading,
         users,
         roles,
         login,

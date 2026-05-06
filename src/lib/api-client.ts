@@ -1,8 +1,11 @@
+import { supabase } from '@/lib/supabase'
+
 export async function fetchWithAuth(
   input: RequestInfo | URL,
   init?: RequestInit,
 ): Promise<Response> {
-  const token = localStorage.getItem('fieldops_token')
+  const { data } = await supabase.auth.getSession()
+  const token = data?.session?.access_token
 
   const headers = new Headers(init?.headers)
   if (token) {
@@ -15,9 +18,8 @@ export async function fetchWithAuth(
   })
 
   if (response.status === 401) {
-    localStorage.removeItem('fieldops_token')
-    localStorage.removeItem('fieldops_user')
     window.dispatchEvent(new Event('auth:unauthorized'))
+    await supabase.auth.signOut()
 
     // Redirect to login if not already there
     if (window.location.pathname !== '/login') {

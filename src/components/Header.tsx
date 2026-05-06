@@ -64,8 +64,8 @@ export default function Header() {
   const roleName = roles.find((r) => r.id === currentUser?.role_id)?.name || 'Usuário'
   const isTech = currentUser?.role_id === 'role-tecnico'
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/login')
   }
 
