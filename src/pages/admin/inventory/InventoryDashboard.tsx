@@ -1,7 +1,7 @@
 import InventoryNav from '@/components/admin/inventory/InventoryNav'
 import useInventoryStore from '@/stores/useInventoryStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Package, AlertTriangle, XCircle, Activity } from 'lucide-react'
+import { Package, AlertTriangle, XCircle, Activity, AlertCircle, RefreshCw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import {
   Table,
@@ -11,9 +11,40 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useEffect } from 'react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function InventoryDashboard() {
-  const { products, balances, movements } = useInventoryStore()
+  const { products, balances, movements, isLoading, error, fetchData } = useInventoryStore()
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  if (error) {
+    return (
+      <div className="space-y-6 animate-fade-in pb-10">
+        <InventoryNav />
+        <div className="max-w-2xl mx-auto mt-10">
+          <Alert variant="destructive">
+            <AlertCircle className="h-5 w-5" />
+            <AlertTitle className="text-lg">Módulo Indisponível (Erro {error.code})</AlertTitle>
+            <AlertDescription className="mt-2 text-sm">
+              Não foi possível carregar os dados de estoque do Supabase. <br />
+              Detalhes: {error.message}
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4 flex gap-4 justify-center">
+            <Button onClick={() => fetchData()}>
+              <RefreshCw className="w-4 h-4 mr-2" /> Tentar Novamente
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const totalValue = balances.reduce((sum, b) => {
     const p = products.find((x) => x.id === b.product_id)
@@ -40,7 +71,7 @@ export default function InventoryDashboard() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Dashboard de Estoque</h2>
         <p className="text-sm text-muted-foreground">
-          Monitoramento consolidado de materiais e movimentações.
+          Monitoramento consolidado integrado ao Supabase.
         </p>
       </div>
 
@@ -51,7 +82,11 @@ export default function InventoryDashboard() {
             <Activity className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">R$ {totalValue.toFixed(2)}</div>
+            {loading ? (
+              <Skeleton className="h-8 w-[100px]" />
+            ) : (
+              <div className="text-2xl font-bold text-primary">R$ {totalValue.toFixed(2)}</div>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -60,7 +95,11 @@ export default function InventoryDashboard() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{products.length}</div>
+            {loading ? (
+              <Skeleton className="h-8 w-[60px]" />
+            ) : (
+              <div className="text-2xl font-bold">{products.length}</div>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -69,7 +108,11 @@ export default function InventoryDashboard() {
             <AlertTriangle className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">{productsBelowMin.length}</div>
+            {loading ? (
+              <Skeleton className="h-8 w-[60px]" />
+            ) : (
+              <div className="text-2xl font-bold text-warning">{productsBelowMin.length}</div>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -78,11 +121,14 @@ export default function InventoryDashboard() {
             <XCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{zeroStock.length}</div>
+            {loading ? (
+              <Skeleton className="h-8 w-[60px]" />
+            ) : (
+              <div className="text-2xl font-bold text-destructive">{zeroStock.length}</div>
+            )}
           </CardContent>
         </Card>
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
@@ -99,29 +145,54 @@ export default function InventoryDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {movements.slice(0, 5).map((m) => {
-                  const p = products.find((x) => x.id === m.product_id)
-                  return (
-                    <TableRow key={m.id}>
-                      <TableCell>{new Date(m.date).toLocaleDateString()}</TableCell>
-                      <TableCell className="font-medium">{p?.name}</TableCell>
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <TableRow key={i}>
                       <TableCell>
-                        <Badge
-                          variant={
-                            m.type === 'entrada'
-                              ? 'default'
-                              : m.type === 'saída'
-                                ? 'destructive'
-                                : 'secondary'
-                          }
-                        >
-                          {m.type}
-                        </Badge>
+                        <Skeleton className="h-4 w-20" />
                       </TableCell>
-                      <TableCell className="text-right font-mono">{m.quantity}</TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-16" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-10 ml-auto" />
+                      </TableCell>
                     </TableRow>
-                  )
-                })}
+                  ))
+                ) : movements.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                      Nenhuma movimentação
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  movements.slice(0, 5).map((m) => {
+                    const p = products.find((x) => x.id === m.product_id)
+                    return (
+                      <TableRow key={m.id}>
+                        <TableCell>{new Date(m.date).toLocaleDateString()}</TableCell>
+                        <TableCell className="font-medium">{p?.name || 'Desconhecido'}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              m.type === 'entrada'
+                                ? 'default'
+                                : m.type === 'saída'
+                                  ? 'destructive'
+                                  : 'secondary'
+                            }
+                          >
+                            {m.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-mono">{m.quantity}</TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -129,7 +200,7 @@ export default function InventoryDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Produtos Críticos (Zerados ou Baixos)</CardTitle>
+            <CardTitle>Produtos Críticos</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -141,26 +212,41 @@ export default function InventoryDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {[...zeroStock, ...productsBelowMin].slice(0, 5).map((p) => {
-                  const total = balances
-                    .filter((b) => b.product_id === p.id)
-                    .reduce((sum, b) => sum + b.quantity, 0)
-                  return (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium">{p.name}</TableCell>
-                      <TableCell className="text-right">{p.minimum_stock}</TableCell>
-                      <TableCell className="text-right font-bold text-destructive">
-                        {total}
+                {isLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-10 ml-auto" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-10 ml-auto" />
                       </TableCell>
                     </TableRow>
-                  )
-                })}
-                {zeroStock.length === 0 && productsBelowMin.length === 0 && (
+                  ))
+                ) : [...zeroStock, ...productsBelowMin].length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
                       Nenhum produto crítico.
                     </TableCell>
                   </TableRow>
+                ) : (
+                  [...zeroStock, ...productsBelowMin].slice(0, 5).map((p) => {
+                    const total = balances
+                      .filter((b) => b.product_id === p.id)
+                      .reduce((sum, b) => sum + b.quantity, 0)
+                    return (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-medium">{p.name}</TableCell>
+                        <TableCell className="text-right">{p.minimum_stock}</TableCell>
+                        <TableCell className="text-right font-bold text-destructive">
+                          {total}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>
