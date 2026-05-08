@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Fetch extended user metadata from profiles table
       try {
-        const profiles = await supabase.request<any[]>(`profiles?id=eq.${userId}&select=*`)
+        const profiles = await (supabase as any).request?.(`profiles?id=eq.${userId}&select=*`)
         if (profiles && profiles.length > 0) {
           const profile = profiles[0]
           return {
@@ -162,47 +162,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const initializeAuth = async () => {
       setIsLoading(true)
-      const { data } = await supabase.auth.getSession()
 
-      if (data.session && mounted) {
-        setSession(data.session)
-        const profile = await fetchProfile(
-          data.session.user.id,
-          data.session.user.email,
-          data.session.user.user_metadata,
-        )
-        setCurrentUser(profile)
+      if (!supabase?.auth?.getSession) {
+        if (mounted) setIsLoading(false)
+        return
       }
 
-      if (mounted) {
-        setIsLoading(false)
+      try {
+        const { data } = await supabase.auth.getSession()
+
+        if (data?.session && mounted) {
+          setSession(data.session)
+          const profile = await fetchProfile(
+            data.session.user.id,
+            data.session.user.email,
+            data.session.user.user_metadata,
+          )
+          setCurrentUser(profile)
+        }
+      } catch (err) {
+        console.error('Failed to get session:', err)
+      } finally {
+        if (mounted) {
+          setIsLoading(false)
+        }
       }
     }
 
     initializeAuth()
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        if (!mounted) return
+    let authListener: any = null
 
-        setSession(currentSession)
-        if (currentSession) {
-          const profile = await fetchProfile(
-            currentSession.user.id,
-            currentSession.user.email,
-            currentSession.user.user_metadata,
-          )
-          setCurrentUser(profile)
-        } else {
-          setCurrentUser(null)
-        }
-        setIsLoading(false)
-      },
-    )
+    if (supabase?.auth?.onAuthStateChange) {
+      try {
+        const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+          if (!mounted) return
+
+          setSession(currentSession)
+          if (currentSession) {
+            const profile = await fetchProfile(
+              currentSession.user.id,
+              currentSession.user.email,
+              currentSession.user.user_metadata,
+            )
+            setCurrentUser(profile)
+          } else {
+            setCurrentUser(null)
+          }
+          setIsLoading(false)
+        })
+        authListener = data
+      } catch (err) {
+        console.error('Failed to subscribe to auth changes:', err)
+      }
+    }
 
     return () => {
       mounted = false
-      if (authListener?.subscription) {
+      if (authListener?.subscription?.unsubscribe) {
         authListener.subscription.unsubscribe()
       }
     }
@@ -210,49 +227,92 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, pass: string) => {
     setIsLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass })
 
-    if (error) {
+    if (!supabase?.auth?.signInWithPassword) {
+      setIsLoading(false)
+      return false
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password: pass })
+
+      if (error) {
+        setIsLoading(false)
+        toast({
+          title: 'Falha no Login',
+          description: error.message || 'E-mail ou senha incorretos.',
+          variant: 'destructive',
+        })
+        return false
+      }
+
+      return true
+    } catch (err: any) {
       setIsLoading(false)
       toast({
         title: 'Falha no Login',
-        description: error.message || 'E-mail ou senha incorretos.',
+        description: err.message || 'Erro ao tentar realizar o login.',
         variant: 'destructive',
       })
       return false
     }
-
-    return true
   }
 
   const logout = async () => {
     setIsLoading(true)
-    await supabase.auth.signOut()
+
+    if (supabase?.auth?.signOut) {
+      try {
+        await supabase.auth.signOut()
+      } catch (err) {
+        console.error('Failed to sign out:', err)
+      }
+    }
+
+    setSession(null)
+    setCurrentUser(null)
+    setIsLoading(false)
   }
 
   const registerUser = async (data: any) => {
     setIsLoading(true)
-    const { error } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          name: data.name,
-          role_id: data.role,
-        },
-      },
-    })
-    setIsLoading(false)
 
-    if (error) {
+    if (!supabase?.auth?.signUp) {
+      setIsLoading(false)
+      return false
+    }
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name,
+            role_id: data.role,
+          },
+        },
+      })
+      setIsLoading(false)
+
+      if (error) {
+        toast({
+          title: 'Erro no Cadastro',
+          description: error.message || 'Não foi possível criar a conta.',
+          variant: 'destructive',
+        })
+        return false
+      }
+      return true
+    } catch (err: any) {
+      setIsLoading(false)
       toast({
         title: 'Erro no Cadastro',
-        description: error.message || 'Não foi possível criar a conta.',
+        description: err.message || 'Erro ao tentar realizar o cadastro.',
         variant: 'destructive',
       })
       return false
     }
-    return true
   }
 
   const hasPermission = useCallback(

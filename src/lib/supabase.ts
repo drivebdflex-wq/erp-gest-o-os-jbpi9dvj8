@@ -38,6 +38,32 @@ const MOCK_INVENTORY = [
 export const isMock = true
 
 export const supabase = {
+  auth: {
+    getSession: async () => ({ data: { session: null }, error: null }),
+    onAuthStateChange: (callback: any) => {
+      return { data: { subscription: { unsubscribe: () => {} } } }
+    },
+    signInWithPassword: async (credentials: any) => {
+      if (credentials.email && credentials.password) {
+        const user = {
+          id: 'mock-user-1',
+          email: credentials.email,
+          user_metadata: { name: 'Admin', role_id: 'role-admin' },
+        }
+        return { data: { user, session: { user, access_token: 'mock-token' } }, error: null }
+      }
+      return { data: null, error: { message: 'Invalid login' } }
+    },
+    signOut: async () => ({ error: null }),
+    signUp: async (credentials: any) => {
+      const user = {
+        id: 'mock-user-new',
+        email: credentials.email,
+        user_metadata: credentials.options?.data,
+      }
+      return { data: { user, session: null }, error: null }
+    },
+  },
   from: (table: string) => {
     return {
       select: async (query: string = '*') => {
