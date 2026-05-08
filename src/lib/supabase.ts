@@ -35,6 +35,8 @@ const MOCK_INVENTORY = [
   { id: 'b2', product_id: 'p2', location_type: 'central', location_id: 'central', quantity: 2000 },
 ]
 
+export const isMock = true
+
 export const supabase = {
   from: (table: string) => {
     return {
