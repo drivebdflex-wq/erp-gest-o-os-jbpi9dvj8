@@ -6,7 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 
-import { AuthProvider } from './stores/useAuthStore'
+import { AuthProvider } from './hooks/use-auth'
 import { AppProvider } from './stores/useAppStore'
 import { FinanceProvider } from './stores/useFinanceStore'
 import { NotificationProvider } from './stores/useNotificationStore'
@@ -19,7 +19,8 @@ import { useSystemStore } from './stores/useSystemStore'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Index from './pages/Index'
-import WorkOrders from './pages/admin/WorkOrders'
+import ContractsDashboard from './pages/admin/contracts/ContractsDashboard'
+import ContractDetail from './pages/admin/contracts/ContractDetail'
 import WorkOrderDetail from './pages/admin/WorkOrderDetail'
 import ContractsMaintenance from './pages/admin/ContractsMaintenance'
 import ContractsWorks from './pages/admin/ContractsWorks'
@@ -107,7 +108,12 @@ const App = () => {
                             {/* Common Authenticated Routes */}
                             <Route path="/" element={<Navigate to="/dashboard" replace />} />
                             <Route path="/dashboard" element={<Index />} />
-                            <Route path="/ordens" element={<WorkOrders />} />
+                            <Route
+                              path="/ordens"
+                              element={<Navigate to="/contratos/painel" replace />}
+                            />
+                            <Route path="/contratos/painel" element={<ContractsDashboard />} />
+                            <Route path="/contratos/:id" element={<ContractDetail />} />
                             <Route path="/ordens/:id" element={<WorkOrderDetail />} />
                             <Route path="/orders/:id" element={<WorkOrderDetail />} />
                             <Route path="/service-orders/:id" element={<WorkOrderDetail />} />

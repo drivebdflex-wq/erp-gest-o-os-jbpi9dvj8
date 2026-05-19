@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   Dialog,
   DialogContent,
@@ -17,215 +16,145 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import useAppStore from '@/stores/useAppStore'
-import useOperationalStore from '@/stores/useOperationalStore'
+import { Input } from '@/components/ui/input'
 import { toast } from '@/hooks/use-toast'
-import { UserPlus } from 'lucide-react'
-import CreateClientDialog from '@/components/admin/CreateClientDialog'
+import { supabase } from '@/lib/supabase/client'
+import { Loader2 } from 'lucide-react'
 
 interface CreateOrderDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   defaultContractId?: string
-  defaultTeamId?: string
-  defaultDate?: Date
+  fixedClientId?: string
+  defaultPriority?: string
 }
 
 export default function CreateOrderDialog({
   open,
   onOpenChange,
   defaultContractId,
+  fixedClientId,
+  defaultPriority,
 }: CreateOrderDialogProps) {
-  const appStore = useAppStore() as any
-  const { clients, contracts, createOrder } = appStore
-  const { technicians } = useOperationalStore()
-  const navigate = useNavigate()
+  const [loading, setLoading] = useState(false)
+  const [contracts, setContracts] = useState<any[]>([])
+
   const [formData, setFormData] = useState<any>({
-    priority: 'medium',
+    priority: defaultPriority || 'medium',
     status: 'pending',
-    service_type: 'preventiva',
+    description: '',
+    contract_id: defaultContractId || '',
+    client_id: fixedClientId || '',
   })
-  const [showClientDialog, setShowClientDialog] = useState(false)
 
   useEffect(() => {
     if (open) {
-      let initData: any = { priority: 'medium', status: 'pending', description: '' }
-
-      if (defaultContractId) {
-        const contract = contracts?.find((c: any) => c.id === defaultContractId)
-        if (contract) {
-          initData = { ...initData, clientId: contract.clientId }
-        }
+      setFormData({
+        priority: defaultPriority || 'medium',
+        status: 'pending',
+        description: '',
+        contract_id: defaultContractId || '',
+        client_id: fixedClientId || '',
+      })
+      if (!defaultContractId) {
+        supabase
+          .from('contracts')
+          .select('id, contract_number, client_id, clients(name)')
+          .then(({ data }) => {
+            if (data) setContracts(data)
+          })
       }
-
-      setFormData(initData)
     }
-  }, [open, defaultContractId, contracts])
+  }, [open, defaultContractId, fixedClientId, defaultPriority])
 
   const handleSave = async () => {
+    if (!formData.description) {
+      toast({ title: 'Aviso', description: 'Preencha a descrição.', variant: 'destructive' })
+      return
+    }
+    if (!formData.contract_id) {
+      toast({
+        title: 'Aviso',
+        description: 'A seleção de um contrato é obrigatória.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setLoading(true)
     try {
-      const isUUID = (str: string) =>
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str)
+      const { error } = await supabase.from('service_orders').insert([
+        {
+          contract_id: formData.contract_id,
+          client_id: formData.client_id,
+          description: formData.description,
+          priority: formData.priority,
+          status: formData.status,
+        },
+      ])
 
-      if (!formData.description || !formData.clientId) {
-        toast({
-          title: 'Aviso',
-          description: 'Preencha a descrição e o cliente.',
-          variant: 'destructive',
-        })
-        return
-      }
-
-      if (!isUUID(formData.clientId)) {
-        toast({
-          title: 'Aviso',
-          description: 'O cliente selecionado é inválido. Por favor, selecione um cliente real.',
-          variant: 'destructive',
-        })
-        return
-      }
-
-      const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '')
-      const randomStr = Math.floor(1000 + Math.random() * 9000).toString()
-      const orderNumber = `${dateStr}${randomStr}`
-
-      const payload: any = {
-        client_id: formData.clientId,
-        contract_id: formData.contractId,
-        description: formData.description,
-        priority: formData.priority,
-        service_type: formData.service_type,
-        status: 'pending',
-        order_number: orderNumber,
-      }
-
-      const createdOrder = await createOrder(payload)
-
-      window.dispatchEvent(new Event('service-order-created'))
-
-      if (typeof appStore.fetchOrders === 'function') {
-        await appStore.fetchOrders()
-      } else if (typeof appStore.loadOrders === 'function') {
-        await appStore.loadOrders()
-      } else if (typeof appStore.fetchData === 'function') {
-        await appStore.fetchData()
-      }
+      if (error) throw error
 
       toast({ title: 'Sucesso', description: 'OS criada com sucesso.' })
       onOpenChange(false)
-
-      if (createdOrder && createdOrder.id) {
-        navigate(`/orders/${createdOrder.id}`)
-      } else {
-        setTimeout(() => window.location.reload(), 1000)
-      }
     } catch (e: any) {
-      toast({
-        title: 'Erro ao criar OS',
-        description: e.message || 'Ocorreu um erro inesperado',
-        variant: 'destructive',
-      })
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' })
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl overflow-y-auto max-h-[90vh]">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Nova Ordem de Serviço</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label>Título / Descrição</Label>
+            <Label>Descrição / Solicitação *</Label>
             <Textarea
-              placeholder="Descreva o problema ou solicitação..."
-              value={formData.description || ''}
+              placeholder="Descreva o problema..."
+              value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Contrato (Opcional)</Label>
-              <Select
-                value={formData.contractId || 'none'}
-                onValueChange={(v) => {
-                  if (v === 'none') {
-                    setFormData({ ...formData, contractId: undefined })
-                  } else {
-                    const contract = contracts?.find((c: any) => c.id === v)
-                    setFormData({
-                      ...formData,
-                      contractId: v,
-                      clientId: contract ? contract.clientId : formData.clientId,
-                    })
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um contrato..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum contrato</SelectItem>
-                  {contracts?.map((c: any) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
-            <div className="space-y-2">
-              <Label>Cliente *</Label>
-              <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2 col-span-2">
+              <Label>Contrato Vinculado *</Label>
+              {defaultContractId ? (
+                <Input disabled value="Contrato pré-selecionado pelo contexto" />
+              ) : (
                 <Select
-                  value={formData.clientId || undefined}
-                  onValueChange={(v) =>
-                    setFormData({
-                      ...formData,
-                      clientId: v,
-                    })
-                  }
+                  value={formData.contract_id}
+                  onValueChange={(v) => {
+                    const c = contracts.find((x) => x.id === v)
+                    setFormData({ ...formData, contract_id: v, client_id: c?.client_id })
+                  }}
                 >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Selecione..." />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o contrato" />
                   </SelectTrigger>
                   <SelectContent>
-                    {clients
-                      ?.filter(
-                        (c: any) =>
-                          c.id &&
-                          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-                            c.id,
-                          ),
-                      )
-                      .map((c: any) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name || 'Sem Nome'}
-                        </SelectItem>
-                      ))}
+                    {contracts.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.contract_number} - {c.clients?.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setShowClientDialog(true)}
-                  title="Novo Cliente"
-                >
-                  <UserPlus className="w-4 h-4" />
-                </Button>
-              </div>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label>Prioridade</Label>
+              <Label>Prioridade Herdada/Definida</Label>
               <Select
-                value={formData.priority || 'medium'}
+                value={formData.priority}
                 onValueChange={(v) => setFormData({ ...formData, priority: v })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione a prioridade..." />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Baixa</SelectItem>
@@ -237,41 +166,28 @@ export default function CreateOrderDialog({
             </div>
 
             <div className="space-y-2">
-              <Label>Categoria *</Label>
-              <Select
-                value={formData.service_type || 'preventiva'}
-                onValueChange={(v) => setFormData({ ...formData, service_type: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a categoria..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="eletrica">Elétrica</SelectItem>
-                  <SelectItem value="hidraulica">Hidráulica</SelectItem>
-                  <SelectItem value="civil">Civil</SelectItem>
-                  <SelectItem value="climatizacao">Climatização</SelectItem>
-                  <SelectItem value="preventiva">Preventiva</SelectItem>
-                  <SelectItem value="corretiva">Corretiva</SelectItem>
-                  <SelectItem value="pintura">Pintura</SelectItem>
-                  <SelectItem value="estrutural">Estrutural</SelectItem>
-                  <SelectItem value="facilities">Facilities</SelectItem>
-                  <SelectItem value="infraestrutura">Infraestrutura</SelectItem>
-                  <SelectItem value="limpeza_tecnica">Limpeza Técnica</SelectItem>
-                  <SelectItem value="vistoria">Vistoria</SelectItem>
-                  <SelectItem value="emergencial">Emergencial</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Status Inicial</Label>
+              <Input disabled value="Pendente" />
             </div>
           </div>
+
+          {defaultContractId && (
+            <div className="p-3 bg-muted rounded-md text-sm text-muted-foreground">
+              Esta OS está sendo vinculada automaticamente ao contrato atual, mantendo a integridade
+              dos dados e SLA.
+            </div>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>Criar OS</Button>
+          <Button onClick={handleSave} disabled={loading}>
+            {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Criar OS
+          </Button>
         </DialogFooter>
       </DialogContent>
-      <CreateClientDialog open={showClientDialog} onOpenChange={setShowClientDialog} />
     </Dialog>
   )
 }
