@@ -7,6 +7,7 @@ import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 
 import { AuthProvider } from './hooks/use-auth'
+import { AuthProvider as StoreAuthProvider } from './stores/useAuthStore'
 import { AppProvider } from './stores/useAppStore'
 import { FinanceProvider } from './stores/useFinanceStore'
 import { NotificationProvider } from './stores/useNotificationStore'
@@ -87,152 +88,165 @@ const App = () => {
 
   return (
     <AuthProvider>
-      <AppProvider>
-        <NotificationProvider>
-          <FinanceProvider>
-            <FleetProvider>
-              <InventoryProvider>
-                <OperationalProvider>
-                  <BrowserRouter
-                    future={{ v7_startTransition: false, v7_relativeSplatPath: false }}
-                  >
-                    <TooltipProvider>
-                      <Toaster />
-                      <Sonner />
-                      <Routes>
-                        <Route path="/login" element={<Login />} />
-                        <Route path="/register" element={<Register />} />
+      <StoreAuthProvider>
+        <AppProvider>
+          <NotificationProvider>
+            <FinanceProvider>
+              <FleetProvider>
+                <InventoryProvider>
+                  <OperationalProvider>
+                    <BrowserRouter
+                      future={{ v7_startTransition: false, v7_relativeSplatPath: false }}
+                    >
+                      <TooltipProvider>
+                        <Toaster />
+                        <Sonner />
+                        <Routes>
+                          <Route path="/login" element={<Login />} />
+                          <Route path="/register" element={<Register />} />
 
-                        <Route element={<ProtectedRoute />}>
-                          <Route element={<Layout />}>
-                            {/* Common Authenticated Routes */}
-                            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                            <Route path="/dashboard" element={<Index />} />
-                            <Route
-                              path="/ordens"
-                              element={<Navigate to="/contratos/painel" replace />}
-                            />
-                            <Route path="/contratos/painel" element={<ContractsDashboard />} />
-                            <Route path="/contratos/:id" element={<ContractDetail />} />
-                            <Route path="/ordens/:id" element={<WorkOrderDetail />} />
-                            <Route path="/orders/:id" element={<WorkOrderDetail />} />
-                            <Route path="/service-orders/:id" element={<WorkOrderDetail />} />
-
-                            <Route
-                              element={<ProtectedRoute requiredPermission="view_operational" />}
-                            >
-                              <Route path="/mapa" element={<MapPage />} />
-                              <Route path="/operacional/dashboard" element={<OpDashboard />} />
-                              <Route path="/operacional/painel" element={<SupervisorPanelPage />} />
+                          <Route element={<ProtectedRoute />}>
+                            <Route element={<Layout />}>
+                              {/* Common Authenticated Routes */}
+                              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                              <Route path="/dashboard" element={<Index />} />
                               <Route
-                                path="/operacional/agenda"
-                                element={<OperationalAgendaPage />}
+                                path="/ordens"
+                                element={<Navigate to="/contratos/painel" replace />}
                               />
-                              <Route path="/operacional/tecnicos" element={<TechniciansPage />} />
-                              <Route path="/operacional/equipes" element={<TeamsPage />} />
-                              <Route path="/operacional/indicadores" element={<IndicatorsPage />} />
-                              <Route path="/operacional/eventos" element={<EventsPage />} />
-                              <Route path="/operacional/feedback" element={<FeedbackPDIPage />} />
-                              <Route path="/operacional/historico" element={<HistoryPage />} />
-                            </Route>
+                              <Route path="/contratos/painel" element={<ContractsDashboard />} />
+                              <Route path="/contratos/:id" element={<ContractDetail />} />
+                              <Route path="/ordens/:id" element={<WorkOrderDetail />} />
+                              <Route path="/orders/:id" element={<WorkOrderDetail />} />
+                              <Route path="/service-orders/:id" element={<WorkOrderDetail />} />
 
-                            <Route
-                              element={<ProtectedRoute requiredPermission="manage_contracts" />}
-                            >
                               <Route
-                                path="/contratos/manutencao"
-                                element={<ContractsMaintenance />}
-                              />
-                              <Route path="/contratos/obras" element={<ContractsWorks />} />
-                            </Route>
+                                element={<ProtectedRoute requiredPermission="view_operational" />}
+                              >
+                                <Route path="/mapa" element={<MapPage />} />
+                                <Route path="/operacional/dashboard" element={<OpDashboard />} />
+                                <Route
+                                  path="/operacional/painel"
+                                  element={<SupervisorPanelPage />}
+                                />
+                                <Route
+                                  path="/operacional/agenda"
+                                  element={<OperationalAgendaPage />}
+                                />
+                                <Route path="/operacional/tecnicos" element={<TechniciansPage />} />
+                                <Route path="/operacional/equipes" element={<TeamsPage />} />
+                                <Route
+                                  path="/operacional/indicadores"
+                                  element={<IndicatorsPage />}
+                                />
+                                <Route path="/operacional/eventos" element={<EventsPage />} />
+                                <Route path="/operacional/feedback" element={<FeedbackPDIPage />} />
+                                <Route path="/operacional/historico" element={<HistoryPage />} />
+                              </Route>
 
-                            <Route
-                              element={<ProtectedRoute requiredPermission="edit_service_order" />}
-                            >
-                              <Route path="/auditoria" element={<AuditPage />} />
-                            </Route>
-
-                            <Route element={<ProtectedRoute requiredPermission="manage_users" />}>
-                              <Route path="/configs" element={<SettingsPage />} />
-                              <Route path="/logs-auditoria" element={<AuditLogsPage />} />
-                              <Route path="/lixeira" element={<RecycleBinPage />} />
-                            </Route>
-
-                            <Route element={<ProtectedRoute requiredPermission="manage_stock" />}>
-                              <Route path="/estoque/dashboard" element={<InventoryDashboard />} />
-                              <Route path="/estoque/produtos" element={<ProductsPage />} />
                               <Route
-                                path="/estoque/almoxarifado"
-                                element={<CentralWarehousePage />}
-                              />
-                              <Route path="/estoque/veiculos" element={<VehicleStockPage />} />
-                              <Route path="/estoque/movimentacoes" element={<MovementsPage />} />
-                              <Route path="/estoque/requisicoes" element={<RequisitionsPage />} />
+                                element={<ProtectedRoute requiredPermission="manage_contracts" />}
+                              >
+                                <Route
+                                  path="/contratos/manutencao"
+                                  element={<ContractsMaintenance />}
+                                />
+                                <Route path="/contratos/obras" element={<ContractsWorks />} />
+                              </Route>
+
                               <Route
-                                path="/estoque/inventario"
-                                element={<PhysicalInventoryPage />}
+                                element={<ProtectedRoute requiredPermission="edit_service_order" />}
+                              >
+                                <Route path="/auditoria" element={<AuditPage />} />
+                              </Route>
+
+                              <Route element={<ProtectedRoute requiredPermission="manage_users" />}>
+                                <Route path="/configs" element={<SettingsPage />} />
+                                <Route path="/logs-auditoria" element={<AuditLogsPage />} />
+                                <Route path="/lixeira" element={<RecycleBinPage />} />
+                              </Route>
+
+                              <Route element={<ProtectedRoute requiredPermission="manage_stock" />}>
+                                <Route path="/estoque/dashboard" element={<InventoryDashboard />} />
+                                <Route path="/estoque/produtos" element={<ProductsPage />} />
+                                <Route
+                                  path="/estoque/almoxarifado"
+                                  element={<CentralWarehousePage />}
+                                />
+                                <Route path="/estoque/veiculos" element={<VehicleStockPage />} />
+                                <Route path="/estoque/movimentacoes" element={<MovementsPage />} />
+                                <Route path="/estoque/requisicoes" element={<RequisitionsPage />} />
+                                <Route
+                                  path="/estoque/inventario"
+                                  element={<PhysicalInventoryPage />}
+                                />
+                              </Route>
+
+                              <Route
+                                element={<ProtectedRoute requiredPermission="view_financial" />}
+                              >
+                                <Route
+                                  path="/financeiro/dashboard"
+                                  element={<FinanceDashboard />}
+                                />
+                                <Route
+                                  path="/financeiro/contrato/:id"
+                                  element={<ContractFinanceDetail />}
+                                />
+                                <Route path="/financeiro/receitas" element={<RevenuesPage />} />
+                                <Route path="/financeiro/compras" element={<PurchasesPage />} />
+                                <Route path="/financeiro/custos" element={<CostsPage />} />
+                                <Route
+                                  path="/financeiro/estoque"
+                                  element={<FinanceInventoryPage />}
+                                />
+                                <Route path="/financeiro/dre" element={<DREPage />} />
+                                <Route path="/financeiro/fluxo-caixa" element={<CashFlowPage />} />
+                                <Route path="/financeiro/tecnicos" element={<TechFinancePage />} />
+                              </Route>
+
+                              <Route element={<ProtectedRoute requiredPermission="manage_fleet" />}>
+                                <Route path="/frotas/dashboard" element={<FleetDashboard />} />
+                                <Route path="/veiculos" element={<VehiclesPage />} />
+                                <Route path="/veiculos/:id" element={<VehicleDetailPage />} />
+                                <Route path="/frotas/motoristas" element={<DriversPage />} />
+                                <Route path="/frotas/manutencoes" element={<MaintenancePage />} />
+                                <Route path="/frotas/abastecimentos" element={<RefuelingPage />} />
+                                <Route path="/frotas/historico" element={<FleetHistoryPage />} />
+                              </Route>
+
+                              {/* Tech App specific endpoints */}
+                              <Route path="/tech" element={<TechQueue />} />
+                              <Route path="/tech/execucao/:id" element={<TechExecution />} />
+                              <Route
+                                path="/tech/rotas"
+                                element={
+                                  <div className="p-8 text-center text-muted-foreground mt-20">
+                                    Mapa de Rotas Mobile
+                                  </div>
+                                }
+                              />
+                              <Route
+                                path="/tech/perfil"
+                                element={
+                                  <div className="p-8 text-center text-muted-foreground mt-20">
+                                    Perfil do Técnico
+                                  </div>
+                                }
                               />
                             </Route>
-
-                            <Route element={<ProtectedRoute requiredPermission="view_financial" />}>
-                              <Route path="/financeiro/dashboard" element={<FinanceDashboard />} />
-                              <Route
-                                path="/financeiro/contrato/:id"
-                                element={<ContractFinanceDetail />}
-                              />
-                              <Route path="/financeiro/receitas" element={<RevenuesPage />} />
-                              <Route path="/financeiro/compras" element={<PurchasesPage />} />
-                              <Route path="/financeiro/custos" element={<CostsPage />} />
-                              <Route
-                                path="/financeiro/estoque"
-                                element={<FinanceInventoryPage />}
-                              />
-                              <Route path="/financeiro/dre" element={<DREPage />} />
-                              <Route path="/financeiro/fluxo-caixa" element={<CashFlowPage />} />
-                              <Route path="/financeiro/tecnicos" element={<TechFinancePage />} />
-                            </Route>
-
-                            <Route element={<ProtectedRoute requiredPermission="manage_fleet" />}>
-                              <Route path="/frotas/dashboard" element={<FleetDashboard />} />
-                              <Route path="/veiculos" element={<VehiclesPage />} />
-                              <Route path="/veiculos/:id" element={<VehicleDetailPage />} />
-                              <Route path="/frotas/motoristas" element={<DriversPage />} />
-                              <Route path="/frotas/manutencoes" element={<MaintenancePage />} />
-                              <Route path="/frotas/abastecimentos" element={<RefuelingPage />} />
-                              <Route path="/frotas/historico" element={<FleetHistoryPage />} />
-                            </Route>
-
-                            {/* Tech App specific endpoints */}
-                            <Route path="/tech" element={<TechQueue />} />
-                            <Route path="/tech/execucao/:id" element={<TechExecution />} />
-                            <Route
-                              path="/tech/rotas"
-                              element={
-                                <div className="p-8 text-center text-muted-foreground mt-20">
-                                  Mapa de Rotas Mobile
-                                </div>
-                              }
-                            />
-                            <Route
-                              path="/tech/perfil"
-                              element={
-                                <div className="p-8 text-center text-muted-foreground mt-20">
-                                  Perfil do Técnico
-                                </div>
-                              }
-                            />
                           </Route>
-                        </Route>
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </TooltipProvider>
-                  </BrowserRouter>
-                </OperationalProvider>
-              </InventoryProvider>
-            </FleetProvider>
-          </FinanceProvider>
-        </NotificationProvider>
-      </AppProvider>
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </TooltipProvider>
+                    </BrowserRouter>
+                  </OperationalProvider>
+                </InventoryProvider>
+              </FleetProvider>
+            </FinanceProvider>
+          </NotificationProvider>
+        </AppProvider>
+      </StoreAuthProvider>
     </AuthProvider>
   )
 }
