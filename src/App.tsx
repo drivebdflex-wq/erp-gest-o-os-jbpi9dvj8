@@ -108,7 +108,10 @@ const App = () => {
                           <Route element={<ProtectedRoute />}>
                             <Route element={<Layout />}>
                               {/* Common Authenticated Routes */}
-                              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                              <Route
+                                path="/"
+                                element={<Navigate to="/contratos/painel" replace />}
+                              />
                               <Route path="/dashboard" element={<Index />} />
                               <Route
                                 path="/ordens"

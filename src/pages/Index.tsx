@@ -292,10 +292,10 @@ export default function Index() {
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-bold tracking-tight flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary" />
-              Fila de Designação
+              Ordens de Serviço Prioritárias
             </h3>
             <Badge variant="secondary" className="px-3 py-1 text-sm font-medium">
-              {designationQueueOrders.length} OS Pendentes/Ativas
+              {designationQueueOrders.length} OS Ativas
             </Badge>
           </div>
           <OrderTable orders={designationQueueOrders} />

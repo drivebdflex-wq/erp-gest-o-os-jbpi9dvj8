@@ -51,13 +51,14 @@ export default function ContractsDashboard() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Contrato</TableHead>
+              <TableHead>Nome do Contrato</TableHead>
               <TableHead>Cliente</TableHead>
+              <TableHead>Nº Contrato</TableHead>
               <TableHead>Vigência</TableHead>
               <TableHead>SLA</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Total de OS</TableHead>
-              <TableHead>Valor</TableHead>
+              <TableHead>Valor Total</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -68,21 +69,25 @@ export default function ContractsDashboard() {
                     to={`/contratos/${c.id}`}
                     className="font-medium text-primary hover:underline"
                   >
-                    {c.contract_number || 'S/N'}
+                    Contrato {c.contract_number || 'S/N'} - {c.clients?.name}
                   </Link>
                 </TableCell>
                 <TableCell>{c.clients?.name}</TableCell>
+                <TableCell>{c.contract_number || 'S/N'}</TableCell>
                 <TableCell>
-                  {c.start_date} a {c.end_date}
+                  {c.start_date ? new Date(c.start_date).toLocaleDateString('pt-BR') : '-'} a{' '}
+                  {c.end_date ? new Date(c.end_date).toLocaleDateString('pt-BR') : '-'}
                 </TableCell>
                 <TableCell>{c.sla_description || 'Padrão'}</TableCell>
                 <TableCell>
                   <Badge variant={c.status === 'active' ? 'default' : 'secondary'}>
-                    {c.status}
+                    {c.status || 'Ativo'}
                   </Badge>
                 </TableCell>
-                <TableCell>{c.service_orders?.length || 0}</TableCell>
                 <TableCell>
+                  <Badge variant="outline">{c.service_orders?.length || 0} OS</Badge>
+                </TableCell>
+                <TableCell className="font-semibold text-primary">
                   R$ {c.value?.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
                 </TableCell>
               </TableRow>

@@ -32,6 +32,7 @@ export default function WorkOrderDetail() {
   const { toast } = useToast()
 
   const [order, setOrder] = useState<any>(null)
+  const [budgetItems, setBudgetItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -53,10 +54,14 @@ export default function WorkOrderDetail() {
 
       if (error) throw error
 
-      // Initialize items if null
-      if (!data.items) data.items = []
+      const { data: bData } = await supabase
+        .from('service_order_items')
+        .select('*')
+        .eq('service_order_id', id)
+        .order('created_at', { ascending: true })
 
       setOrder(data)
+      setBudgetItems(bData || [])
     } catch (err: any) {
       toast({
         title: 'Erro',
@@ -73,61 +78,57 @@ export default function WorkOrderDetail() {
   }
 
   const handleBudgetChange = (index: number, field: string, value: any) => {
-    const newItems = [...(order.items || [])]
+    const newItems = [...budgetItems]
     newItems[index] = { ...newItems[index], [field]: value }
 
     // Auto calculate total for row
-    if (field === 'quantity' || field === 'unit_price') {
+    if (field === 'quantity' || field === 'unit_value') {
       const qty = Number(newItems[index].quantity) || 0
-      const price = Number(newItems[index].unit_price) || 0
-      newItems[index].total_price = qty * price
+      const price = Number(newItems[index].unit_value) || 0
+      newItems[index].total_value = qty * price
     }
 
-    setOrder((prev: any) => {
-      const updated = { ...prev, items: newItems }
-      recalculateTotals(updated)
-      return updated
-    })
+    setBudgetItems(newItems)
+    recalculateTotals(order, newItems)
   }
 
   const addBudgetItem = () => {
     const newItem = {
-      id: Date.now().toString(),
-      description: '',
+      id: `temp-${Date.now()}`,
+      item_description: '',
       unit: 'un',
       quantity: 1,
-      unit_price: 0,
-      total_price: 0,
+      unit_value: 0,
+      total_value: 0,
     }
-    setOrder((prev: any) => ({ ...prev, items: [...(prev.items || []), newItem] }))
+    setBudgetItems((prev) => [...prev, newItem])
   }
 
   const removeBudgetItem = (index: number) => {
-    const newItems = order.items.filter((_: any, i: number) => i !== index)
-    setOrder((prev: any) => {
-      const updated = { ...prev, items: newItems }
-      recalculateTotals(updated)
-      return updated
-    })
+    const newItems = budgetItems.filter((_, i) => i !== index)
+    setBudgetItems(newItems)
+    recalculateTotals(order, newItems)
   }
 
-  const recalculateTotals = (currentOrder: any) => {
-    const materialsCost = (currentOrder.items || []).reduce(
-      (acc: number, it: any) => acc + (Number(it.total_price) || 0),
+  const recalculateTotals = (currentOrder: any, currentItems: any[]) => {
+    const materialsCost = currentItems.reduce(
+      (acc: number, it: any) => acc + (Number(it.total_value) || 0),
       0,
     )
     const travel = Number(currentOrder.travel_cost) || 0
     const labor = Number(currentOrder.labor_cost) || 0
 
-    currentOrder.material_cost = materialsCost
-    currentOrder.total_cost = materialsCost + travel + labor
+    const updated = { ...currentOrder }
+    updated.material_cost = materialsCost
+    updated.total_cost = materialsCost + travel + labor
+    setOrder(updated)
   }
 
   const handleCostChange = (field: string, value: string) => {
     const numValue = Number(value) || 0
     setOrder((prev: any) => {
       const updated = { ...prev, [field]: numValue }
-      recalculateTotals(updated)
+      recalculateTotals(updated, budgetItems)
       return updated
     })
   }
@@ -135,7 +136,6 @@ export default function WorkOrderDetail() {
   const saveOrder = async () => {
     setSaving(true)
     try {
-      // Capture signatures if they exist and are drawn
       const scCanvas = signatureContractedRef.current
       if (scCanvas && !isCanvasBlank(scCanvas)) {
         order.signature_contracted = scCanvas.toDataURL()
@@ -145,11 +145,25 @@ export default function WorkOrderDetail() {
         order.signature_dependency = sdCanvas.toDataURL()
       }
 
-      const { contracts, ...updateData } = order
+      const { contracts, items, ...updateData } = order
 
       const { error } = await supabase.from('service_orders').update(updateData).eq('id', id)
-
       if (error) throw error
+
+      // Update Budget Items
+      await supabase.from('service_order_items').delete().eq('service_order_id', id)
+      if (budgetItems.length > 0) {
+        const itemsToInsert = budgetItems.map((it) => ({
+          service_order_id: id,
+          item_description: it.item_description,
+          unit: it.unit,
+          quantity: it.quantity,
+          unit_value: it.unit_value,
+          total_value: it.total_value,
+        }))
+        await supabase.from('service_order_items').insert(itemsToInsert)
+      }
+
       toast({ title: 'Sucesso', description: 'Ordem de Serviço salva com sucesso!' })
       window.dispatchEvent(new Event('service-order-updated'))
     } catch (err: any) {
@@ -159,7 +173,6 @@ export default function WorkOrderDetail() {
     }
   }
 
-  // Canvas Helpers
   const setupCanvas = (ref: React.RefObject<HTMLCanvasElement>) => {
     let isDrawing = false
     const start = (e: any) => {
@@ -221,7 +234,6 @@ export default function WorkOrderDetail() {
 
   return (
     <div className="space-y-6 pb-12 max-w-5xl mx-auto animate-fade-in">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sticky top-0 bg-background/95 backdrop-blur-sm z-10 py-4 border-b">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
@@ -279,18 +291,18 @@ export default function WorkOrderDetail() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Número do Bem (Ativo)</Label>
-              <Input
-                value={order.asset_number || ''}
-                onChange={(e) => handleChange('asset_number', e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Contrato ID</Label>
               <Input
                 value={order.contracts?.contract_number || order.contract_id || 'N/A'}
                 disabled
                 className="bg-muted"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Número do Bem (Ativo)</Label>
+              <Input
+                value={order.asset_number || ''}
+                onChange={(e) => handleChange('asset_number', e.target.value)}
               />
             </div>
           </div>
@@ -422,8 +434,8 @@ export default function WorkOrderDetail() {
             <div className="space-y-2">
               <Label>Garantia / Retrabalho?</Label>
               <Select
-                value={order.warranty ? 'sim' : 'nao'}
-                onValueChange={(v) => handleChange('warranty', v === 'sim')}
+                value={order.warranty || 'nao'}
+                onValueChange={(v) => handleChange('warranty', v)}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -435,10 +447,10 @@ export default function WorkOrderDetail() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Sinistro?</Label>
+              <Label>Sinistro / Incidente?</Label>
               <Select
-                value={order.incident ? 'sim' : 'nao'}
-                onValueChange={(v) => handleChange('incident', v === 'sim')}
+                value={order.incident_report ? 'sim' : 'nao'}
+                onValueChange={(v) => handleChange('incident_report', v === 'sim')}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -559,19 +571,21 @@ export default function WorkOrderDetail() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {!order.items || order.items.length === 0 ? (
+                {budgetItems.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       Nenhum item adicionado.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  order.items.map((item: any, idx: number) => (
-                    <TableRow key={idx}>
+                  budgetItems.map((item: any, idx: number) => (
+                    <TableRow key={item.id}>
                       <TableCell>
                         <Input
-                          value={item.description || ''}
-                          onChange={(e) => handleBudgetChange(idx, 'description', e.target.value)}
+                          value={item.item_description || ''}
+                          onChange={(e) =>
+                            handleBudgetChange(idx, 'item_description', e.target.value)
+                          }
                           placeholder="Descrição do material ou serviço..."
                         />
                       </TableCell>
@@ -593,12 +607,12 @@ export default function WorkOrderDetail() {
                         <Input
                           type="number"
                           step="0.01"
-                          value={item.unit_price || 0}
-                          onChange={(e) => handleBudgetChange(idx, 'unit_price', e.target.value)}
+                          value={item.unit_value || 0}
+                          onChange={(e) => handleBudgetChange(idx, 'unit_value', e.target.value)}
                         />
                       </TableCell>
                       <TableCell className="font-medium bg-muted/30">
-                        R$ {Number(item.total_price || 0).toFixed(2)}
+                        R$ {Number(item.total_value || 0).toFixed(2)}
                       </TableCell>
                       <TableCell>
                         <Button

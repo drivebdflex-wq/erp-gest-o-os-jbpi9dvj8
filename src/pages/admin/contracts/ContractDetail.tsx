@@ -126,18 +126,38 @@ export default function ContractDetail() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Número (ID)</TableHead>
+                <TableHead className="w-[300px]">Identificação da OS</TableHead>
                 <TableHead>Data de Abertura</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Prioridade</TableHead>
                 <TableHead>Técnico</TableHead>
                 <TableHead>Conclusão</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {orders.map((o) => (
-                <TableRow key={o.id}>
-                  <TableCell className="font-mono text-xs">{o.id.split('-')[0]}</TableCell>
+                <TableRow
+                  key={o.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => navigate(`/ordens/${o.id}`)}
+                >
+                  <TableCell>
+                    <div className="font-bold text-sm">
+                      OS {o.order_number || o.id.split('-')[0]}
+                    </div>
+                    <div className="text-sm font-semibold text-primary mt-1">
+                      {o.unit_prefix && o.unit_name
+                        ? `${o.unit_prefix} / ${o.unit_name} - ${o.unit_address || 'S/ Endereço'}`
+                        : o.unit_prefix || o.unit_name || 'Sem Unidade'}
+                    </div>
+                    <div
+                      className="text-xs text-muted-foreground mt-0.5 truncate max-w-[280px]"
+                      title={o.description}
+                    >
+                      {o.description || 'Sem descrição'}
+                    </div>
+                  </TableCell>
                   <TableCell>{new Date(o.created_at).toLocaleDateString('pt-BR')}</TableCell>
                   <TableCell>
                     <Badge variant="outline">{o.status}</Badge>
@@ -148,6 +168,18 @@ export default function ContractDetail() {
                   <TableCell>{o.technicians?.users?.name || 'Não atribuído'}</TableCell>
                   <TableCell>
                     {o.finished_at ? new Date(o.finished_at).toLocaleDateString('pt-BR') : '-'}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/ordens/${o.id}`)
+                      }}
+                    >
+                      Detalhes
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

@@ -156,8 +156,7 @@ export default function OrderTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[150px]">Nº OS | Unidade</TableHead>
-              <TableHead>Descrição</TableHead>
+              <TableHead className="w-[300px]">Identificação da OS</TableHead>
               <TableHead>Contrato</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>{isDeletedView ? 'Data de Exclusão' : 'Data / Prazo'}</TableHead>
@@ -175,18 +174,21 @@ export default function OrderTable({
                 onClick={() => onRowClick?.(order)}
               >
                 <TableCell>
-                  <div className="font-bold">{(order as any).order_number || order.shortId}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5 font-mono">
+                  <div className="font-bold text-sm">
+                    OS {(order as any).order_number || order.shortId}
+                  </div>
+                  <div className="text-sm font-semibold text-primary mt-1">
                     {(order as any).unit_prefix && (order as any).unit_name
-                      ? `${(order as any).unit_prefix} - ${(order as any).unit_name}`
+                      ? `${(order as any).unit_prefix} / ${(order as any).unit_name} - ${(order as any).unit_address || 'S/ Endereço'}`
                       : (order as any).unit_prefix ||
                         (order as any).unit_name ||
                         order.unit ||
                         'Sem Unidade'}
                   </div>
-                </TableCell>
-                <TableCell className="max-w-[250px]">
-                  <div className="truncate font-medium text-sm text-foreground" title={order.title}>
+                  <div
+                    className="text-xs text-muted-foreground mt-0.5 truncate max-w-[280px]"
+                    title={order.title}
+                  >
                     {order.title || (order as any).description}
                   </div>
                 </TableCell>
