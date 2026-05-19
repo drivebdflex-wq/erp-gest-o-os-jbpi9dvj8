@@ -1,6 +1,8 @@
 // Safe mock Supabase client for environments without full backend integration
 // Simulated to behave like the @supabase/supabase-js client without crashing
 
+export const isMock = true
+
 const MOCK_PRODUCTS = [
   {
     id: 'p1',
