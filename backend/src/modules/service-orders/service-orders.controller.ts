@@ -11,6 +11,28 @@ export class CreateServiceOrderDto {
   description?: string
   scheduled_at?: string
   order_number?: string
+  unit_prefix?: string
+  unit_name?: string
+  unit_address?: string
+  environment?: string
+  floor?: string
+  distance?: number
+  criticality?: string
+  warranty?: string
+  incident?: string
+  requester_name?: string
+  requester_registration?: string
+  requester_phone?: string
+  travel_cost?: number
+  labor_cost?: number
+  materials_cost?: number
+  observations?: string
+  signature_contracted?: string
+  signature_dependency?: string
+  ticket_number?: string
+  asset_number?: string
+  dependency?: string
+  budget_items?: any[]
 }
 
 export class UpdateStatusDto {
@@ -64,6 +86,25 @@ export class UpdateServiceOrderDto {
   root_cause?: string
   supervisor_signature_url?: string
   km_driven?: number
+  unit_prefix?: string
+  unit_name?: string
+  unit_address?: string
+  environment?: string
+  floor?: string
+  distance?: number
+  criticality?: string
+  warranty?: string
+  incident?: string
+  requester_name?: string
+  requester_registration?: string
+  requester_phone?: string
+  travel_cost?: number
+  labor_cost?: number
+  materials_cost?: number
+  observations?: string
+  signature_contracted?: string
+  signature_dependency?: string
+  budget_items?: any[]
 }
 
 @Controller('service-orders')

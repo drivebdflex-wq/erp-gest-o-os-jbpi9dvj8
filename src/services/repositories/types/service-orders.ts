@@ -53,26 +53,36 @@ export interface ServiceOrder extends Timestamps {
   customer_signature_url?: string
 
   order_number?: string
-  call_code?: string
+  ticket_number?: string
   asset_number?: string
-  client_unit?: string
+  dependency?: string
+  unit_prefix?: string
+  unit_name?: string
+  unit_address?: string
   address?: string
   floor?: string
   city?: string
   state?: string
+  distance?: number
   distance_km?: number
   environment?: string
   criticality?: string
+  incident?: boolean
   is_incident?: boolean
+  requester_name?: string
   requested_by?: string
   requester_registration?: string
   requester_phone?: string
   situation_code?: number
+  travel_cost?: number
   displacement_cost?: number
   labor_cost?: number
   material_cost?: number
   total_cost?: number
+  observations?: string
   notes?: string
+  signature_contracted?: string
+  signature_dependency?: string
   items?: ServiceOrderItem[]
 
   sector?: string
@@ -154,6 +164,25 @@ export interface CreateServiceOrderDTO {
   billing_status?: string
   approval_status?: string
 
+  unit_prefix?: string
+  unit_name?: string
+  unit_address?: string
+  environment?: string
+  floor?: string
+  distance?: number
+  warranty?: string
+  incident?: string
+  requester_name?: string
+  requester_registration?: string
+  requester_phone?: string
+  travel_cost?: number
+  labor_cost?: number
+  materials_cost?: number
+  observations?: string
+  signature_contracted?: string
+  signature_dependency?: string
+  budget_items?: any[]
+
   ticket_number?: string
   dependency?: string
   agency_code?: string
@@ -180,6 +209,24 @@ export interface CreateServiceOrderDTO {
   supervisor_approval?: boolean
   client_approval?: boolean
   is_billed?: boolean
+  unit_prefix?: string
+  unit_name?: string
+  unit_address?: string
+  environment?: string
+  floor?: string
+  distance?: number
+  warranty?: string
+  incident?: string
+  requester_name?: string
+  requester_registration?: string
+  requester_phone?: string
+  travel_cost?: number
+  labor_cost?: number
+  materials_cost?: number
+  observations?: string
+  signature_contracted?: string
+  signature_dependency?: string
+  budget_items?: any[]
 }
 
 export type UpdateServiceOrderDTO = Partial<CreateServiceOrderDTO> & {

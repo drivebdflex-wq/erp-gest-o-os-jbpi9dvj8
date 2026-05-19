@@ -166,9 +166,9 @@ export default function PendingServiceOrdersTab() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID da OS</TableHead>
-              <TableHead>Cliente ID</TableHead>
+              <TableHead>Nº OS | Unidade</TableHead>
               <TableHead>Descrição</TableHead>
+              <TableHead>Contrato / Cliente</TableHead>
               <TableHead>Data Criação</TableHead>
               <TableHead>Status</TableHead>
               {isAdmin && <TableHead className="text-right">Ações</TableHead>}
@@ -177,16 +177,31 @@ export default function PendingServiceOrdersTab() {
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell className="font-medium text-xs">
-                  {order.id.split('-')[0].toUpperCase()}
-                </TableCell>
-                <TableCell className="text-xs">
-                  <div className="font-medium truncate max-w-[150px]" title={order.client_id}>
-                    {order.client_id}
+                <TableCell>
+                  <div className="font-bold text-sm">
+                    {order.order_number || order.id.split('-')[0].toUpperCase()}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5 font-mono truncate max-w-[150px]">
+                    {order.unit_prefix && order.unit_name
+                      ? `${order.unit_prefix} - ${order.unit_name}`
+                      : order.unit_prefix || order.unit_name || 'Unidade não informada'}
                   </div>
                 </TableCell>
-                <TableCell className="max-w-[300px] truncate text-sm" title={order.description}>
-                  {order.description}
+                <TableCell className="max-w-[300px]">
+                  <div className="truncate text-sm font-medium" title={order.description}>
+                    {order.description}
+                  </div>
+                </TableCell>
+                <TableCell className="text-xs">
+                  <div
+                    className="font-medium truncate max-w-[150px] text-primary"
+                    title={order.contract_id}
+                  >
+                    {order.contract_id ? 'Contrato Vinculado' : 'Sem Contrato'}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground truncate max-w-[150px]">
+                    ID: {order.client_id?.split('-')[0]}
+                  </div>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {order.created_at

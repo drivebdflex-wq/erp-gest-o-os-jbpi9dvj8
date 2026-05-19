@@ -156,9 +156,9 @@ export default function OrderTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[100px]">Nº OS</TableHead>
-              <TableHead>Título</TableHead>
-              <TableHead>Contrato / Agência</TableHead>
+              <TableHead className="w-[150px]">Nº OS | Unidade</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead>Contrato</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead>{isDeletedView ? 'Data de Exclusão' : 'Data / Prazo'}</TableHead>
               <TableHead>Técnico</TableHead>
@@ -174,19 +174,34 @@ export default function OrderTable({
                 className="group cursor-pointer hover:bg-muted/50"
                 onClick={() => onRowClick?.(order)}
               >
-                <TableCell className="font-medium">
-                  {(order as any).order_number || order.shortId}
-                </TableCell>
-                <TableCell className="max-w-[200px] truncate">{order.title}</TableCell>
                 <TableCell>
-                  <div className="font-medium text-xs text-primary">
+                  <div className="font-bold">{(order as any).order_number || order.shortId}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 font-mono">
+                    {(order as any).unit_prefix && (order as any).unit_name
+                      ? `${(order as any).unit_prefix} - ${(order as any).unit_name}`
+                      : (order as any).unit_prefix ||
+                        (order as any).unit_name ||
+                        order.unit ||
+                        'Sem Unidade'}
+                  </div>
+                </TableCell>
+                <TableCell className="max-w-[250px]">
+                  <div className="truncate font-medium text-sm text-foreground" title={order.title}>
+                    {order.title || (order as any).description}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div
+                    className="font-medium text-xs text-primary truncate max-w-[150px]"
+                    title={order.contractName}
+                  >
                     {order.contractName || 'Sem Contrato'}
                   </div>
-                  <div className="text-muted-foreground text-[10px] truncate max-w-[150px]">
+                  <div
+                    className="text-muted-foreground text-[10px] truncate max-w-[150px]"
+                    title={order.client}
+                  >
                     {order.client}
-                  </div>
-                  <div className="text-muted-foreground text-[10px] font-mono mt-0.5">
-                    {order.unit}
                   </div>
                 </TableCell>
                 <TableCell>

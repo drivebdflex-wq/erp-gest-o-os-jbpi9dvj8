@@ -59,9 +59,28 @@ export default function CreateOrderDialog({
       if (!defaultContractId) {
         supabase
           .from('contracts')
-          .select('id, contract_number, client_id, clients(name)')
+          .select('id, contract_number, client_id, sla_description, clients(name)')
           .then(({ data }) => {
             if (data) setContracts(data)
+          })
+      } else {
+        // Fetch contract details to inherit default properties
+        supabase
+          .from('contracts')
+          .select('id, client_id, sla_description')
+          .eq('id', defaultContractId)
+          .single()
+          .then(({ data }) => {
+            if (data && !defaultPriority) {
+              const inheritedPriority = data.sla_description?.toLowerCase().includes('alta')
+                ? 'high'
+                : 'medium'
+              setFormData((prev) => ({
+                ...prev,
+                priority: inheritedPriority,
+                client_id: data.client_id,
+              }))
+            }
           })
       }
     }
@@ -130,7 +149,15 @@ export default function CreateOrderDialog({
                   value={formData.contract_id}
                   onValueChange={(v) => {
                     const c = contracts.find((x) => x.id === v)
-                    setFormData({ ...formData, contract_id: v, client_id: c?.client_id })
+                    const inheritedPriority = c?.sla_description?.toLowerCase().includes('alta')
+                      ? 'high'
+                      : 'medium'
+                    setFormData({
+                      ...formData,
+                      contract_id: v,
+                      client_id: c?.client_id,
+                      priority: inheritedPriority,
+                    })
                   }}
                 >
                   <SelectTrigger>
