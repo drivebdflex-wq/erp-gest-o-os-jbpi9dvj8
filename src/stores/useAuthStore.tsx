@@ -7,7 +7,7 @@ import React, {
   useEffect,
 } from 'react'
 import { toast } from '@/hooks/use-toast'
-import { supabase, isMock } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { Loader2 } from 'lucide-react'
 
 export type Permission =
@@ -112,42 +112,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async (userId: string, email: string, userMetadata?: any) => {
     try {
-      if (isMock) {
-        return {
-          id: userId,
-          name: userMetadata?.name || email.split('@')[0],
-          email,
-          role_id: userMetadata?.role_id || 'role-admin',
-          active: true,
-          created_at: new Date().toISOString(),
-        } as User
-      }
-
-      // Fetch extended user metadata from profiles table
-      try {
-        const profiles = await (supabase as any).request?.(`profiles?id=eq.${userId}&select=*`)
-        if (profiles && profiles.length > 0) {
-          const profile = profiles[0]
-          return {
-            id: userId,
-            name: profile.full_name || profile.name || userMetadata?.name || email.split('@')[0],
-            email,
-            role_id: profile.role_id || 'role-tecnico',
-            active: profile.active !== false,
-            created_at: profile.created_at || new Date().toISOString(),
-            avatar_url: profile.avatar_url,
-          } as User
-        }
-      } catch (err) {
-        console.warn('Failed to fetch from profiles table, using auth metadata fallback')
-      }
-
-      // Fallback to metadata
       return {
         id: userId,
         name: userMetadata?.name || email.split('@')[0],
         email,
-        role_id: userMetadata?.role_id || 'role-tecnico',
+        role_id: userMetadata?.role_id || 'role-admin',
         active: true,
         created_at: new Date().toISOString(),
       } as User
@@ -195,22 +164,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (supabase?.auth?.onAuthStateChange) {
       try {
-        const { data } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-          if (!mounted) return
+        const { data } = supabase.auth.onAuthStateChange(
+          async (event: any, currentSession: any) => {
+            if (!mounted) return
 
-          setSession(currentSession)
-          if (currentSession) {
-            const profile = await fetchProfile(
-              currentSession.user.id,
-              currentSession.user.email,
-              currentSession.user.user_metadata,
-            )
-            setCurrentUser(profile)
-          } else {
-            setCurrentUser(null)
-          }
-          setIsLoading(false)
-        })
+            setSession(currentSession)
+            if (currentSession) {
+              const profile = await fetchProfile(
+                currentSession.user.id,
+                currentSession.user.email,
+                currentSession.user.user_metadata,
+              )
+              setCurrentUser(profile)
+            } else {
+              setCurrentUser(null)
+            }
+            setIsLoading(false)
+          },
+        )
         authListener = data
       } catch (err) {
         console.error('Failed to subscribe to auth changes:', err)
@@ -234,7 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: pass })
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass })
 
       if (error) {
         setIsLoading(false)
@@ -246,6 +217,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false
       }
 
+      if (data?.session) {
+        setSession(data.session)
+        const profile = await fetchProfile(
+          data.session.user.id,
+          data.session.user.email,
+          data.session.user.user_metadata,
+        )
+        setCurrentUser(profile)
+      }
+
+      setIsLoading(false)
       return true
     } catch (err: any) {
       setIsLoading(false)
@@ -283,7 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
@@ -293,9 +275,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
         },
       })
-      setIsLoading(false)
 
       if (error) {
+        setIsLoading(false)
         toast({
           title: 'Erro no Cadastro',
           description: error.message || 'Não foi possível criar a conta.',
@@ -303,6 +285,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         return false
       }
+
+      if (signUpData?.session) {
+        setSession(signUpData.session)
+        const profile = await fetchProfile(
+          signUpData.session.user.id,
+          signUpData.session.user.email,
+          signUpData.session.user.user_metadata,
+        )
+        setCurrentUser(profile)
+      }
+
+      setIsLoading(false)
       return true
     } catch (err: any) {
       setIsLoading(false)

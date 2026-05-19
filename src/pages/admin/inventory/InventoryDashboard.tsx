@@ -82,7 +82,7 @@ export default function InventoryDashboard() {
             <Activity className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <Skeleton className="h-8 w-[100px]" />
             ) : (
               <div className="text-2xl font-bold text-primary">R$ {totalValue.toFixed(2)}</div>
@@ -95,7 +95,7 @@ export default function InventoryDashboard() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <Skeleton className="h-8 w-[60px]" />
             ) : (
               <div className="text-2xl font-bold">{products.length}</div>
@@ -108,7 +108,7 @@ export default function InventoryDashboard() {
             <AlertTriangle className="h-4 w-4 text-warning" />
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <Skeleton className="h-8 w-[60px]" />
             ) : (
               <div className="text-2xl font-bold text-warning">{productsBelowMin.length}</div>
@@ -121,7 +121,7 @@ export default function InventoryDashboard() {
             <XCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            {loading ? (
+            {isLoading ? (
               <Skeleton className="h-8 w-[60px]" />
             ) : (
               <div className="text-2xl font-bold text-destructive">{zeroStock.length}</div>

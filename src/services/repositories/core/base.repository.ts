@@ -1,4 +1,3 @@
-import { supabase, isMock } from '@/lib/supabase'
 import { ID } from '../types/common'
 import { useSystemStore } from '@/stores/useSystemStore'
 import { repositoryDataMap } from '@/lib/mock-db'
@@ -33,8 +32,7 @@ export function createRepository<T extends { id: ID }, CreateDTO, UpdateDTO>(
   return {
     async findAll(): Promise<T[]> {
       try {
-        if (isMock) return [...inMemoryData]
-        return await supabase.request<T[]>(`${tableName}?select=*`)
+        return [...inMemoryData]
       } catch (error) {
         console.error(`[Repository Error] findAll on ${tableName}:`, error)
         throw new BusinessError(`Failed to fetch records for ${tableName}`)
@@ -43,11 +41,7 @@ export function createRepository<T extends { id: ID }, CreateDTO, UpdateDTO>(
 
     async findById(id: ID): Promise<T | null> {
       try {
-        if (isMock) {
-          return inMemoryData.find((item) => item.id === id) || null
-        }
-        const result = await supabase.request<T[]>(`${tableName}?id=eq.${id}&select=*`)
-        return result.length > 0 ? result[0] : null
+        return inMemoryData.find((item) => item.id === id) || null
       } catch (error) {
         console.error(`[Repository Error] findById on ${tableName} (id: ${id}):`, error)
         throw new BusinessError(`Failed to fetch record ${id} from ${tableName}`)
@@ -56,22 +50,14 @@ export function createRepository<T extends { id: ID }, CreateDTO, UpdateDTO>(
 
     async create(data: CreateDTO): Promise<T> {
       try {
-        let newItem: T
-        if (isMock) {
-          newItem = {
-            id: crypto.randomUUID(),
-            ...data,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          } as unknown as T
-          inMemoryData.push(newItem)
-        } else {
-          const result = await supabase.request<T[]>(tableName, {
-            method: 'POST',
-            body: JSON.stringify(data),
-          })
-          newItem = result[0]
-        }
+        const newItem = {
+          id: crypto.randomUUID(),
+          ...data,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as unknown as T
+        inMemoryData.push(newItem)
+
         logAudit('CREATE', newItem.id, null, newItem)
         return newItem
       } catch (error) {
@@ -82,33 +68,17 @@ export function createRepository<T extends { id: ID }, CreateDTO, UpdateDTO>(
 
     async update(id: ID, data: UpdateDTO): Promise<T | null> {
       try {
-        let oldItem: T | null = null
-        let updatedItem: T | null = null
-
-        if (isMock) {
-          const index = inMemoryData.findIndex((item) => item.id === id)
-          if (index === -1) return null
-          oldItem = { ...inMemoryData[index] }
-          inMemoryData[index] = {
-            ...inMemoryData[index],
-            ...data,
-            updated_at: new Date().toISOString(),
-          }
-          updatedItem = inMemoryData[index]
-        } else {
-          const current = await supabase.request<T[]>(`${tableName}?id=eq.${id}&select=*`)
-          if (current.length > 0) oldItem = current[0]
-
-          const result = await supabase.request<T[]>(`${tableName}?id=eq.${id}`, {
-            method: 'PATCH',
-            body: JSON.stringify(data),
-          })
-          if (result.length > 0) updatedItem = result[0]
+        const index = inMemoryData.findIndex((item) => item.id === id)
+        if (index === -1) return null
+        const oldItem = { ...inMemoryData[index] }
+        inMemoryData[index] = {
+          ...inMemoryData[index],
+          ...data,
+          updated_at: new Date().toISOString(),
         }
+        const updatedItem = inMemoryData[index]
 
-        if (updatedItem && oldItem) {
-          logAudit('UPDATE', id, oldItem, updatedItem)
-        }
+        logAudit('UPDATE', id, oldItem, updatedItem)
         return updatedItem
       } catch (error) {
         console.error(`[Repository Error] update on ${tableName} (id: ${id}):`, error)
@@ -118,23 +88,11 @@ export function createRepository<T extends { id: ID }, CreateDTO, UpdateDTO>(
 
     async delete(id: ID): Promise<boolean> {
       try {
-        let deletedItem: T | null = null
+        const index = inMemoryData.findIndex((item) => item.id === id)
+        if (index !== -1) {
+          const deletedItem = inMemoryData[index]
+          inMemoryData.splice(index, 1)
 
-        if (isMock) {
-          const index = inMemoryData.findIndex((item) => item.id === id)
-          if (index !== -1) {
-            deletedItem = inMemoryData[index]
-            inMemoryData.splice(index, 1)
-          }
-        } else {
-          const current = await supabase.request<T[]>(`${tableName}?id=eq.${id}&select=*`)
-          if (current.length > 0) deletedItem = current[0]
-          await supabase.request<void>(`${tableName}?id=eq.${id}`, {
-            method: 'DELETE',
-          })
-        }
-
-        if (deletedItem) {
           const savedUser = localStorage.getItem('fieldops_user')
           const user = savedUser ? JSON.parse(savedUser) : null
 
