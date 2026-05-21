@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
 import {
   SidebarProvider,
@@ -5,27 +6,116 @@ import {
   SidebarHeader,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupLabel,
-  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarTrigger,
 } from '@/components/ui/sidebar'
-import {
-  LayoutDashboard,
-  FileText,
-  ClipboardList,
-  Ruler,
-  Calendar,
-  Users,
-  Package,
-  BarChart,
-  Settings,
-} from 'lucide-react'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Wrench, Package, HardHat, Settings, ChevronRight } from 'lucide-react'
+
+const navItems = [
+  {
+    title: 'Manutenção',
+    icon: Wrench,
+    items: [
+      { title: 'Dashboard', url: '/dashboard' },
+      { title: 'Contratos', url: '/contratos/painel' },
+      { title: 'Ordens de Serviço', url: '/ordens' },
+      { title: 'Medições', url: '/medicoes' },
+      { title: 'Agenda Técnica', url: '/operacional/agenda' },
+      { title: 'Equipes', url: '/operacional/equipes' },
+      { title: 'Relatórios', url: '/relatorios' },
+    ],
+  },
+  {
+    title: 'Estoque',
+    icon: Package,
+    items: [
+      { title: 'Dashboard', url: '/estoque/dashboard' },
+      { title: 'Produtos', url: '/estoque/produtos' },
+      { title: 'Almoxarifado Central', url: '/estoque/almoxarifado' },
+      { title: 'Estoque por Veículo', url: '/estoque/veiculos' },
+      { title: 'Movimentações', url: '/estoque/movimentacoes' },
+      { title: 'Transferências', url: '/estoque/transferencias' },
+      { title: 'Entradas', url: '/estoque/entradas' },
+      { title: 'Saídas', url: '/estoque/saidas' },
+      { title: 'Inventário', url: '/estoque/inventario' },
+      { title: 'Fornecedores', url: '/estoque/fornecedores' },
+      { title: 'Compras', url: '/estoque/compras' },
+    ],
+  },
+  {
+    title: 'Obras',
+    icon: HardHat,
+    items: [
+      { title: 'Dashboard', url: '/obras/dashboard' },
+      { title: 'Projetos', url: '/obras/projetos' },
+    ],
+  },
+  {
+    title: 'Configurações',
+    icon: Settings,
+    items: [
+      { title: 'Empresas', url: '/configs/empresas' },
+      { title: 'Clientes', url: '/configs/clientes' },
+      { title: 'Unidades', url: '/configs/unidades' },
+      { title: 'Usuários', url: '/configs/usuarios' },
+      { title: 'Técnicos', url: '/configs/tecnicos' },
+      { title: 'Equipes', url: '/configs/equipes' },
+      { title: 'Perfis e Permissões', url: '/configs/perfis' },
+      { title: 'SLA', url: '/configs/sla' },
+      { title: 'Categorias de Serviço', url: '/configs/categorias' },
+      { title: 'Tipos de Atendimento', url: '/configs/master' },
+      { title: 'Checklist', url: '/configs/checklists' },
+      { title: 'Integrações', url: '/configs/integracoes' },
+      { title: 'Parâmetros do Sistema', url: '/configs/painel' },
+    ],
+  },
+]
 
 export default function Layout() {
   const location = useLocation()
+  const [openModule, setOpenModule] = useState<string | null>(null)
+
+  useEffect(() => {
+    const currentPath = location.pathname
+    const activeModule = navItems.find((module) =>
+      module.items.some((item) => {
+        if (item.url === '/dashboard' && currentPath === '/dashboard') return true
+        if (
+          item.url === '/ordens' &&
+          (currentPath.startsWith('/ordens') ||
+            currentPath.startsWith('/orders') ||
+            currentPath.startsWith('/service-orders'))
+        )
+          return true
+        if (item.url !== '/dashboard' && item.url !== '/ordens' && currentPath.startsWith(item.url))
+          return true
+        return false
+      }),
+    )
+    if (activeModule && activeModule.title !== openModule) {
+      setOpenModule(activeModule.title)
+    }
+  }, [location.pathname])
+
+  const isSubItemActive = (url: string) => {
+    const currentPath = location.pathname
+    if (url === '/dashboard') return currentPath === '/dashboard'
+    if (url === '/ordens')
+      return (
+        currentPath.startsWith('/ordens') ||
+        currentPath.startsWith('/orders') ||
+        currentPath.startsWith('/service-orders')
+      )
+    if (url === '/configs/painel')
+      return currentPath === '/configs/painel' || currentPath === '/configs'
+    return currentPath.startsWith(url)
+  }
 
   return (
     <SidebarProvider>
@@ -36,216 +126,50 @@ export default function Layout() {
           </SidebarHeader>
           <SidebarContent>
             <SidebarGroup>
-              <SidebarGroupLabel>Manutenção</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location.pathname === '/dashboard'}>
-                      <Link to="/dashboard">
-                        <LayoutDashboard className="h-4 w-4" />
-                        <span>Dashboard</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
+              <SidebarMenu>
+                {navItems.map((module) => {
+                  const isActiveModule = module.items.some((item) => isSubItemActive(item.url))
+                  return (
+                    <Collapsible
+                      key={module.title}
                       asChild
-                      isActive={location.pathname.startsWith('/contratos')}
+                      open={openModule === module.title}
+                      onOpenChange={(isOpen) => setOpenModule(isOpen ? module.title : null)}
+                      className="group/collapsible"
                     >
-                      <Link to="/contratos/painel">
-                        <FileText className="h-4 w-4" />
-                        <span>Contratos</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={
-                        location.pathname.startsWith('/ordens') ||
-                        location.pathname.startsWith('/orders') ||
-                        location.pathname.startsWith('/service-orders')
-                      }
-                    >
-                      <Link to="/ordens">
-                        <ClipboardList className="h-4 w-4" />
-                        <span>Ordens de Serviço</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location.pathname.startsWith('/medicoes')}>
-                      <Link to="/medicoes">
-                        <Ruler className="h-4 w-4" />
-                        <span>Medições</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === '/operacional/agenda'}
-                    >
-                      <Link to="/operacional/agenda">
-                        <Calendar className="h-4 w-4" />
-                        <span>Agenda Técnica</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === '/operacional/equipes'}
-                    >
-                      <Link to="/operacional/equipes">
-                        <Users className="h-4 w-4" />
-                        <span>Equipes</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname.startsWith('/relatorios')}
-                    >
-                      <Link to="/relatorios">
-                        <BarChart className="h-4 w-4" />
-                        <span>Relatórios</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarGroup>
-              <SidebarGroupLabel>Estoque</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === '/estoque/dashboard'}
-                    >
-                      <Link to="/estoque/dashboard">
-                        <Package className="h-4 w-4" />
-                        <span>Dashboard</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location.pathname === '/estoque/produtos'}>
-                      <Link to="/estoque/produtos">
-                        <Package className="h-4 w-4" />
-                        <span>Produtos</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === '/estoque/almoxarifado'}
-                    >
-                      <Link to="/estoque/almoxarifado">
-                        <Package className="h-4 w-4" />
-                        <span>Almoxarifado Central</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location.pathname === '/estoque/veiculos'}>
-                      <Link to="/estoque/veiculos">
-                        <Package className="h-4 w-4" />
-                        <span>Estoque por Veículo</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === '/estoque/movimentacoes'}
-                    >
-                      <Link to="/estoque/movimentacoes">
-                        <Package className="h-4 w-4" />
-                        <span>Movimentações</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === '/estoque/transferencias'}
-                    >
-                      <Link to="/estoque/transferencias">
-                        <Package className="h-4 w-4" />
-                        <span>Transferências</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location.pathname === '/estoque/entradas'}>
-                      <Link to="/estoque/entradas">
-                        <Package className="h-4 w-4" />
-                        <span>Entradas</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location.pathname === '/estoque/saidas'}>
-                      <Link to="/estoque/saidas">
-                        <Package className="h-4 w-4" />
-                        <span>Saídas</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === '/estoque/inventario'}
-                    >
-                      <Link to="/estoque/inventario">
-                        <Package className="h-4 w-4" />
-                        <span>Inventário</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === '/estoque/fornecedores'}
-                    >
-                      <Link to="/estoque/fornecedores">
-                        <Package className="h-4 w-4" />
-                        <span>Fornecedores</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location.pathname === '/estoque/compras'}>
-                      <Link to="/estoque/compras">
-                        <Package className="h-4 w-4" />
-                        <span>Compras</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-
-            <SidebarGroup>
-              <SidebarGroupLabel>Configurações</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location.pathname.startsWith('/configs')}>
-                      <Link to="/configs/painel">
-                        <Settings className="h-4 w-4" />
-                        <span>Ajustes do Sistema</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
+                      <SidebarMenuItem>
+                        <CollapsibleTrigger asChild>
+                          <SidebarMenuButton
+                            tooltip={module.title}
+                            isActive={isActiveModule}
+                            className="font-medium"
+                          >
+                            {module.icon && <module.icon />}
+                            <span>{module.title}</span>
+                            <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                          </SidebarMenuButton>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                          <SidebarMenuSub>
+                            {module.items.map((subItem) => (
+                              <SidebarMenuSubItem key={subItem.title}>
+                                <SidebarMenuSubButton
+                                  asChild
+                                  isActive={isSubItemActive(subItem.url)}
+                                >
+                                  <Link to={subItem.url}>
+                                    <span>{subItem.title}</span>
+                                  </Link>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                            ))}
+                          </SidebarMenuSub>
+                        </CollapsibleContent>
+                      </SidebarMenuItem>
+                    </Collapsible>
+                  )
+                })}
+              </SidebarMenu>
             </SidebarGroup>
           </SidebarContent>
         </Sidebar>
