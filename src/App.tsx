@@ -54,12 +54,7 @@ import InboundsPage from './pages/admin/inventory/InboundsPage'
 import OutboundsPage from './pages/admin/inventory/OutboundsPage'
 import PhysicalInventoryPage from './pages/admin/inventory/PhysicalInventoryPage'
 import SuppliersPage from './pages/admin/inventory/SuppliersPage'
-import PurchasesPage from './pages/admin/inventory/PurchasesPage'
-import TransfersPage from './pages/admin/inventory/TransfersPage'
-import InboundsPage from './pages/admin/inventory/InboundsPage'
-import OutboundsPage from './pages/admin/inventory/OutboundsPage'
-import SuppliersPage from './pages/admin/inventory/SuppliersPage'
-import PurchasesOrdersPage from './pages/admin/inventory/PurchasesOrdersPage'
+import InventoryPurchasesPage from './pages/admin/inventory/PurchasesPage'
 
 // Financeiro
 import FinanceDashboard from './pages/admin/finance/FinanceDashboard'
@@ -211,7 +206,6 @@ const App = () => {
                                 />
                                 <Route path="/estoque/veiculos" element={<VehicleStockPage />} />
                                 <Route path="/estoque/movimentacoes" element={<MovementsPage />} />
-                                <Route path="/estoque/requisicoes" element={<RequisitionsPage />} />
                                 <Route
                                   path="/estoque/inventario"
                                   element={<PhysicalInventoryPage />}
@@ -220,7 +214,10 @@ const App = () => {
                                 <Route path="/estoque/entradas" element={<InboundsPage />} />
                                 <Route path="/estoque/saidas" element={<OutboundsPage />} />
                                 <Route path="/estoque/fornecedores" element={<SuppliersPage />} />
-                                <Route path="/estoque/compras" element={<PurchasesOrdersPage />} />
+                                <Route
+                                  path="/estoque/compras"
+                                  element={<InventoryPurchasesPage />}
+                                />
                               </Route>
 
                               <Route
