@@ -150,15 +150,15 @@ export default function ProductsPage() {
             ) : (
               products.map((p) => (
                 <TableRow key={p.id}>
-                  <TableCell className="font-mono">{p.code}</TableCell>
+                  <TableCell className="font-mono">{p.code || p.sku || '-'}</TableCell>
                   <TableCell>
                     <div className="font-semibold">{p.name}</div>
                     {p.description && (
                       <div className="text-xs text-muted-foreground">{p.description}</div>
                     )}
                   </TableCell>
-                  <TableCell className="capitalize">{p.category}</TableCell>
-                  <TableCell className="text-center">{p.unit}</TableCell>
+                  <TableCell className="capitalize">{p.category || 'Geral'}</TableCell>
+                  <TableCell className="text-center">{p.unit || p.unit_type || 'un'}</TableCell>
                   <TableCell className="text-right font-mono">
                     R$ {(p.price || p.average_cost || 0).toFixed(2)}
                   </TableCell>

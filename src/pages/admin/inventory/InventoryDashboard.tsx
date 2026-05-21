@@ -46,21 +46,21 @@ export default function InventoryDashboard() {
     )
   }
 
-  const totalValue = balances.reduce((sum, b) => {
-    const p = products.find((x) => x.id === b.product_id)
+  const totalValue = balances.reduce((sum: any, b: any) => {
+    const p = products.find((x) => x.id === (b.product_id || b.material_id))
     return sum + (p?.average_cost || 0) * b.quantity
   }, 0)
 
   const productsBelowMin = products.filter((p) => {
     const total = balances
-      .filter((b) => b.product_id === p.id)
+      .filter((b: any) => (b.product_id || b.material_id) === p.id)
       .reduce((sum, b) => sum + b.quantity, 0)
-    return total > 0 && total < p.minimum_stock
+    return total > 0 && total < (p.minimum_stock || 0)
   })
 
   const zeroStock = products.filter((p) => {
     const total = balances
-      .filter((b) => b.product_id === p.id)
+      .filter((b: any) => (b.product_id || b.material_id) === p.id)
       .reduce((sum, b) => sum + b.quantity, 0)
     return total === 0
   })
@@ -169,23 +169,25 @@ export default function InventoryDashboard() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  movements.slice(0, 5).map((m) => {
-                    const p = products.find((x) => x.id === m.product_id)
+                  movements.slice(0, 5).map((m: any) => {
+                    const p = products.find((x) => x.id === (m.product_id || m.material_id))
                     return (
                       <TableRow key={m.id}>
-                        <TableCell>{new Date(m.date).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          {new Date(m.date || m.created_at).toLocaleDateString()}
+                        </TableCell>
                         <TableCell className="font-medium">{p?.name || 'Desconhecido'}</TableCell>
                         <TableCell>
                           <Badge
                             variant={
-                              m.type === 'entrada'
+                              m.type === 'entrada' || m.type === 'in'
                                 ? 'default'
-                                : m.type === 'saída'
+                                : m.type === 'saída' || m.type === 'out'
                                   ? 'destructive'
                                   : 'secondary'
                             }
                           >
-                            {m.type}
+                            {m.type === 'in' ? 'entrada' : m.type === 'out' ? 'saída' : m.type}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right font-mono">{m.quantity}</TableCell>
@@ -235,7 +237,7 @@ export default function InventoryDashboard() {
                 ) : (
                   [...zeroStock, ...productsBelowMin].slice(0, 5).map((p) => {
                     const total = balances
-                      .filter((b) => b.product_id === p.id)
+                      .filter((b: any) => (b.product_id || b.material_id) === p.id)
                       .reduce((sum, b) => sum + b.quantity, 0)
                     return (
                       <TableRow key={p.id}>

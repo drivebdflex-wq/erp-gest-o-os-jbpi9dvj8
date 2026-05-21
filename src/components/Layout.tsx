@@ -104,14 +104,6 @@ export default function Layout() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location.pathname.startsWith('/estoque')}>
-                      <Link to="/estoque/dashboard">
-                        <Package className="h-4 w-4" />
-                        <span>Estoque</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
                     <SidebarMenuButton
                       asChild
                       isActive={location.pathname.startsWith('/relatorios')}
@@ -119,6 +111,120 @@ export default function Layout() {
                       <Link to="/relatorios">
                         <BarChart className="h-4 w-4" />
                         <span>Relatórios</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Estoque</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/estoque/dashboard'}
+                    >
+                      <Link to="/estoque/dashboard">
+                        <Package className="h-4 w-4" />
+                        <span>Dashboard</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname === '/estoque/produtos'}>
+                      <Link to="/estoque/produtos">
+                        <Package className="h-4 w-4" />
+                        <span>Produtos</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/estoque/almoxarifado'}
+                    >
+                      <Link to="/estoque/almoxarifado">
+                        <Package className="h-4 w-4" />
+                        <span>Almoxarifado Central</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname === '/estoque/veiculos'}>
+                      <Link to="/estoque/veiculos">
+                        <Package className="h-4 w-4" />
+                        <span>Estoque por Veículo</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/estoque/movimentacoes'}
+                    >
+                      <Link to="/estoque/movimentacoes">
+                        <Package className="h-4 w-4" />
+                        <span>Movimentações</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/estoque/transferencias'}
+                    >
+                      <Link to="/estoque/transferencias">
+                        <Package className="h-4 w-4" />
+                        <span>Transferências</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname === '/estoque/entradas'}>
+                      <Link to="/estoque/entradas">
+                        <Package className="h-4 w-4" />
+                        <span>Entradas</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname === '/estoque/saidas'}>
+                      <Link to="/estoque/saidas">
+                        <Package className="h-4 w-4" />
+                        <span>Saídas</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/estoque/inventario'}
+                    >
+                      <Link to="/estoque/inventario">
+                        <Package className="h-4 w-4" />
+                        <span>Inventário</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={location.pathname === '/estoque/fornecedores'}
+                    >
+                      <Link to="/estoque/fornecedores">
+                        <Package className="h-4 w-4" />
+                        <span>Fornecedores</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname === '/estoque/compras'}>
+                      <Link to="/estoque/compras">
+                        <Package className="h-4 w-4" />
+                        <span>Compras</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

@@ -1,6 +1,6 @@
+import { useEffect, useState } from 'react'
 import InventoryNav from '@/components/admin/inventory/InventoryNav'
-import useInventoryStore from '@/stores/useInventoryStore'
-import useFleetStore from '@/stores/useFleetStore'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -9,91 +9,124 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { supabase } from '@/lib/supabase/client'
+import { format } from 'date-fns'
 
 export default function MovementsPage() {
-  const { movements, products } = useInventoryStore()
-  const { vehicles } = useFleetStore()
+  const [movements, setMovements] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const getLocationName = (locId?: string) => {
-    if (!locId) return '-'
-    if (locId === 'central') return 'Central'
-    const v = vehicles.find((v) => v.id === locId)
-    return v ? `${v.plate} (${v.model})` : locId
-  }
+  useEffect(() => {
+    async function load() {
+      const { data, error } = await supabase
+        .from('stock_movements')
+        .select('*, materials(name, sku)')
+        .order('created_at', { ascending: false })
+        .limit(100)
 
-  const sortedMovements = [...movements].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  )
+      if (!error && data) setMovements(data)
+      setLoading(false)
+    }
+    load()
+  }, [])
 
   return (
-    <div className="space-y-4 animate-fade-in pb-10">
+    <div className="space-y-6 animate-fade-in pb-10">
       <InventoryNav />
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Histórico de Movimentações</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Movimentações</h2>
         <p className="text-sm text-muted-foreground">
-          Log de auditoria de entradas, saídas, transferências e ajustes.
+          Histórico completo de entradas, saídas e transferências de estoque.
         </p>
       </div>
 
-      <div className="border rounded-md bg-card mt-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Data</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Origem</TableHead>
-              <TableHead>Produto</TableHead>
-              <TableHead className="text-right">Qtd</TableHead>
-              <TableHead>Origem Estoque</TableHead>
-              <TableHead>Destino Estoque</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedMovements.map((m) => {
-              const p = products.find((x) => x.id === m.product_id)
-              return (
-                <TableRow key={m.id}>
-                  <TableCell className="whitespace-nowrap">
-                    {new Date(m.date).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        m.type === 'entrada'
-                          ? 'default'
-                          : m.type === 'saída'
-                            ? 'destructive'
-                            : m.type === 'transferência'
-                              ? 'secondary'
-                              : 'outline'
-                      }
-                    >
-                      {m.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="capitalize">{m.origin}</TableCell>
-                  <TableCell className="font-medium">{p?.name}</TableCell>
-                  <TableCell className="text-right font-mono font-bold">{m.quantity}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {getLocationName(m.source_location)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {getLocationName(m.destination_location)}
+      <Card>
+        <CardHeader>
+          <CardTitle>Histórico Recente</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Produto</TableHead>
+                <TableHead>Origem</TableHead>
+                <TableHead>Destino</TableHead>
+                <TableHead className="text-right">Quantidade</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-5 w-16" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-32" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-20" />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Skeleton className="h-4 w-10 ml-auto" />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : movements.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Nenhuma movimentação registrada.
                   </TableCell>
                 </TableRow>
-              )
-            })}
-            {sortedMovements.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                  Nenhuma movimentação registrada.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ) : (
+                movements.map((mov) => (
+                  <TableRow key={mov.id}>
+                    <TableCell>{format(new Date(mov.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          mov.type === 'in'
+                            ? 'default'
+                            : mov.type === 'out'
+                              ? 'destructive'
+                              : 'secondary'
+                        }
+                      >
+                        {mov.type === 'in'
+                          ? 'Entrada'
+                          : mov.type === 'out'
+                            ? 'Saída'
+                            : 'Transferência'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{mov.materials?.name}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {mov.origin_location || '-'}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {mov.destination_location || '-'}
+                    </TableCell>
+                    <TableCell className="text-right font-mono font-bold">
+                      {mov.type === 'out' ? '-' : '+'}
+                      {mov.quantity}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -79,11 +79,11 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     setError(null)
     try {
-      const table = simulateError ? 'inventory_not_exist' : 'products'
+      const table = simulateError ? 'inventory_not_exist' : 'materials'
       const [prodRes, balRes, movRes] = await Promise.all([
         supabase.from(table).select('*').order('name'),
         supabase.from('inventory').select('*'),
-        supabase.from('movements').select('*').order('date', { ascending: false }),
+        supabase.from('stock_movements').select('*').order('created_at', { ascending: false }),
       ])
 
       if (prodRes.error) throw prodRes.error
@@ -104,19 +104,19 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addProduct = useCallback(async (p: Omit<Product, 'id'>) => {
-    const newProduct = { ...p, id: Math.random().toString(), created_at: new Date().toISOString() }
+    const newProduct = { ...p, id: crypto.randomUUID(), created_at: new Date().toISOString() }
     setProducts((prev) => [...prev, newProduct as Product])
-    await supabase.from('products').insert(newProduct)
+    await supabase.from('materials').insert({ name: p.name, sku: p.code, unit_type: p.unit })
   }, [])
 
   const updateProduct = useCallback((id: string, p: Partial<Product>) => {
     setProducts((prev) => prev.map((x) => (x.id === id ? { ...x, ...p } : x)))
-    supabase.from('products').update(p).eq('id', id)
+    supabase.from('materials').update({ name: p.name, sku: p.code, unit_type: p.unit }).eq('id', id)
   }, [])
 
   const deleteProduct = useCallback((id: string) => {
     setProducts((prev) => prev.filter((x) => x.id !== id))
-    supabase.from('products').delete().eq('id', id)
+    supabase.from('materials').delete().eq('id', id)
   }, [])
 
   const addMovement = useCallback((m: Omit<StockMovement, 'id' | 'date'>) => {
@@ -154,7 +154,15 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
       return next
     })
     setMovements((prev) => [newMovement, ...prev])
-    supabase.from('movements').insert(newMovement)
+    // mock conversion to stock_movements
+    supabase.from('stock_movements').insert({
+      material_id: newMovement.product_id,
+      type:
+        newMovement.type === 'entrada' ? 'in' : newMovement.type === 'saída' ? 'out' : 'transfer',
+      quantity: newMovement.quantity,
+      origin_location: newMovement.source_location,
+      destination_location: newMovement.destination_location,
+    })
   }, [])
 
   const addRequisition = useCallback((r: Omit<Requisition, 'id' | 'date' | 'status'>) => {

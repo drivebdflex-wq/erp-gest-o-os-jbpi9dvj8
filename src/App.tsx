@@ -49,8 +49,17 @@ import ProductsPage from './pages/admin/inventory/ProductsPage'
 import CentralWarehousePage from './pages/admin/inventory/CentralWarehousePage'
 import VehicleStockPage from './pages/admin/inventory/VehicleStockPage'
 import MovementsPage from './pages/admin/inventory/MovementsPage'
-import RequisitionsPage from './pages/admin/inventory/RequisitionsPage'
+import TransfersPage from './pages/admin/inventory/TransfersPage'
+import InboundsPage from './pages/admin/inventory/InboundsPage'
+import OutboundsPage from './pages/admin/inventory/OutboundsPage'
 import PhysicalInventoryPage from './pages/admin/inventory/PhysicalInventoryPage'
+import SuppliersPage from './pages/admin/inventory/SuppliersPage'
+import PurchasesPage from './pages/admin/inventory/PurchasesPage'
+import TransfersPage from './pages/admin/inventory/TransfersPage'
+import InboundsPage from './pages/admin/inventory/InboundsPage'
+import OutboundsPage from './pages/admin/inventory/OutboundsPage'
+import SuppliersPage from './pages/admin/inventory/SuppliersPage'
+import PurchasesOrdersPage from './pages/admin/inventory/PurchasesOrdersPage'
 
 // Financeiro
 import FinanceDashboard from './pages/admin/finance/FinanceDashboard'
@@ -207,6 +216,11 @@ const App = () => {
                                   path="/estoque/inventario"
                                   element={<PhysicalInventoryPage />}
                                 />
+                                <Route path="/estoque/transferencias" element={<TransfersPage />} />
+                                <Route path="/estoque/entradas" element={<InboundsPage />} />
+                                <Route path="/estoque/saidas" element={<OutboundsPage />} />
+                                <Route path="/estoque/fornecedores" element={<SuppliersPage />} />
+                                <Route path="/estoque/compras" element={<PurchasesOrdersPage />} />
                               </Route>
 
                               <Route
