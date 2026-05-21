@@ -32,6 +32,10 @@ import AuditLogsPage from './pages/admin/AuditLogsPage'
 import RecycleBinPage from './pages/admin/RecycleBinPage'
 import NotFound from './pages/NotFound'
 
+import MeasurementsPage from './pages/admin/measurements/MeasurementsPage'
+import MeasurementDetailPage from './pages/admin/measurements/MeasurementDetailPage'
+import ReportsPage from './pages/admin/ReportsPage'
+
 // Estoque
 import InventoryDashboard from './pages/admin/inventory/InventoryDashboard'
 import ProductsPage from './pages/admin/inventory/ProductsPage'
@@ -122,6 +126,9 @@ const App = () => {
                               <Route path="/ordens/:id" element={<WorkOrderDetail />} />
                               <Route path="/orders/:id" element={<WorkOrderDetail />} />
                               <Route path="/service-orders/:id" element={<WorkOrderDetail />} />
+                              <Route path="/medicoes" element={<MeasurementsPage />} />
+                              <Route path="/medicoes/:id" element={<MeasurementDetailPage />} />
+                              <Route path="/relatorios" element={<ReportsPage />} />
 
                               <Route
                                 element={<ProtectedRoute requiredPermission="view_operational" />}
