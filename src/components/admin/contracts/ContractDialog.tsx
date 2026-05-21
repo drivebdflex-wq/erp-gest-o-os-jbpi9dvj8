@@ -52,8 +52,20 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
 
   const { clients, saveContract, priceItems, contractUnits, saveContractUnit, deleteContractUnit } =
     useAppStore()
+  const [users, setUsers] = useState<any[]>([])
   const [formData, setFormData] = useState<any>({})
   const [showPriceTable, setShowPriceTable] = useState(false)
+
+  useEffect(() => {
+    import('@/lib/supabase/client').then(({ supabase }) => {
+      supabase
+        .from('users')
+        .select('id, name')
+        .then(({ data }) => {
+          if (data) setUsers(data)
+        })
+    })
+  }, [])
   const [showUnitForm, setShowUnitForm] = useState(false)
   const [unitFormData, setUnitFormData] = useState<any>({})
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
@@ -112,6 +124,15 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
   }
 
   const handleSave = async () => {
+    if (formData.has_monthly_measurement && !formData.measurement_day) {
+      toast({
+        title: 'Aviso',
+        description: 'O dia fixo da medição mensal é obrigatório.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
       await saveContract(formData)
       toast({ title: 'Sucesso', description: 'Contrato salvo com sucesso.' })
@@ -313,6 +334,32 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
                     value={formData.endDate || ''}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                   />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Descrição</Label>
+                  <Textarea
+                    value={formData.description || ''}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Descrição do escopo do contrato..."
+                  />
+                </div>
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label>Gestor do Contrato</Label>
+                  <Select
+                    value={formData.manager_id || ''}
+                    onValueChange={(v) => setFormData({ ...formData, manager_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o gestor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {users.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </TabsContent>
@@ -608,25 +655,68 @@ export default function ContractDialog({ open, onOpenChange, contract, type }: a
                   />
                   <Label>Possui Preventiva</Label>
                 </div>
+
                 {formData.hasPreventive && (
-                  <div className="space-y-2 col-span-2">
-                    <Label>Frequência Preventiva</Label>
-                    <Select
-                      value={formData.preventiveFrequency || ''}
-                      onValueChange={(v) => setFormData({ ...formData, preventiveFrequency: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Mensal">Mensal</SelectItem>
-                        <SelectItem value="Trimestral">Trimestral</SelectItem>
-                        <SelectItem value="Anual">Anual</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="col-span-2 p-4 border rounded-md bg-muted/20 space-y-4">
+                    <h4 className="font-semibold text-sm">Configurações de Preventiva</h4>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      A ativação da preventiva habilita recursos de Agenda Preventiva e Recorrência.
+                    </p>
+                    <div className="space-y-2">
+                      <Label>Frequência Preventiva</Label>
+                      <Select
+                        value={formData.preventiveFrequency || ''}
+                        onValueChange={(v) => setFormData({ ...formData, preventiveFrequency: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Mensal">Mensal</SelectItem>
+                          <SelectItem value="Trimestral">Trimestral</SelectItem>
+                          <SelectItem value="Anual">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 )}
-                <div className="space-y-2 col-span-2">
+
+                <div className="flex items-center space-x-2 col-span-2 mt-2 pt-2 border-t">
+                  <Switch
+                    checked={formData.has_monthly_measurement}
+                    onCheckedChange={(c) =>
+                      setFormData({ ...formData, has_monthly_measurement: c })
+                    }
+                  />
+                  <Label>Medição Mensal (Faturamento Recorrente)</Label>
+                </div>
+
+                {formData.has_monthly_measurement && (
+                  <div className="col-span-2 p-4 border rounded-md bg-muted/20 space-y-4">
+                    <h4 className="font-semibold text-sm">Configurações de Medição</h4>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Habilita o módulo de medição e fechamento mensal de OS vinculadas.
+                    </p>
+                    <div className="space-y-2 w-1/2">
+                      <Label>Dia Fixo da Medição Mensal *</Label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="31"
+                        value={formData.measurement_day || ''}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            measurement_day: parseInt(e.target.value, 10),
+                          })
+                        }
+                        placeholder="Ex: 5"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2 col-span-2 mt-2 pt-2 border-t">
                   <Label>SLA Padrão (horas)</Label>
                   <Input
                     type="number"

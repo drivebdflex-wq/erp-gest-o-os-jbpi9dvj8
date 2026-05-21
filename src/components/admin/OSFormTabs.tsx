@@ -32,11 +32,12 @@ export function GeneralTab({ data, set }: any) {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4">
           <div className="space-y-2">
-            <Label>Número OS</Label>
+            <Label>Número da O.S. *</Label>
             <Input
-              value={data.order_number}
-              onChange={(e) => set({ ...data, order_number: e.target.value })}
-              className="font-bold font-mono"
+              value={data.service_order_number || ''}
+              onChange={(e) => set({ ...data, service_order_number: e.target.value })}
+              className="font-bold font-mono border-primary focus-visible:ring-primary"
+              placeholder="Obrigatório e Único"
             />
           </div>
           <div className="space-y-2">

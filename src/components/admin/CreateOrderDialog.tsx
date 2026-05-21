@@ -40,6 +40,7 @@ export default function CreateOrderDialog({
   const [contracts, setContracts] = useState<any[]>([])
 
   const [formData, setFormData] = useState<any>({
+    service_order_number: '',
     priority: defaultPriority || 'medium',
     status: 'pending',
     description: '',
@@ -124,6 +125,14 @@ export default function CreateOrderDialog({
   }, [formData.client_id, defaultContractId])
 
   const handleSave = async () => {
+    if (!formData.service_order_number) {
+      toast({
+        title: 'Aviso',
+        description: 'Número da O.S. é obrigatório.',
+        variant: 'destructive',
+      })
+      return
+    }
     if (!formData.description) {
       toast({ title: 'Aviso', description: 'Preencha a descrição.', variant: 'destructive' })
       return
@@ -139,8 +148,25 @@ export default function CreateOrderDialog({
 
     setLoading(true)
     try {
+      const { data: existing } = await supabase
+        .from('service_orders')
+        .select('id')
+        .eq('service_order_number', formData.service_order_number)
+        .maybeSingle()
+
+      if (existing) {
+        toast({
+          title: 'Aviso',
+          description: 'Este Número de O.S. já está em uso.',
+          variant: 'destructive',
+        })
+        setLoading(false)
+        return
+      }
+
       const { error } = await supabase.from('service_orders').insert([
         {
+          service_order_number: formData.service_order_number,
           contract_id: formData.contract_id,
           client_id: formData.client_id,
           unit_id: formData.unit_id || null,
@@ -150,7 +176,12 @@ export default function CreateOrderDialog({
         },
       ])
 
-      if (error) throw error
+      if (error) {
+        if (error.code === '23505') {
+          throw new Error('Este Número de O.S. já está em uso (duplicado).')
+        }
+        throw error
+      }
 
       toast({ title: 'Sucesso', description: 'OS criada com sucesso.' })
       onOpenChange(false)
@@ -168,6 +199,15 @@ export default function CreateOrderDialog({
           <DialogTitle>Nova Ordem de Serviço</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Número da O.S. *</Label>
+            <Input
+              placeholder="Ex: OS-2023-001"
+              value={formData.service_order_number}
+              onChange={(e) => setFormData({ ...formData, service_order_number: e.target.value })}
+              className="font-bold font-mono"
+            />
+          </div>
           <div className="space-y-2">
             <Label>Descrição / Solicitação *</Label>
             <Textarea

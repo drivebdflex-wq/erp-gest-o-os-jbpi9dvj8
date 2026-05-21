@@ -1,303 +1,104 @@
 import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import {
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
   TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
 } from '@/components/ui/table'
-import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, RefreshCw, Trash2, Loader2, UserPlus, Edit } from 'lucide-react'
-import AssignOrderDialog from './AssignOrderDialog'
-import EditOrderDialog from './EditOrderDialog'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { useToast } from '@/hooks/use-toast'
-// @ts-expect-error
-import useAuthStore from '@/stores/useAuthStore'
+import { Loader2 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export default function PendingServiceOrdersTab() {
-  // @ts-expect-error
-  const user = useAuthStore?.((state: any) => state.user)
-  const isAdmin =
-    user?.role === 'admin' || user?.role === 'Administrator' || user?.role === 'admin_master'
-
-  const { toast } = useToast()
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [orderToDelete, setOrderToDelete] = useState<any>(null)
-  const [orderToAssign, setOrderToAssign] = useState<any>(null)
-  const [orderToEdit, setOrderToEdit] = useState<any>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  const fetchOrders = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || '/api'
-      const response = await fetch(`${apiUrl}/service-orders?status=pending`)
-
-      if (!response.ok) {
-        throw new Error(`Falha ao buscar ordens de serviço pendentes (${response.status})`)
-      }
-
-      const data = await response.json()
-      setOrders(Array.isArray(data) ? data.filter((o: any) => !o.deleted_at && !o.deletedAt) : [])
-    } catch (err: any) {
-      setError(err.message || 'Erro desconhecido ao conectar com a API')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   useEffect(() => {
-    fetchOrders()
+    async function fetchOS() {
+      const { data, error } = await supabase
+        .from('service_orders')
+        .select(`
+          id,
+          service_order_number,
+          description,
+          status,
+          priority,
+          units(prefix, name)
+        `)
+        .order('created_at', { ascending: false })
 
-    const handleOrderCreated = () => {
-      fetchOrders()
-    }
-    const handleOrderUpdated = () => {
-      fetchOrders()
-    }
-
-    const handleOrderDeleted = () => fetchOrders()
-
-    window.addEventListener('service-order-created', handleOrderCreated)
-    window.addEventListener('service-order-updated', handleOrderUpdated)
-    window.addEventListener('service-order-deleted', handleOrderDeleted)
-    return () => {
-      window.removeEventListener('service-order-created', handleOrderCreated)
-      window.removeEventListener('service-order-updated', handleOrderUpdated)
-      window.removeEventListener('service-order-deleted', handleOrderDeleted)
-    }
-  }, [])
-
-  const handleDelete = async (order: any) => {
-    setIsDeleting(true)
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || '/api'
-      const res = await fetch(`${apiUrl}/service-orders/${order.id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        throw new Error('Error deleting record. Please try again.')
+      if (data) {
+        setOrders(data)
       }
-
-      setOrders((prev) => prev.filter((o) => o.id !== order.id))
-      window.dispatchEvent(new Event('service-order-deleted'))
-      toast({ title: 'Sucesso', description: 'Service Order deleted successfully.' })
-    } catch (e: any) {
-      toast({
-        title: 'Erro',
-        description: e.message || 'Falha ao excluir OS.',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsDeleting(false)
-      setOrderToDelete(null)
+      setLoading(false)
     }
-  }
+    fetchOS()
+  }, [])
 
   if (loading) {
     return (
-      <div className="space-y-4 bg-card border rounded-md p-6">
-        <Skeleton className="h-8 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-12 w-full" />
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Erro de Sincronização</AlertTitle>
-        <AlertDescription className="flex items-center justify-between">
-          <span>{error}</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchOrders}
-            className="ml-4 border-destructive/20 text-destructive hover:bg-destructive/10"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Tentar novamente
-          </Button>
-        </AlertDescription>
-      </Alert>
-    )
-  }
-
-  if (orders.length === 0) {
-    return (
-      <div className="text-center py-12 bg-card border rounded-md text-muted-foreground">
-        Nenhuma ordem de serviço pendente encontrada.
+      <div className="flex justify-center p-8">
+        <Loader2 className="animate-spin w-8 h-8" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <Alert className="bg-amber-500/10 text-amber-600 border-amber-500/20 py-3">
-        <AlertCircle className="h-5 w-5 mr-3 shrink-0" />
-        <div>
-          <AlertTitle className="text-sm font-semibold mb-1">Aviso de Volatilidade</AlertTitle>
-          <AlertDescription className="text-xs">
-            Nenhum banco de dados conectado. Os dados persistem apenas em memória e serão perdidos
-            ao reiniciar o servidor.
-          </AlertDescription>
-        </div>
-      </Alert>
-      <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nº OS | Unidade</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead>Contrato / Cliente</TableHead>
-              <TableHead>Data Criação</TableHead>
-              <TableHead>Status</TableHead>
-              {isAdmin && <TableHead className="text-right">Ações</TableHead>}
+    <div className="rounded-md border bg-card">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Número da O.S.</TableHead>
+            <TableHead>Prefixo</TableHead>
+            <TableHead>Unidade</TableHead>
+            <TableHead>Descrição</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Prioridade</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {orders.map((o) => (
+            <TableRow key={o.id}>
+              <TableCell className="font-bold font-mono">
+                <Link to={`/ordens/${o.id}`} className="text-primary hover:underline">
+                  {o.service_order_number || 'Sem Número'}
+                </Link>
+              </TableCell>
+              <TableCell className="text-xs text-muted-foreground">
+                {o.units?.prefix || '-'}
+              </TableCell>
+              <TableCell className="font-medium text-sm">
+                {o.units?.name || 'Não informada'}
+              </TableCell>
+              <TableCell className="max-w-[300px] truncate" title={o.description}>
+                {o.description}
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline">{o.status}</Badge>
+              </TableCell>
+              <TableCell>
+                <Badge
+                  variant={
+                    o.priority === 'high' || o.priority === 'urgent' ? 'destructive' : 'secondary'
+                  }
+                >
+                  {o.priority}
+                </Badge>
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell>
-                  <div className="font-bold text-sm">
-                    {order.order_number || order.id.split('-')[0].toUpperCase()}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-0.5 font-mono truncate max-w-[150px]">
-                    {order.unit_prefix && order.unit_name
-                      ? `${order.unit_prefix} - ${order.unit_name}`
-                      : order.unit_prefix || order.unit_name || 'Unidade não informada'}
-                  </div>
-                </TableCell>
-                <TableCell className="max-w-[300px]">
-                  <div className="truncate text-sm font-medium" title={order.description}>
-                    {order.description}
-                  </div>
-                </TableCell>
-                <TableCell className="text-xs">
-                  <div
-                    className="font-medium truncate max-w-[150px] text-primary"
-                    title={order.contract_id}
-                  >
-                    {order.contract_id ? 'Contrato Vinculado' : 'Sem Contrato'}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground truncate max-w-[150px]">
-                    ID: {order.client_id?.split('-')[0]}
-                  </div>
-                </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
-                  {order.created_at
-                    ? format(new Date(order.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
-                    : '-'}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className="text-warning border-warning/50 bg-warning/10">
-                    Pendente
-                  </Badge>
-                </TableCell>
-                {isAdmin && (
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-primary hover:text-primary hover:bg-primary/10"
-                        onClick={() => setOrderToAssign(order)}
-                        title="Atribuir Técnico"
-                      >
-                        <UserPlus className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground hover:text-foreground hover:bg-muted"
-                        onClick={() => setOrderToEdit(order)}
-                        title="Editar OS"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setOrderToDelete(order)}
-                        title="Excluir OS"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                )}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      <AlertDialog open={!!orderToDelete} onOpenChange={(open) => !open && setOrderToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Ordem de Serviço</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza de que deseja excluir esta OS? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault()
-                if (orderToDelete) handleDelete(orderToDelete)
-              }}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AssignOrderDialog
-        open={!!orderToAssign}
-        onOpenChange={(open: boolean) => !open && setOrderToAssign(null)}
-        order={orderToAssign}
-        onSuccess={() => {
-          setOrderToAssign(null)
-          fetchOrders()
-          window.dispatchEvent(new Event('service-order-updated'))
-        }}
-      />
-
-      <EditOrderDialog
-        open={!!orderToEdit}
-        onOpenChange={(open: boolean) => !open && setOrderToEdit(null)}
-        order={orderToEdit}
-        onSuccess={() => {
-          setOrderToEdit(null)
-          fetchOrders()
-          window.dispatchEvent(new Event('service-order-updated'))
-        }}
-      />
+          ))}
+          {orders.length === 0 && (
+            <TableRow>
+              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                Nenhuma O.S. encontrada.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   )
 }
