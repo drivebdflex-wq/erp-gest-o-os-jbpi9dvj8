@@ -21,6 +21,7 @@ import {
   Users,
   Package,
   BarChart,
+  Settings,
 } from 'lucide-react'
 
 export default function Layout() {
@@ -118,6 +119,22 @@ export default function Layout() {
                       <Link to="/relatorios">
                         <BarChart className="h-4 w-4" />
                         <span>Relatórios</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarGroupLabel>Configurações</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location.pathname.startsWith('/configs')}>
+                      <Link to="/configs/painel">
+                        <Settings className="h-4 w-4" />
+                        <span>Ajustes do Sistema</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

@@ -45,7 +45,11 @@ export default function CreateOrderDialog({
     description: '',
     contract_id: defaultContractId || '',
     client_id: fixedClientId || '',
+    unit_id: '',
   })
+
+  const [clients, setClients] = useState<any[]>([])
+  const [units, setUnits] = useState<any[]>([])
 
   useEffect(() => {
     if (open) {
@@ -55,7 +59,17 @@ export default function CreateOrderDialog({
         description: '',
         contract_id: defaultContractId || '',
         client_id: fixedClientId || '',
+        unit_id: '',
       })
+
+      // Fetch Clients
+      supabase
+        .from('clients')
+        .select('id, name')
+        .then(({ data }) => {
+          if (data) setClients(data)
+        })
+
       if (!defaultContractId) {
         supabase
           .from('contracts')
@@ -86,6 +100,29 @@ export default function CreateOrderDialog({
     }
   }, [open, defaultContractId, fixedClientId, defaultPriority])
 
+  useEffect(() => {
+    if (formData.client_id) {
+      supabase
+        .from('units')
+        .select('id, name')
+        .eq('client_id', formData.client_id)
+        .then(({ data }) => {
+          if (data) setUnits(data)
+        })
+      if (!defaultContractId) {
+        supabase
+          .from('contracts')
+          .select('id, contract_number, client_id')
+          .eq('client_id', formData.client_id)
+          .then(({ data }) => {
+            if (data) setContracts(data)
+          })
+      }
+    } else {
+      setUnits([])
+    }
+  }, [formData.client_id, defaultContractId])
+
   const handleSave = async () => {
     if (!formData.description) {
       toast({ title: 'Aviso', description: 'Preencha a descrição.', variant: 'destructive' })
@@ -106,6 +143,7 @@ export default function CreateOrderDialog({
         {
           contract_id: formData.contract_id,
           client_id: formData.client_id,
+          unit_id: formData.unit_id || null,
           description: formData.description,
           priority: formData.priority,
           status: formData.status,
@@ -140,7 +178,50 @@ export default function CreateOrderDialog({
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2 col-span-2">
+            {!fixedClientId && !defaultContractId && (
+              <div className="space-y-2 col-span-2">
+                <Label>Cliente *</Label>
+                <Select
+                  value={formData.client_id}
+                  onValueChange={(v) =>
+                    setFormData({ ...formData, client_id: v, unit_id: '', contract_id: '' })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2 col-span-2 md:col-span-1">
+              <Label>Unidade</Label>
+              <Select
+                value={formData.unit_id}
+                onValueChange={(v) => setFormData({ ...formData, unit_id: v })}
+                disabled={!formData.client_id}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a unidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {units.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2 col-span-2 md:col-span-1">
               <Label>Contrato Vinculado *</Label>
               {defaultContractId ? (
                 <Input disabled value="Contrato pré-selecionado pelo contexto" />
@@ -155,10 +236,10 @@ export default function CreateOrderDialog({
                     setFormData({
                       ...formData,
                       contract_id: v,
-                      client_id: c?.client_id,
                       priority: inheritedPriority,
                     })
                   }}
+                  disabled={!formData.client_id}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o contrato" />
@@ -166,7 +247,7 @@ export default function CreateOrderDialog({
                   <SelectContent>
                     {contracts.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
-                        {c.contract_number} - {c.clients?.name}
+                        {c.contract_number}
                       </SelectItem>
                     ))}
                   </SelectContent>
