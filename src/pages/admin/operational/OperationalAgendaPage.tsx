@@ -1,397 +1,229 @@
-import { useState, useEffect } from 'react'
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns'
+import { useState } from 'react'
+import { addDays, addMonths, subDays, subMonths, format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   Calendar as CalendarIcon,
-  Clock,
-  AlertTriangle,
-  ChevronDown,
-  Truck,
-  MapPin,
-  Wrench,
-  AlertCircle,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  LayoutDashboard,
 } from 'lucide-react'
-import { toast } from '@/hooks/use-toast'
+
 import { Button } from '@/components/ui/button'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-} from '@/components/ui/dropdown-menu'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Trash2, Loader2 } from 'lucide-react'
-// @ts-expect-error
-import useAuthStore from '@/stores/useAuthStore'
-import { cn } from '@/lib/utils'
-
-interface ServiceOrder {
-  id: string
-  client_id: string
-  unit_id: string
-  technician_id?: string
-  status: string
-  priority?: string
-  service_type?: string
-  description?: string
-  scheduled_at?: string
-  client_name?: string
-}
-
-const START_HOUR = 7
-const END_HOUR = 19
-const HOURS_COUNT = END_HOUR - START_HOUR
-const HOUR_HEIGHT = 90
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import AgendaSidebar from '@/components/admin/operational/AgendaSidebar'
+import AgendaTimeline from '@/components/admin/operational/AgendaTimeline'
+import AgendaCalendar from '@/components/admin/operational/AgendaCalendar'
+import { useAgendaData } from '@/hooks/use-agenda-data'
 
 export default function OperationalAgendaPage() {
-  // @ts-expect-error
-  const user = useAuthStore?.((state: any) => state.user)
-  const isAdmin =
-    user?.role === 'admin' || user?.role === 'Administrator' || user?.role === 'admin_master'
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [viewMode, setViewMode] = useState<'timeline' | 'day' | 'week' | 'month'>('timeline')
 
-  const [orders, setOrders] = useState<ServiceOrder[]>([])
-  const [loading, setLoading] = useState(true)
-  const [date, setDate] = useState(new Date())
-  const [orderToDelete, setOrderToDelete] = useState<string | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [filters, setFilters] = useState({
+    priority: 'all',
+    status: 'all',
+    technician: 'all',
+    client: 'all',
+  })
 
-  const fetchOrders = async () => {
-    setLoading(true)
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-      const response = await fetch(`${apiUrl}/service-orders?status=scheduled`)
-      if (response.ok) {
-        const data = await response.json()
-        setOrders(data.filter((o: any) => !o.deleted_at && !o.deletedAt))
-      } else {
-        toast({ title: 'Erro ao buscar ordens', variant: 'destructive' })
-      }
-    } catch (error) {
-      console.error(error)
-      toast({ title: 'Erro de conexão', variant: 'destructive' })
-    } finally {
-      setLoading(false)
-    }
+  const { orders, technicians, clients, loading, updateOrder } = useAgendaData(currentDate)
+
+  const handlePrev = () => {
+    if (viewMode === 'month') setCurrentDate((prev) => subMonths(prev, 1))
+    else if (viewMode === 'week') setCurrentDate((prev) => subDays(prev, 7))
+    else setCurrentDate((prev) => subDays(prev, 1))
   }
 
-  useEffect(() => {
-    fetchOrders()
-    const handleOrderUpdated = () => fetchOrders()
-    const handleOrderDeleted = () => fetchOrders()
-    window.addEventListener('service-order-updated', handleOrderUpdated)
-    window.addEventListener('service-order-deleted', handleOrderDeleted)
-    return () => {
-      window.removeEventListener('service-order-updated', handleOrderUpdated)
-      window.removeEventListener('service-order-deleted', handleOrderDeleted)
-    }
-  }, [])
-
-  const handleDeleteOrder = async (id: string) => {
-    setIsDeleting(true)
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-      const res = await fetch(`${apiUrl}/service-orders/${id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        throw new Error('Error deleting record. Please try again.')
-      }
-
-      setOrders((prev) => prev.filter((o) => o.id !== id))
-      window.dispatchEvent(new Event('service-order-deleted'))
-      toast({ title: 'Sucesso', description: 'Service Order deleted successfully.' })
-    } catch (error: any) {
-      toast({
-        title: 'Erro ao excluir OS',
-        description: error.message || 'Falha ao excluir.',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsDeleting(false)
-      setOrderToDelete(null)
-    }
+  const handleNext = () => {
+    if (viewMode === 'month') setCurrentDate((prev) => addMonths(prev, 1))
+    else if (viewMode === 'week') setCurrentDate((prev) => addDays(prev, 7))
+    else setCurrentDate((prev) => addDays(prev, 1))
   }
 
-  const handleUpdateStatus = async (id: string, newStatus: string) => {
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-      const response = await fetch(`${apiUrl}/service-orders/${id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      })
-      if (response.ok) {
-        toast({ title: 'Status atualizado com sucesso' })
-        window.dispatchEvent(new Event('service-order-updated'))
-        // Optimistically remove from view if it's no longer scheduled
-        if (newStatus !== 'scheduled') {
-          setOrders((prev) => prev.filter((o) => o.id !== id))
-        } else {
-          fetchOrders()
-        }
-      } else {
-        const err = await response.json()
-        toast({
-          title: 'Erro ao atualizar status',
-          description: err.message || 'Verifique as transições de status permitidas.',
-          variant: 'destructive',
-        })
-      }
-    } catch (error) {
-      toast({ title: 'Erro de conexão', variant: 'destructive' })
-    }
-  }
-
-  const weekStart = startOfWeek(date, { weekStartsOn: 1 })
-  const days = Array.from({ length: 7 }).map((_, i) => addDays(weekStart, i))
-  const hours = Array.from({ length: HOURS_COUNT }).map((_, i) => START_HOUR + i)
+  const filteredOrders = orders.filter((o) => {
+    if (filters.priority !== 'all' && o.priority !== filters.priority) return false
+    if (filters.status !== 'all' && o.status !== filters.status) return false
+    if (filters.technician !== 'all' && o.technician_id !== filters.technician) return false
+    if (filters.client !== 'all' && o.client_id !== filters.client) return false
+    return true
+  })
 
   return (
     <div className="h-[calc(100vh-100px)] flex flex-col gap-4 animate-fade-in">
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center bg-card p-4 rounded-lg border shadow-sm gap-4 shrink-0">
+      {/* Header */}
+      <div className="bg-card p-4 rounded-lg border shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shrink-0">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Agenda & Escala</h2>
+          <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+            <LayoutDashboard className="w-5 h-5 text-primary" />
+            Centro de Despacho Operacional
+          </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Gerenciamento de ordens de serviço agendadas
+            Gerenciamento, roteirização e atribuição de ordens de serviço em tempo real.
           </p>
         </div>
 
-        <Alert className="w-auto bg-amber-500/10 text-amber-600 border-amber-500/20 py-3 flex items-start sm:items-center">
-          <AlertTriangle className="h-5 w-5 mr-3 shrink-0" />
-          <div>
-            <AlertTitle className="text-sm font-semibold mb-1">Aviso de Volatilidade</AlertTitle>
-            <AlertDescription className="text-xs">
-              Nenhum banco de dados conectado. Os dados persistem apenas em memória e serão perdidos
-              ao reiniciar o servidor.
-            </AlertDescription>
-          </div>
-        </Alert>
-      </div>
-
-      <div className="flex-1 rounded-lg border bg-card flex flex-col overflow-hidden">
-        <div className="p-3 border-b bg-muted/30 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setDate(addDays(date, -7))}>
-              Anterior
+        <div className="flex items-center gap-3">
+          <div className="flex items-center bg-muted/30 rounded-md border p-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrev}>
+              <ChevronLeft className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setDate(new Date())}>
+            <div className="px-4 text-sm font-semibold capitalize min-w-[140px] text-center flex items-center justify-center gap-2">
+              <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+              {viewMode === 'month'
+                ? format(currentDate, 'MMMM yyyy', { locale: ptBR })
+                : format(currentDate, "dd 'de' MMM, yyyy", { locale: ptBR })}
+            </div>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNext}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 ml-1"
+              onClick={() => setCurrentDate(new Date())}
+            >
               Hoje
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setDate(addDays(date, 7))}>
-              Próxima
-            </Button>
           </div>
-          <div className="font-semibold text-sm capitalize">
-            {format(weekStart, "dd 'de' MMMM", { locale: ptBR })} -{' '}
-            {format(addDays(weekStart, 6), "dd 'de' MMMM, yyyy", { locale: ptBR })}
-          </div>
+
+          <ToggleGroup
+            type="single"
+            value={viewMode === 'day' ? 'timeline' : viewMode}
+            onValueChange={(v: any) => v && setViewMode(v)}
+          >
+            <ToggleGroupItem value="timeline" aria-label="Timeline" className="text-xs px-3 h-9">
+              Gantt / Dia
+            </ToggleGroupItem>
+            <ToggleGroupItem value="week" aria-label="Week" className="text-xs px-3 h-9">
+              Semana
+            </ToggleGroupItem>
+            <ToggleGroupItem value="month" aria-label="Month" className="text-xs px-3 h-9">
+              Mês
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-card p-3 rounded-lg border shadow-sm flex flex-wrap items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mr-2">
+          <Filter className="w-4 h-4" /> Filtros:
         </div>
 
-        {loading ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p>Carregando agenda...</p>
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground p-8 bg-muted/5">
-            <CalendarIcon className="w-16 h-16 mb-4 text-muted-foreground/30" />
-            <h3 className="text-lg font-medium text-foreground mb-1">
-              Nenhuma ordem de serviço agendada encontrada
-            </h3>
-            <p className="text-sm text-center max-w-md">
-              Não há ordens de serviço com status "scheduled" para serem exibidas na agenda no
-              momento.
-            </p>
-          </div>
-        ) : (
-          <div className="flex flex-col flex-1 overflow-auto custom-scrollbar relative">
-            <div className="flex sticky top-0 z-20 bg-muted/90 backdrop-blur-md border-b shrink-0">
-              <div className="w-16 shrink-0 border-r" />
-              {days.map((d) => (
-                <div
-                  key={d.toISOString()}
-                  className={cn(
-                    'flex-1 min-w-[160px] p-2 text-center border-r font-semibold text-sm capitalize truncate transition-colors',
-                    isSameDay(d, new Date()) && 'text-primary bg-primary/5',
-                  )}
-                >
-                  {format(d, 'EEEE, dd/MM', { locale: ptBR })}
-                </div>
-              ))}
-            </div>
-            <div className="flex relative min-w-max w-full bg-background">
-              <div
-                className="w-16 shrink-0 border-r bg-muted/5 sticky left-0 z-10"
-                style={{ height: HOURS_COUNT * HOUR_HEIGHT }}
-              >
-                {hours.map((h) => (
-                  <div
-                    key={h}
-                    className="w-full text-right pr-2 text-xs font-medium text-muted-foreground"
-                    style={{ height: HOUR_HEIGHT, paddingTop: 8 }}
-                  >
-                    {String(h).padStart(2, '0')}:00
-                  </div>
-                ))}
-              </div>
-              {days.map((d) => {
-                const dayOrders = orders.filter(
-                  (o) => o.scheduled_at && isSameDay(new Date(o.scheduled_at), d),
-                )
+        <Select
+          value={filters.client}
+          onValueChange={(v) => setFilters((f) => ({ ...f, client: v }))}
+        >
+          <SelectTrigger className="w-[180px] h-8 text-xs">
+            <SelectValue placeholder="Cliente" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos Clientes</SelectItem>
+            {clients.map((c) => (
+              <SelectItem key={c.id} value={c.id}>
+                {c.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-                return (
-                  <div
-                    key={d.toISOString()}
-                    className="flex-1 min-w-[160px] border-r relative group/col hover:bg-muted/5 transition-colors"
-                    style={{ height: HOURS_COUNT * HOUR_HEIGHT }}
-                  >
-                    {hours.map((h) => (
-                      <div
-                        key={h}
-                        className="absolute w-full border-t border-border/40 pointer-events-none"
-                        style={{ top: (h - START_HOUR) * HOUR_HEIGHT, height: HOUR_HEIGHT }}
-                      />
-                    ))}
+        <Select
+          value={filters.technician}
+          onValueChange={(v) => setFilters((f) => ({ ...f, technician: v }))}
+        >
+          <SelectTrigger className="w-[180px] h-8 text-xs">
+            <SelectValue placeholder="Técnico" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos Técnicos</SelectItem>
+            {technicians.map((t) => (
+              <SelectItem key={t.id} value={t.id}>
+                {t.users?.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-                    {dayOrders.map((o) => {
-                      const oDate = new Date(o.scheduled_at!)
-                      const startMins = oDate.getHours() * 60 + oDate.getMinutes()
-                      const top = ((startMins - START_HOUR * 60) / 60) * HOUR_HEIGHT
-                      const duration = 90 // Visual default height
-                      const height = (duration / 60) * HOUR_HEIGHT
+        <Select
+          value={filters.priority}
+          onValueChange={(v) => setFilters((f) => ({ ...f, priority: v }))}
+        >
+          <SelectTrigger className="w-[150px] h-8 text-xs">
+            <SelectValue placeholder="Prioridade" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas Prioridades</SelectItem>
+            <SelectItem value="urgent">Urgente</SelectItem>
+            <SelectItem value="high">Alta</SelectItem>
+            <SelectItem value="medium">Média</SelectItem>
+            <SelectItem value="low">Baixa</SelectItem>
+          </SelectContent>
+        </Select>
 
-                      return (
-                        <div
-                          key={o.id}
-                          className="absolute left-1.5 right-1.5 rounded-md border shadow-sm bg-blue-500/10 border-blue-500/30 p-2.5 flex flex-col gap-1.5 z-10 overflow-hidden hover:shadow-md hover:border-blue-500/50 transition-all group/card"
-                          style={{ top, height: Math.max(height, 70) }}
-                        >
-                          <div className="flex justify-between items-start gap-2">
-                            <span className="text-xs font-bold text-blue-700 dark:text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded truncate">
-                              OS-{o.id.substring(0, 8).toUpperCase()}
-                            </span>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 opacity-0 group-hover/card:opacity-100 transition-opacity shrink-0 -mr-1 -mt-1 hover:bg-blue-500/20"
-                                >
-                                  <ChevronDown className="h-4 w-4 text-blue-700 dark:text-blue-400" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                                  Atualizar Status
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(o.id, 'in_progress')}
-                                  className="cursor-pointer"
-                                >
-                                  <Truck className="w-4 h-4 mr-2 text-orange-500" /> Iniciar
-                                  Execução
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(o.id, 'pending')}
-                                  className="cursor-pointer"
-                                >
-                                  <Clock className="w-4 h-4 mr-2 text-blue-500" /> Retornar p/
-                                  Pendente
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(o.id, 'completed')}
-                                  className="cursor-pointer text-green-600 focus:text-green-600"
-                                >
-                                  <AlertCircle className="w-4 h-4 mr-2" /> Concluir OS
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  onClick={() => handleUpdateStatus(o.id, 'cancelled')}
-                                  className="cursor-pointer text-destructive focus:text-destructive"
-                                >
-                                  <AlertCircle className="w-4 h-4 mr-2" /> Cancelar OS
-                                </DropdownMenuItem>
-                                {isAdmin && (
-                                  <>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      onClick={() => setOrderToDelete(o.id)}
-                                      className="cursor-pointer text-destructive focus:text-destructive"
-                                    >
-                                      <Trash2 className="w-4 h-4 mr-2" /> Excluir OS
-                                    </DropdownMenuItem>
-                                  </>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+        <Select
+          value={filters.status}
+          onValueChange={(v) => setFilters((f) => ({ ...f, status: v }))}
+        >
+          <SelectTrigger className="w-[150px] h-8 text-xs">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos Status</SelectItem>
+            <SelectItem value="pending">Pendente</SelectItem>
+            <SelectItem value="scheduled">Agendado</SelectItem>
+            <SelectItem value="in_progress">Em Execução</SelectItem>
+          </SelectContent>
+        </Select>
 
-                          <div className="flex flex-col gap-1 mt-1">
-                            <div
-                              className="text-[11px] font-medium leading-tight truncate flex items-center gap-1.5"
-                              title={o.client_name || o.client_id}
-                            >
-                              <MapPin className="w-3 h-3 text-muted-foreground shrink-0" />
-                              {o.client_name || o.client_id.substring(0, 12)}
-                            </div>
-                            <div
-                              className="text-[11px] text-muted-foreground truncate flex items-center gap-1.5"
-                              title={o.service_type}
-                            >
-                              <Wrench className="w-3 h-3 shrink-0" />
-                              {o.service_type || 'Serviço Geral'}
-                            </div>
-                          </div>
-
-                          <div className="mt-auto text-[10px] font-semibold flex items-center gap-1.5 text-blue-700/80 dark:text-blue-400/80 pt-1">
-                            <Clock className="w-3 h-3" /> {format(oDate, 'HH:mm')}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
+        {(filters.client !== 'all' ||
+          filters.technician !== 'all' ||
+          filters.priority !== 'all' ||
+          filters.status !== 'all') && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs"
+            onClick={() =>
+              setFilters({ client: 'all', technician: 'all', priority: 'all', status: 'all' })
+            }
+          >
+            Limpar Filtros
+          </Button>
         )}
       </div>
 
-      <AlertDialog open={!!orderToDelete} onOpenChange={(open) => !open && setOrderToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Ordem de Serviço</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza de que deseja excluir esta OS? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault()
-                if (orderToDelete) handleDeleteOrder(orderToDelete)
-              }}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Main Workspace */}
+      <div className="flex-1 bg-card rounded-lg border shadow-sm flex overflow-hidden">
+        <AgendaSidebar orders={filteredOrders} />
+
+        {loading ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/10">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p>Sincronizando despacho...</p>
+          </div>
+        ) : (
+          <div className="flex-1 flex overflow-hidden bg-muted/5 relative">
+            {viewMode === 'timeline' || viewMode === 'day' ? (
+              <AgendaTimeline
+                date={currentDate}
+                orders={filteredOrders}
+                technicians={technicians}
+                onUpdateOrder={updateOrder}
+              />
+            ) : (
+              <AgendaCalendar date={currentDate} viewMode={viewMode} orders={filteredOrders} />
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
