@@ -60,19 +60,18 @@ const navItems = [
     title: 'Configurações',
     icon: Settings,
     items: [
-      { title: 'Empresas', url: '/configs/empresas' },
-      { title: 'Clientes', url: '/configs/clientes' },
-      { title: 'Unidades', url: '/configs/unidades' },
-      { title: 'Usuários', url: '/configs/usuarios' },
-      { title: 'Técnicos', url: '/configs/tecnicos' },
-      { title: 'Equipes', url: '/configs/equipes' },
-      { title: 'Perfis e Permissões', url: '/configs/perfis' },
-      { title: 'SLA', url: '/configs/sla' },
-      { title: 'Categorias de Serviço', url: '/configs/categorias' },
-      { title: 'Tipos de Atendimento', url: '/configs/master' },
-      { title: 'Checklist', url: '/configs/checklists' },
-      { title: 'Integrações', url: '/configs/integracoes' },
-      { title: 'Parâmetros do Sistema', url: '/configs/painel' },
+      { title: 'Empresas', url: '/settings/companies' },
+      { title: 'Usuários', url: '/settings/users' },
+      { title: 'Equipes', url: '/settings/teams' },
+      { title: 'Técnicos', url: '/settings/technicians' },
+      { title: 'Clientes', url: '/settings/clients' },
+      { title: 'SLA', url: '/settings/sla' },
+      { title: 'Checklists', url: '/settings/checklists' },
+      { title: 'Categorias de Serviço', url: '/settings/service-categories' },
+      { title: 'Tipos de Serviço', url: '/settings/service-types' },
+      { title: 'Permissões', url: '/settings/permissions' },
+      { title: 'Sistema', url: '/settings/system' },
+      { title: 'Unidades', url: '/settings/units' },
     ],
   },
 ]
@@ -112,8 +111,8 @@ export default function Layout() {
         currentPath.startsWith('/orders') ||
         currentPath.startsWith('/service-orders')
       )
-    if (url === '/configs/painel')
-      return currentPath === '/configs/painel' || currentPath === '/configs'
+    if (url === '/settings/system')
+      return currentPath === '/settings/system' || currentPath === '/settings'
     return currentPath.startsWith(url)
   }
 

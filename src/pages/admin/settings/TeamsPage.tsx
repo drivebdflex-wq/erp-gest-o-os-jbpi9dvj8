@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Plus, Filter, Briefcase, Edit2 } from 'lucide-react'
+import { Search, Plus, Filter, Users, Edit2 } from 'lucide-react'
 import {
   Pagination,
   PaginationContent,
@@ -31,15 +31,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { toast } from '@/hooks/use-toast'
 
-export default function ClientsPage() {
+export default function TeamsPage() {
   const [data, setData] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ id: '', name: '', document: '', email: '', phone: '' })
+  const [form, setForm] = useState({ id: '', name: '', supervisor_id: 'none' })
 
   const loadData = async () => {
-    const { data: res } = await supabase.from('clients').select('*').order('name')
+    const { data: res } = await supabase.from('teams').select('*, users(name)').order('name')
     if (res) setData(res)
+    const { data: u } = await supabase.from('users').select('id, name').order('name')
+    if (u) setUsers(u)
   }
   useEffect(() => {
     loadData()
@@ -49,12 +52,10 @@ export default function ClientsPage() {
     try {
       const payload = {
         name: form.name,
-        document: form.document,
-        email: form.email,
-        phone: form.phone,
+        supervisor_id: form.supervisor_id === 'none' ? null : form.supervisor_id,
       }
-      if (form.id) await supabase.from('clients').update(payload).eq('id', form.id)
-      else await supabase.from('clients').insert([payload])
+      if (form.id) await supabase.from('teams').update(payload).eq('id', form.id)
+      else await supabase.from('teams').insert([payload])
       toast({ title: 'Sucesso', description: 'Registro salvo.' })
       setOpen(false)
       loadData()
@@ -63,20 +64,18 @@ export default function ClientsPage() {
     }
   }
 
-  const filtered = data.filter(
-    (r) => r.name?.toLowerCase().includes(search.toLowerCase()) || r.document?.includes(search),
-  )
+  const filtered = data.filter((r) => r.name?.toLowerCase().includes(search.toLowerCase()))
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       <PageHeader
-        title="Clientes"
-        description="Gestão de clientes corporativos"
-        breadcrumbs={[{ label: 'Configurações' }, { label: 'Clientes' }]}
+        title="Equipes"
+        description="Gerenciamento de equipes operacionais"
+        breadcrumbs={[{ label: 'Configurações' }, { label: 'Equipes' }]}
         action={
           <Button
             onClick={() => {
-              setForm({ id: '', name: '', document: '', email: '', phone: '' })
+              setForm({ id: '', name: '', supervisor_id: 'none' })
               setOpen(true)
             }}
           >
@@ -111,9 +110,7 @@ export default function ClientsPage() {
           <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Documento</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Telefone</TableHead>
+              <TableHead>Supervisor</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -122,17 +119,19 @@ export default function ClientsPage() {
               filtered.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="font-medium flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-muted-foreground" /> {row.name}
+                    <Users className="w-4 h-4 text-muted-foreground" /> {row.name}
                   </TableCell>
-                  <TableCell>{row.document}</TableCell>
-                  <TableCell>{row.email}</TableCell>
-                  <TableCell>{row.phone}</TableCell>
+                  <TableCell>{row.users?.name || '-'}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        setForm(row)
+                        setForm({
+                          id: row.id,
+                          name: row.name,
+                          supervisor_id: row.supervisor_id || 'none',
+                        })
                         setOpen(true)
                       }}
                     >
@@ -143,7 +142,7 @@ export default function ClientsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
                   Nenhum registro encontrado.
                 </TableCell>
               </TableRow>
@@ -169,7 +168,7 @@ export default function ClientsPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{form.id ? 'Editar' : 'Novo'} Cliente</DialogTitle>
+            <DialogTitle>{form.id ? 'Editar' : 'Nova'} Equipe</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -180,25 +179,23 @@ export default function ClientsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Documento</Label>
-              <Input
-                value={form.document}
-                onChange={(e) => setForm({ ...form, document: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Telefone</Label>
-              <Input
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              />
+              <Label>Supervisor</Label>
+              <Select
+                value={form.supervisor_id}
+                onValueChange={(v) => setForm({ ...form, supervisor_id: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um supervisor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button className="w-full mt-4" onClick={handleSave}>
               Salvar

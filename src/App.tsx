@@ -32,13 +32,18 @@ import AuditLogsPage from './pages/admin/AuditLogsPage'
 import RecycleBinPage from './pages/admin/RecycleBinPage'
 import NotFound from './pages/NotFound'
 
-import SettingsDashboard from './pages/admin/settings/SettingsDashboard'
 import CompaniesPage from './pages/admin/settings/CompaniesPage'
 import ClientsPage from './pages/admin/settings/ClientsPage'
 import UnitsPage from './pages/admin/settings/UnitsPage'
 import SlaPage from './pages/admin/settings/SlaPage'
-import MasterDataPage from './pages/admin/settings/MasterDataPage'
 import ChecklistsPage from './pages/admin/settings/ChecklistsPage'
+import UsersPage from './pages/admin/settings/UsersPage'
+import TeamsPage from './pages/admin/settings/TeamsPage'
+import TechniciansPage from './pages/admin/settings/TechniciansPage'
+import ServiceCategoriesPage from './pages/admin/settings/ServiceCategoriesPage'
+import ServiceTypesPage from './pages/admin/settings/ServiceTypesPage'
+import PermissionsPage from './pages/admin/settings/PermissionsPage'
+import SystemParametersPage from './pages/admin/settings/SystemParametersPage'
 
 import MeasurementsPage from './pages/admin/measurements/MeasurementsPage'
 import MeasurementDetailPage from './pages/admin/measurements/MeasurementDetailPage'
@@ -184,17 +189,28 @@ const App = () => {
 
                               <Route element={<ProtectedRoute requiredPermission="manage_users" />}>
                                 <Route
-                                  path="/configs"
-                                  element={<Navigate to="/configs/painel" replace />}
+                                  path="/settings"
+                                  element={<Navigate to="/settings/companies" replace />}
                                 />
-                                <Route path="/configs/painel" element={<SettingsDashboard />} />
-                                <Route path="/configs/empresas" element={<CompaniesPage />} />
-                                <Route path="/configs/clientes" element={<ClientsPage />} />
-                                <Route path="/configs/unidades" element={<UnitsPage />} />
-                                <Route path="/configs/sla" element={<SlaPage />} />
-                                <Route path="/configs/master" element={<MasterDataPage />} />
-                                <Route path="/configs/checklists" element={<ChecklistsPage />} />
-                                <Route path="/configs/antigo" element={<SettingsPage />} />
+                                <Route path="/settings/companies" element={<CompaniesPage />} />
+                                <Route path="/settings/users" element={<UsersPage />} />
+                                <Route path="/settings/teams" element={<TeamsPage />} />
+                                <Route path="/settings/technicians" element={<TechniciansPage />} />
+                                <Route path="/settings/clients" element={<ClientsPage />} />
+                                <Route path="/settings/sla" element={<SlaPage />} />
+                                <Route path="/settings/checklists" element={<ChecklistsPage />} />
+                                <Route
+                                  path="/settings/service-categories"
+                                  element={<ServiceCategoriesPage />}
+                                />
+                                <Route
+                                  path="/settings/service-types"
+                                  element={<ServiceTypesPage />}
+                                />
+                                <Route path="/settings/permissions" element={<PermissionsPage />} />
+                                <Route path="/settings/system" element={<SystemParametersPage />} />
+                                <Route path="/settings/units" element={<UnitsPage />} />
+
                                 <Route path="/logs-auditoria" element={<AuditLogsPage />} />
                                 <Route path="/lixeira" element={<RecycleBinPage />} />
                               </Route>

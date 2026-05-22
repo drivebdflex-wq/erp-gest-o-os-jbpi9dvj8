@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Plus, Filter, Briefcase, Edit2 } from 'lucide-react'
+import { Search, Plus, Filter, Users, Edit2 } from 'lucide-react'
 import {
   Pagination,
   PaginationContent,
@@ -31,14 +31,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { toast } from '@/hooks/use-toast'
 
-export default function ClientsPage() {
+export default function UsersPage() {
   const [data, setData] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ id: '', name: '', document: '', email: '', phone: '' })
+  const [form, setForm] = useState({
+    id: '',
+    name: '',
+    email: '',
+    status: 'active',
+    password_hash: 'default',
+  })
 
   const loadData = async () => {
-    const { data: res } = await supabase.from('clients').select('*').order('name')
+    const { data: res } = await supabase.from('users').select('*').order('name')
     if (res) setData(res)
   }
   useEffect(() => {
@@ -49,12 +55,12 @@ export default function ClientsPage() {
     try {
       const payload = {
         name: form.name,
-        document: form.document,
         email: form.email,
-        phone: form.phone,
+        status: form.status,
+        password_hash: form.password_hash,
       }
-      if (form.id) await supabase.from('clients').update(payload).eq('id', form.id)
-      else await supabase.from('clients').insert([payload])
+      if (form.id) await supabase.from('users').update(payload).eq('id', form.id)
+      else await supabase.from('users').insert([payload])
       toast({ title: 'Sucesso', description: 'Registro salvo.' })
       setOpen(false)
       loadData()
@@ -64,19 +70,21 @@ export default function ClientsPage() {
   }
 
   const filtered = data.filter(
-    (r) => r.name?.toLowerCase().includes(search.toLowerCase()) || r.document?.includes(search),
+    (r) =>
+      r.name?.toLowerCase().includes(search.toLowerCase()) ||
+      r.email?.toLowerCase().includes(search.toLowerCase()),
   )
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       <PageHeader
-        title="Clientes"
-        description="Gestão de clientes corporativos"
-        breadcrumbs={[{ label: 'Configurações' }, { label: 'Clientes' }]}
+        title="Usuários"
+        description="Gerenciamento de usuários do sistema"
+        breadcrumbs={[{ label: 'Configurações' }, { label: 'Usuários' }]}
         action={
           <Button
             onClick={() => {
-              setForm({ id: '', name: '', document: '', email: '', phone: '' })
+              setForm({ id: '', name: '', email: '', status: 'active', password_hash: 'default' })
               setOpen(true)
             }}
           >
@@ -111,9 +119,8 @@ export default function ClientsPage() {
           <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Documento</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Telefone</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -122,17 +129,16 @@ export default function ClientsPage() {
               filtered.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="font-medium flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-muted-foreground" /> {row.name}
+                    <Users className="w-4 h-4 text-muted-foreground" /> {row.name}
                   </TableCell>
-                  <TableCell>{row.document}</TableCell>
                   <TableCell>{row.email}</TableCell>
-                  <TableCell>{row.phone}</TableCell>
+                  <TableCell>{row.status || 'active'}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        setForm(row)
+                        setForm({ ...row, password_hash: row.password_hash || 'default' })
                         setOpen(true)
                       }}
                     >
@@ -143,7 +149,7 @@ export default function ClientsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
                   Nenhum registro encontrado.
                 </TableCell>
               </TableRow>
@@ -169,7 +175,7 @@ export default function ClientsPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{form.id ? 'Editar' : 'Novo'} Cliente</DialogTitle>
+            <DialogTitle>{form.id ? 'Editar' : 'Novo'} Usuário</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -180,13 +186,6 @@ export default function ClientsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Documento</Label>
-              <Input
-                value={form.document}
-                onChange={(e) => setForm({ ...form, document: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
               <Label>Email</Label>
               <Input
                 value={form.email}
@@ -194,11 +193,16 @@ export default function ClientsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Telefone</Label>
-              <Input
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              />
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Ativo</SelectItem>
+                  <SelectItem value="inactive">Inativo</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button className="w-full mt-4" onClick={handleSave}>
               Salvar

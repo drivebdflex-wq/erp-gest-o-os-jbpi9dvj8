@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Plus, Filter, Briefcase, Edit2 } from 'lucide-react'
+import { Search, Plus, Filter, Settings, Edit2 } from 'lucide-react'
 import {
   Pagination,
   PaginationContent,
@@ -31,14 +31,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { toast } from '@/hooks/use-toast'
 
-export default function ClientsPage() {
+export default function SystemParametersPage() {
   const [data, setData] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ id: '', name: '', document: '', email: '', phone: '' })
+  const [form, setForm] = useState({ id: '', key: '', description: '', value: '{}' })
 
   const loadData = async () => {
-    const { data: res } = await supabase.from('clients').select('*').order('name')
+    const { data: res } = await supabase.from('system_parameters').select('*').order('key')
     if (res) setData(res)
   }
   useEffect(() => {
@@ -47,14 +47,15 @@ export default function ClientsPage() {
 
   const handleSave = async () => {
     try {
-      const payload = {
-        name: form.name,
-        document: form.document,
-        email: form.email,
-        phone: form.phone,
+      let parsedValue = null
+      try {
+        parsedValue = JSON.parse(form.value)
+      } catch {
+        parsedValue = form.value
       }
-      if (form.id) await supabase.from('clients').update(payload).eq('id', form.id)
-      else await supabase.from('clients').insert([payload])
+      const payload = { key: form.key, description: form.description, value: parsedValue }
+      if (form.id) await supabase.from('system_parameters').update(payload).eq('id', form.id)
+      else await supabase.from('system_parameters').insert([payload])
       toast({ title: 'Sucesso', description: 'Registro salvo.' })
       setOpen(false)
       loadData()
@@ -63,20 +64,18 @@ export default function ClientsPage() {
     }
   }
 
-  const filtered = data.filter(
-    (r) => r.name?.toLowerCase().includes(search.toLowerCase()) || r.document?.includes(search),
-  )
+  const filtered = data.filter((r) => r.key?.toLowerCase().includes(search.toLowerCase()))
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       <PageHeader
-        title="Clientes"
-        description="Gestão de clientes corporativos"
-        breadcrumbs={[{ label: 'Configurações' }, { label: 'Clientes' }]}
+        title="Parâmetros do Sistema"
+        description="Configurações globais e variáveis de ambiente"
+        breadcrumbs={[{ label: 'Configurações' }, { label: 'Sistema' }]}
         action={
           <Button
             onClick={() => {
-              setForm({ id: '', name: '', document: '', email: '', phone: '' })
+              setForm({ id: '', key: '', description: '', value: '{}' })
               setOpen(true)
             }}
           >
@@ -110,10 +109,8 @@ export default function ClientsPage() {
         <Table className="min-w-[600px]">
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Documento</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Telefone</TableHead>
+              <TableHead>Chave</TableHead>
+              <TableHead>Descrição</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -122,17 +119,15 @@ export default function ClientsPage() {
               filtered.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="font-medium flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-muted-foreground" /> {row.name}
+                    <Settings className="w-4 h-4 text-muted-foreground" /> {row.key}
                   </TableCell>
-                  <TableCell>{row.document}</TableCell>
-                  <TableCell>{row.email}</TableCell>
-                  <TableCell>{row.phone}</TableCell>
+                  <TableCell>{row.description}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        setForm(row)
+                        setForm({ ...row, value: JSON.stringify(row.value) })
                         setOpen(true)
                       }}
                     >
@@ -143,7 +138,7 @@ export default function ClientsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
                   Nenhum registro encontrado.
                 </TableCell>
               </TableRow>
@@ -169,35 +164,25 @@ export default function ClientsPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{form.id ? 'Editar' : 'Novo'} Cliente</DialogTitle>
+            <DialogTitle>{form.id ? 'Editar' : 'Novo'} Parâmetro</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Nome</Label>
+              <Label>Chave</Label>
+              <Input value={form.key} onChange={(e) => setForm({ ...form, key: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>Descrição</Label>
               <Input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
             </div>
             <div className="space-y-2">
-              <Label>Documento</Label>
+              <Label>Valor (JSON/Texto)</Label>
               <Input
-                value={form.document}
-                onChange={(e) => setForm({ ...form, document: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Telefone</Label>
-              <Input
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                value={form.value}
+                onChange={(e) => setForm({ ...form, value: e.target.value })}
               />
             </div>
             <Button className="w-full mt-4" onClick={handleSave}>

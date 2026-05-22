@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Search, Plus, Filter, Briefcase, Edit2 } from 'lucide-react'
+import { Search, Plus, Filter, Tag, Edit2 } from 'lucide-react'
 import {
   Pagination,
   PaginationContent,
@@ -31,14 +31,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { toast } from '@/hooks/use-toast'
 
-export default function ClientsPage() {
+export default function ServiceTypesPage() {
   const [data, setData] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ id: '', name: '', document: '', email: '', phone: '' })
+  const [form, setForm] = useState({ id: '', name: '', description: '' })
 
   const loadData = async () => {
-    const { data: res } = await supabase.from('clients').select('*').order('name')
+    const { data: res } = await supabase.from('service_types_config').select('*').order('name')
     if (res) setData(res)
   }
   useEffect(() => {
@@ -47,14 +47,9 @@ export default function ClientsPage() {
 
   const handleSave = async () => {
     try {
-      const payload = {
-        name: form.name,
-        document: form.document,
-        email: form.email,
-        phone: form.phone,
-      }
-      if (form.id) await supabase.from('clients').update(payload).eq('id', form.id)
-      else await supabase.from('clients').insert([payload])
+      const payload = { name: form.name, description: form.description }
+      if (form.id) await supabase.from('service_types_config').update(payload).eq('id', form.id)
+      else await supabase.from('service_types_config').insert([payload])
       toast({ title: 'Sucesso', description: 'Registro salvo.' })
       setOpen(false)
       loadData()
@@ -63,20 +58,18 @@ export default function ClientsPage() {
     }
   }
 
-  const filtered = data.filter(
-    (r) => r.name?.toLowerCase().includes(search.toLowerCase()) || r.document?.includes(search),
-  )
+  const filtered = data.filter((r) => r.name?.toLowerCase().includes(search.toLowerCase()))
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
       <PageHeader
-        title="Clientes"
-        description="Gestão de clientes corporativos"
-        breadcrumbs={[{ label: 'Configurações' }, { label: 'Clientes' }]}
+        title="Tipos de Serviço"
+        description="Configuração de naturezas de atendimento"
+        breadcrumbs={[{ label: 'Configurações' }, { label: 'Tipos de Serviço' }]}
         action={
           <Button
             onClick={() => {
-              setForm({ id: '', name: '', document: '', email: '', phone: '' })
+              setForm({ id: '', name: '', description: '' })
               setOpen(true)
             }}
           >
@@ -111,9 +104,7 @@ export default function ClientsPage() {
           <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Documento</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Telefone</TableHead>
+              <TableHead>Descrição</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -122,11 +113,9 @@ export default function ClientsPage() {
               filtered.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="font-medium flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-muted-foreground" /> {row.name}
+                    <Tag className="w-4 h-4 text-muted-foreground" /> {row.name}
                   </TableCell>
-                  <TableCell>{row.document}</TableCell>
-                  <TableCell>{row.email}</TableCell>
-                  <TableCell>{row.phone}</TableCell>
+                  <TableCell>{row.description}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
@@ -143,7 +132,7 @@ export default function ClientsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                <TableCell colSpan={3} className="text-center py-6 text-muted-foreground">
                   Nenhum registro encontrado.
                 </TableCell>
               </TableRow>
@@ -169,7 +158,7 @@ export default function ClientsPage() {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{form.id ? 'Editar' : 'Novo'} Cliente</DialogTitle>
+            <DialogTitle>{form.id ? 'Editar' : 'Novo'} Tipo</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -180,24 +169,10 @@ export default function ClientsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Documento</Label>
+              <Label>Descrição</Label>
               <Input
-                value={form.document}
-                onChange={(e) => setForm({ ...form, document: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Telefone</Label>
-              <Input
-                value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
             </div>
             <Button className="w-full mt-4" onClick={handleSave}>
