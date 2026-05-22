@@ -73,6 +73,16 @@ import CashFlowPage from './pages/admin/finance/CashFlowPage'
 import TechFinancePage from './pages/admin/finance/TechFinancePage'
 import FinanceInventoryPage from './pages/admin/finance/InventoryPage'
 
+// Obras
+import WorksDashboard from './pages/admin/obras/WorksDashboard'
+import ProjectsRegistrationPage from './pages/admin/obras/ProjectsRegistrationPage'
+import ProjectPlanningPage from './pages/admin/obras/ProjectPlanningPage'
+import ProjectSchedulePage from './pages/admin/obras/ProjectSchedulePage'
+import ProjectProgressPage from './pages/admin/obras/ProjectProgressPage'
+import ProjectFinancePage from './pages/admin/obras/ProjectFinancePage'
+import ProjectTeamsPage from './pages/admin/obras/ProjectTeamsPage'
+import ProjectReportsPage from './pages/admin/obras/ProjectReportsPage'
+
 // Frotas
 import FleetDashboard from './pages/admin/fleet/FleetDashboard'
 import VehiclesPage from './pages/admin/fleet/VehiclesPage'
@@ -272,6 +282,23 @@ const App = () => {
                                 <Route path="/frotas/manutencoes" element={<MaintenancePage />} />
                                 <Route path="/frotas/abastecimentos" element={<RefuelingPage />} />
                                 <Route path="/frotas/historico" element={<FleetHistoryPage />} />
+                              </Route>
+
+                              <Route>
+                                <Route path="/obras/dashboard" element={<WorksDashboard />} />
+                                <Route
+                                  path="/obras/cadastro"
+                                  element={<ProjectsRegistrationPage />}
+                                />
+                                <Route
+                                  path="/obras/planejamento"
+                                  element={<ProjectPlanningPage />}
+                                />
+                                <Route path="/obras/cronograma" element={<ProjectSchedulePage />} />
+                                <Route path="/obras/progresso" element={<ProjectProgressPage />} />
+                                <Route path="/obras/financeiro" element={<ProjectFinancePage />} />
+                                <Route path="/obras/equipes" element={<ProjectTeamsPage />} />
+                                <Route path="/obras/relatorios" element={<ProjectReportsPage />} />
                               </Route>
 
                               {/* Tech App specific endpoints */}

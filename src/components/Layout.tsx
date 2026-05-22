@@ -53,7 +53,13 @@ const navItems = [
     icon: HardHat,
     items: [
       { title: 'Dashboard', url: '/obras/dashboard' },
-      { title: 'Projetos', url: '/obras/projetos' },
+      { title: 'Cadastro de Obras', url: '/obras/cadastro' },
+      { title: 'Planejamento', url: '/obras/planejamento' },
+      { title: 'Cronograma', url: '/obras/cronograma' },
+      { title: 'Progresso da Obra', url: '/obras/progresso' },
+      { title: 'Financeiro', url: '/obras/financeiro' },
+      { title: 'Equipes', url: '/obras/equipes' },
+      { title: 'Relatórios', url: '/obras/relatorios' },
     ],
   },
   {
