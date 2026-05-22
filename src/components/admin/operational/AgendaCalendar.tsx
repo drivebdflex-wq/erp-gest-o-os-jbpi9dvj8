@@ -10,6 +10,7 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
+import { OrderContextMenu } from './OrderContextMenu'
 
 interface AgendaCalendarProps {
   date: Date
@@ -78,15 +79,14 @@ export default function AgendaCalendar({ date, viewMode, orders }: AgendaCalenda
               </div>
               <div className="flex-1 flex flex-col gap-1 overflow-hidden">
                 {dayOrders.slice(0, viewMode === 'month' ? 3 : 10).map((o) => (
-                  <div
-                    key={o.id}
-                    className="text-[10px] truncate px-1.5 py-1 rounded bg-secondary border shadow-sm text-secondary-foreground hover:bg-secondary/80 cursor-default"
-                  >
-                    <span className="font-bold mr-1">
-                      {format(new Date(o.scheduled_at), 'HH:mm')}
-                    </span>
-                    {o.service_order_number}
-                  </div>
+                  <OrderContextMenu key={o.id} order={o}>
+                    <div className="text-[10px] truncate px-1.5 py-1 rounded bg-secondary border shadow-sm text-secondary-foreground hover:bg-secondary/80 cursor-pointer">
+                      <span className="font-bold mr-1">
+                        {format(new Date(o.scheduled_at), 'HH:mm')}
+                      </span>
+                      {o.service_order_number}
+                    </div>
+                  </OrderContextMenu>
                 ))}
                 {dayOrders.length > (viewMode === 'month' ? 3 : 10) && (
                   <div className="text-[10px] text-primary font-semibold pl-1 mt-1">

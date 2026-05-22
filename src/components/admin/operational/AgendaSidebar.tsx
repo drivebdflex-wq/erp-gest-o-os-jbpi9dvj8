@@ -1,6 +1,7 @@
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { Clock, AlertTriangle, PlayCircle, CalendarClock, HelpCircle } from 'lucide-react'
+import { OrderContextMenu } from './OrderContextMenu'
 
 interface AgendaSidebarProps {
   orders: any[]
@@ -40,39 +41,40 @@ export default function AgendaSidebar({ orders }: AgendaSidebarProps) {
         </div>
         <div className="space-y-2">
           {items.map((o: any) => (
-            <div
-              key={o.id}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData('text/plain', o.id)
-                e.dataTransfer.effectAllowed = 'move'
-              }}
-              className="p-3 border rounded-md bg-background shadow-sm cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors"
-            >
-              <div className="flex justify-between items-start mb-1">
-                <span className="text-xs font-bold bg-muted px-1.5 py-0.5 rounded text-primary">
-                  {o.service_order_number}
-                </span>
-                <span
-                  className={cn(
-                    'text-[10px] px-1.5 py-0.5 rounded-full uppercase',
-                    o.priority === 'urgent'
-                      ? 'bg-red-500/10 text-red-600'
-                      : o.priority === 'high'
-                        ? 'bg-orange-500/10 text-orange-600'
-                        : 'bg-secondary text-secondary-foreground',
-                  )}
-                >
-                  {o.priority}
-                </span>
+            <OrderContextMenu key={o.id} order={o}>
+              <div
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', o.id)
+                  e.dataTransfer.effectAllowed = 'move'
+                }}
+                className="p-3 border rounded-md bg-background shadow-sm cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors"
+              >
+                <div className="flex justify-between items-start mb-1">
+                  <span className="text-xs font-bold bg-muted px-1.5 py-0.5 rounded text-primary">
+                    {o.service_order_number}
+                  </span>
+                  <span
+                    className={cn(
+                      'text-[10px] px-1.5 py-0.5 rounded-full uppercase',
+                      o.priority === 'urgent'
+                        ? 'bg-red-500/10 text-red-600'
+                        : o.priority === 'high'
+                          ? 'bg-orange-500/10 text-orange-600'
+                          : 'bg-secondary text-secondary-foreground',
+                    )}
+                  >
+                    {o.priority}
+                  </span>
+                </div>
+                <div className="text-xs font-medium truncate mb-0.5" title={o.clients?.name}>
+                  {o.clients?.name || 'Sem cliente'}
+                </div>
+                <div className="text-[10px] text-muted-foreground line-clamp-2 leading-tight">
+                  {o.description || 'Sem descrição'}
+                </div>
               </div>
-              <div className="text-xs font-medium truncate mb-0.5" title={o.clients?.name}>
-                {o.clients?.name || 'Sem cliente'}
-              </div>
-              <div className="text-[10px] text-muted-foreground line-clamp-2 leading-tight">
-                {o.description || 'Sem descrição'}
-              </div>
-            </div>
+            </OrderContextMenu>
           ))}
         </div>
       </div>

@@ -4,6 +4,7 @@ import { ptBR } from 'date-fns/locale'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { Clock } from 'lucide-react'
+import { OrderContextMenu } from './OrderContextMenu'
 
 interface AgendaTimelineProps {
   date: Date
@@ -119,30 +120,38 @@ export default function AgendaTimeline({
                     const width = Math.max(CELL_WIDTH * 0.5, (durMins / 60) * CELL_WIDTH)
 
                     return (
-                      <div
+                      <OrderContextMenu
                         key={o.id}
-                        draggable
-                        onDragStart={(e) => e.dataTransfer.setData('text/plain', o.id)}
-                        className={cn(
-                          'absolute top-2 bottom-2 rounded-md border shadow-sm p-2 text-xs overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-md hover:scale-[1.02] transition-all z-10 flex flex-col',
-                          getStatusColor(o),
-                        )}
-                        style={{
-                          left,
-                          width: Math.min(
-                            width,
-                            (END_HOUR - START_HOUR + 1) * CELL_WIDTH - left - 4,
-                          ),
-                        }}
-                        title={`${o.service_order_number} - ${o.clients?.name}`}
+                        order={o}
+                        technicians={technicians}
+                        onUpdateOrder={onUpdateOrder}
                       >
-                        <div className="font-bold truncate">{o.service_order_number}</div>
-                        <div className="truncate opacity-90">{o.clients?.name}</div>
-                        <div className="mt-auto flex items-center gap-1 opacity-80 text-[10px]">
-                          <Clock className="w-3 h-3" />
-                          {format(start, 'HH:mm')}
+                        <div
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', o.id)
+                          }}
+                          className={cn(
+                            'absolute top-2 bottom-2 rounded-md border shadow-sm p-2 text-xs overflow-hidden cursor-grab active:cursor-grabbing hover:shadow-md hover:scale-[1.02] transition-all z-10 flex flex-col',
+                            getStatusColor(o),
+                          )}
+                          style={{
+                            left,
+                            width: Math.min(
+                              width,
+                              (END_HOUR - START_HOUR + 1) * CELL_WIDTH - left - 4,
+                            ),
+                          }}
+                          title={`${o.service_order_number} - ${o.clients?.name}`}
+                        >
+                          <div className="font-bold truncate">{o.service_order_number}</div>
+                          <div className="truncate opacity-90">{o.clients?.name}</div>
+                          <div className="mt-auto flex items-center gap-1 opacity-80 text-[10px]">
+                            <Clock className="w-3 h-3" />
+                            {format(start, 'HH:mm')}
+                          </div>
                         </div>
-                      </div>
+                      </OrderContextMenu>
                     )
                   })}
                 </div>
