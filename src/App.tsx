@@ -33,6 +33,7 @@ import RecycleBinPage from './pages/admin/RecycleBinPage'
 import NotFound from './pages/NotFound'
 
 import SettingsDashboard from './pages/admin/settings/SettingsDashboard'
+import CompaniesPage from './pages/admin/settings/CompaniesPage'
 import ClientsPage from './pages/admin/settings/ClientsPage'
 import UnitsPage from './pages/admin/settings/UnitsPage'
 import SlaPage from './pages/admin/settings/SlaPage'
@@ -187,6 +188,7 @@ const App = () => {
                                   element={<Navigate to="/configs/painel" replace />}
                                 />
                                 <Route path="/configs/painel" element={<SettingsDashboard />} />
+                                <Route path="/configs/empresas" element={<CompaniesPage />} />
                                 <Route path="/configs/clientes" element={<ClientsPage />} />
                                 <Route path="/configs/unidades" element={<UnitsPage />} />
                                 <Route path="/configs/sla" element={<SlaPage />} />
