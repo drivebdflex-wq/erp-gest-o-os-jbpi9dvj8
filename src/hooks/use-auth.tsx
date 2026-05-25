@@ -13,9 +13,9 @@ interface AuthContextType {
   user: User | null
   session: Session | null
   profile: Profile | null
-  signUp: (email: string, password: string) => Promise<{ error: unknown }>
-  signIn: (email: string, password: string) => Promise<{ error: unknown }>
-  signOut: () => Promise<{ error: unknown }>
+  signUp: (email: string, password: string) => Promise<{ error: any }>
+  signIn: (email: string, password: string) => Promise<{ error: any }>
+  signOut: () => Promise<{ error: any }>
   loading: boolean
   hasPermission: (permission: string) => boolean
 }
