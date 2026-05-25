@@ -1,11 +1,17 @@
 // AVOID UPDATING THIS FILE DIRECTLY. It is automatically generated.
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: '14.4'
+    PostgrestVersion: "14.4"
   }
   public: {
     Tables: {
@@ -45,11 +51,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'audits_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "audits_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -83,11 +89,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'checklist_items_checklist_id_fkey'
-            columns: ['checklist_id']
+            foreignKeyName: "checklist_items_checklist_id_fkey"
+            columns: ["checklist_id"]
             isOneToOne: false
-            referencedRelation: 'checklists'
-            referencedColumns: ['id']
+            referencedRelation: "checklists"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -127,18 +133,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'checklist_responses_checklist_item_id_fkey'
-            columns: ['checklist_item_id']
+            foreignKeyName: "checklist_responses_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
             isOneToOne: false
-            referencedRelation: 'checklist_items'
-            referencedColumns: ['id']
+            referencedRelation: "checklist_items"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'checklist_responses_service_order_checklist_id_fkey'
-            columns: ['service_order_checklist_id']
+            foreignKeyName: "checklist_responses_service_order_checklist_id_fkey"
+            columns: ["service_order_checklist_id"]
             isOneToOne: false
-            referencedRelation: 'service_order_checklists'
-            referencedColumns: ['id']
+            referencedRelation: "service_order_checklists"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -169,11 +175,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'checklists_created_by_fkey'
-            columns: ['created_by']
+            foreignKeyName: "checklists_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -339,25 +345,120 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'contracts_client_id_fkey'
-            columns: ['client_id']
+            foreignKeyName: "contracts_client_id_fkey"
+            columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: 'clients'
-            referencedColumns: ['id']
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'contracts_manager_id_fkey'
-            columns: ['manager_id']
+            foreignKeyName: "contracts_manager_id_fkey"
+            columns: ["manager_id"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'contracts_sla_id_fkey'
-            columns: ['sla_id']
+            foreignKeyName: "contracts_sla_id_fkey"
+            columns: ["sla_id"]
             isOneToOne: false
-            referencedRelation: 'sla_definitions'
-            referencedColumns: ['id']
+            referencedRelation: "sla_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contratos: {
+        Row: {
+          cliente: string | null
+          created_at: string | null
+          data_fim: string | null
+          data_fixa_medicao: number | null
+          data_inicio: string | null
+          id: string
+          nome_contrato: string | null
+          numero_contrato: string | null
+          possui_medicao: boolean | null
+          possui_preventiva: boolean | null
+          status: string | null
+          tipo_contrato: string | null
+          valor_contrato: number | null
+        }
+        Insert: {
+          cliente?: string | null
+          created_at?: string | null
+          data_fim?: string | null
+          data_fixa_medicao?: number | null
+          data_inicio?: string | null
+          id?: string
+          nome_contrato?: string | null
+          numero_contrato?: string | null
+          possui_medicao?: boolean | null
+          possui_preventiva?: boolean | null
+          status?: string | null
+          tipo_contrato?: string | null
+          valor_contrato?: number | null
+        }
+        Update: {
+          cliente?: string | null
+          created_at?: string | null
+          data_fim?: string | null
+          data_fixa_medicao?: number | null
+          data_inicio?: string | null
+          id?: string
+          nome_contrato?: string | null
+          numero_contrato?: string | null
+          possui_medicao?: boolean | null
+          possui_preventiva?: boolean | null
+          status?: string | null
+          tipo_contrato?: string | null
+          valor_contrato?: number | null
+        }
+        Relationships: []
+      }
+      etapas_obra: {
+        Row: {
+          created_at: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          id: string
+          nome_etapa: string | null
+          obra_id: string | null
+          observacoes: string | null
+          percentual_execucao: number | null
+          responsavel: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          id?: string
+          nome_etapa?: string | null
+          obra_id?: string | null
+          observacoes?: string | null
+          percentual_execucao?: number | null
+          responsavel?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          id?: string
+          nome_etapa?: string | null
+          obra_id?: string | null
+          observacoes?: string | null
+          percentual_execucao?: number | null
+          responsavel?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapas_obra_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -394,18 +495,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'inventory_material_id_fkey'
-            columns: ['material_id']
+            foreignKeyName: "inventory_material_id_fkey"
+            columns: ["material_id"]
             isOneToOne: false
-            referencedRelation: 'materials'
-            referencedColumns: ['id']
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'inventory_vehicle_id_fkey'
-            columns: ['vehicle_id']
+            foreignKeyName: "inventory_vehicle_id_fkey"
+            columns: ["vehicle_id"]
             isOneToOne: false
-            referencedRelation: 'vehicles'
-            referencedColumns: ['id']
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -473,7 +574,7 @@ export type Database = {
           material_total: number | null
           number: string
           start_date: string
-          status: Database['public']['Enums']['measurement_status']
+          status: Database["public"]["Enums"]["measurement_status"]
           total_value: number | null
           travel_total: number | null
           updated_at: string
@@ -487,7 +588,7 @@ export type Database = {
           material_total?: number | null
           number: string
           start_date: string
-          status?: Database['public']['Enums']['measurement_status']
+          status?: Database["public"]["Enums"]["measurement_status"]
           total_value?: number | null
           travel_total?: number | null
           updated_at?: string
@@ -501,18 +602,119 @@ export type Database = {
           material_total?: number | null
           number?: string
           start_date?: string
-          status?: Database['public']['Enums']['measurement_status']
+          status?: Database["public"]["Enums"]["measurement_status"]
           total_value?: number | null
           travel_total?: number | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: 'measurements_contract_id_fkey'
-            columns: ['contract_id']
+            foreignKeyName: "measurements_contract_id_fkey"
+            columns: ["contract_id"]
             isOneToOne: false
-            referencedRelation: 'contracts'
-            referencedColumns: ['id']
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obras: {
+        Row: {
+          art: string | null
+          cliente: string | null
+          created_at: string | null
+          data_inicio: string | null
+          data_termino: string | null
+          endereco: string | null
+          id: string
+          nome_obra: string | null
+          numero_obra: string
+          progresso_geral: number | null
+          responsavel_tecnico: string | null
+          status: string | null
+          valor_total: number | null
+        }
+        Insert: {
+          art?: string | null
+          cliente?: string | null
+          created_at?: string | null
+          data_inicio?: string | null
+          data_termino?: string | null
+          endereco?: string | null
+          id?: string
+          nome_obra?: string | null
+          numero_obra: string
+          progresso_geral?: number | null
+          responsavel_tecnico?: string | null
+          status?: string | null
+          valor_total?: number | null
+        }
+        Update: {
+          art?: string | null
+          cliente?: string | null
+          created_at?: string | null
+          data_inicio?: string | null
+          data_termino?: string | null
+          endereco?: string | null
+          id?: string
+          nome_obra?: string | null
+          numero_obra?: string
+          progresso_geral?: number | null
+          responsavel_tecnico?: string | null
+          status?: string | null
+          valor_total?: number | null
+        }
+        Relationships: []
+      }
+      ordens_servico: {
+        Row: {
+          contrato_id: string | null
+          created_at: string | null
+          data_abertura: string | null
+          descricao_servico: string | null
+          id: string
+          numero_os: string
+          prefixo_unidade: string | null
+          prioridade: string | null
+          solicitante: string | null
+          status: string | null
+          tecnico_responsavel: string | null
+          unidade: string | null
+        }
+        Insert: {
+          contrato_id?: string | null
+          created_at?: string | null
+          data_abertura?: string | null
+          descricao_servico?: string | null
+          id?: string
+          numero_os: string
+          prefixo_unidade?: string | null
+          prioridade?: string | null
+          solicitante?: string | null
+          status?: string | null
+          tecnico_responsavel?: string | null
+          unidade?: string | null
+        }
+        Update: {
+          contrato_id?: string | null
+          created_at?: string | null
+          data_abertura?: string | null
+          descricao_servico?: string | null
+          id?: string
+          numero_os?: string
+          prefixo_unidade?: string | null
+          prioridade?: string | null
+          solicitante?: string | null
+          status?: string | null
+          tecnico_responsavel?: string | null
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_servico_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "contratos"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -546,18 +748,175 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'photos_service_order_id_fkey'
-            columns: ['service_order_id']
+            foreignKeyName: "photos_service_order_id_fkey"
+            columns: ["service_order_id"]
             isOneToOne: false
-            referencedRelation: 'service_orders'
-            referencedColumns: ['id']
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'photos_uploaded_by_fkey'
-            columns: ['uploaded_by']
+            foreignKeyName: "photos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_finance: {
+        Row: {
+          amount: number | null
+          category: string
+          created_at: string | null
+          date: string | null
+          description: string | null
+          id: string
+          project_id: string | null
+          type: Database["public"]["Enums"]["project_finance_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number | null
+          category: string
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          type: Database["public"]["Enums"]["project_finance_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number | null
+          category?: string
+          created_at?: string | null
+          date?: string | null
+          description?: string | null
+          id?: string
+          project_id?: string | null
+          type?: Database["public"]["Enums"]["project_finance_type"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_finance_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_stages: {
+        Row: {
+          completion_percentage: number | null
+          created_at: string | null
+          end_date: string | null
+          id: string
+          name: string
+          observations: string | null
+          project_id: string | null
+          responsible_id: string | null
+          start_date: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          completion_percentage?: number | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          observations?: string | null
+          project_id?: string | null
+          responsible_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          completion_percentage?: number | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          observations?: string | null
+          project_id?: string | null
+          responsible_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_stages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_stages_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          address: string | null
+          art_number: string | null
+          client_id: string | null
+          created_at: string | null
+          end_date: string | null
+          id: string
+          name: string
+          project_number: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["project_status"] | null
+          technical_responsible: string | null
+          total_value: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          art_number?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          project_number?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          technical_responsible?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          art_number?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          project_number?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["project_status"] | null
+          technical_responsible?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -591,11 +950,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'purchase_orders_supplier_id_fkey'
-            columns: ['supplier_id']
+            foreignKeyName: "purchase_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
             isOneToOne: false
-            referencedRelation: 'suppliers'
-            referencedColumns: ['id']
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -654,7 +1013,7 @@ export type Database = {
           created_at: string | null
           id: string
           service_order_id: string
-          status: Database['public']['Enums']['checklist_status'] | null
+          status: Database["public"]["Enums"]["checklist_status"] | null
           updated_at: string | null
         }
         Insert: {
@@ -663,7 +1022,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           service_order_id: string
-          status?: Database['public']['Enums']['checklist_status'] | null
+          status?: Database["public"]["Enums"]["checklist_status"] | null
           updated_at?: string | null
         }
         Update: {
@@ -672,23 +1031,23 @@ export type Database = {
           created_at?: string | null
           id?: string
           service_order_id?: string
-          status?: Database['public']['Enums']['checklist_status'] | null
+          status?: Database["public"]["Enums"]["checklist_status"] | null
           updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: 'service_order_checklists_checklist_id_fkey'
-            columns: ['checklist_id']
+            foreignKeyName: "service_order_checklists_checklist_id_fkey"
+            columns: ["checklist_id"]
             isOneToOne: false
-            referencedRelation: 'checklists'
-            referencedColumns: ['id']
+            referencedRelation: "checklists"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'service_order_checklists_service_order_id_fkey'
-            columns: ['service_order_id']
+            foreignKeyName: "service_order_checklists_service_order_id_fkey"
+            columns: ["service_order_id"]
             isOneToOne: false
-            referencedRelation: 'service_orders'
-            referencedColumns: ['id']
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -728,11 +1087,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'service_order_items_service_order_id_fkey'
-            columns: ['service_order_id']
+            foreignKeyName: "service_order_items_service_order_id_fkey"
+            columns: ["service_order_id"]
             isOneToOne: false
-            referencedRelation: 'service_orders'
-            referencedColumns: ['id']
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -763,18 +1122,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'service_order_materials_material_id_fkey'
-            columns: ['material_id']
+            foreignKeyName: "service_order_materials_material_id_fkey"
+            columns: ["material_id"]
             isOneToOne: false
-            referencedRelation: 'materials'
-            referencedColumns: ['id']
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'service_order_materials_service_order_id_fkey'
-            columns: ['service_order_id']
+            foreignKeyName: "service_order_materials_service_order_id_fkey"
+            columns: ["service_order_id"]
             isOneToOne: false
-            referencedRelation: 'service_orders'
-            referencedColumns: ['id']
+            referencedRelation: "service_orders"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -806,7 +1165,7 @@ export type Database = {
           observations: string | null
           order_number: string | null
           paused_at: string | null
-          priority: Database['public']['Enums']['service_order_priority']
+          priority: Database["public"]["Enums"]["service_order_priority"]
           requester_name: string | null
           requester_phone: string | null
           requester_registration: string | null
@@ -815,9 +1174,9 @@ export type Database = {
           service_type: string | null
           signature_contracted: string | null
           signature_dependency: string | null
-          sla_status: Database['public']['Enums']['sla_status'] | null
+          sla_status: Database["public"]["Enums"]["sla_status"] | null
           started_at: string | null
-          status: Database['public']['Enums']['service_order_status']
+          status: Database["public"]["Enums"]["service_order_status"]
           technician_id: string | null
           ticket_number: string | null
           total_cost: number | null
@@ -857,7 +1216,7 @@ export type Database = {
           observations?: string | null
           order_number?: string | null
           paused_at?: string | null
-          priority?: Database['public']['Enums']['service_order_priority']
+          priority?: Database["public"]["Enums"]["service_order_priority"]
           requester_name?: string | null
           requester_phone?: string | null
           requester_registration?: string | null
@@ -866,9 +1225,9 @@ export type Database = {
           service_type?: string | null
           signature_contracted?: string | null
           signature_dependency?: string | null
-          sla_status?: Database['public']['Enums']['sla_status'] | null
+          sla_status?: Database["public"]["Enums"]["sla_status"] | null
           started_at?: string | null
-          status?: Database['public']['Enums']['service_order_status']
+          status?: Database["public"]["Enums"]["service_order_status"]
           technician_id?: string | null
           ticket_number?: string | null
           total_cost?: number | null
@@ -908,7 +1267,7 @@ export type Database = {
           observations?: string | null
           order_number?: string | null
           paused_at?: string | null
-          priority?: Database['public']['Enums']['service_order_priority']
+          priority?: Database["public"]["Enums"]["service_order_priority"]
           requester_name?: string | null
           requester_phone?: string | null
           requester_registration?: string | null
@@ -917,9 +1276,9 @@ export type Database = {
           service_type?: string | null
           signature_contracted?: string | null
           signature_dependency?: string | null
-          sla_status?: Database['public']['Enums']['sla_status'] | null
+          sla_status?: Database["public"]["Enums"]["sla_status"] | null
           started_at?: string | null
-          status?: Database['public']['Enums']['service_order_status']
+          status?: Database["public"]["Enums"]["service_order_status"]
           technician_id?: string | null
           ticket_number?: string | null
           total_cost?: number | null
@@ -934,39 +1293,39 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'service_orders_client_id_fkey'
-            columns: ['client_id']
+            foreignKeyName: "service_orders_client_id_fkey"
+            columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: 'clients'
-            referencedColumns: ['id']
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'service_orders_contract_id_fkey'
-            columns: ['contract_id']
+            foreignKeyName: "service_orders_contract_id_fkey"
+            columns: ["contract_id"]
             isOneToOne: false
-            referencedRelation: 'contracts'
-            referencedColumns: ['id']
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'service_orders_measurement_id_fkey'
-            columns: ['measurement_id']
+            foreignKeyName: "service_orders_measurement_id_fkey"
+            columns: ["measurement_id"]
             isOneToOne: false
-            referencedRelation: 'measurements'
-            referencedColumns: ['id']
+            referencedRelation: "measurements"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'service_orders_technician_id_fkey'
-            columns: ['technician_id']
+            foreignKeyName: "service_orders_technician_id_fkey"
+            columns: ["technician_id"]
             isOneToOne: false
-            referencedRelation: 'technicians'
-            referencedColumns: ['id']
+            referencedRelation: "technicians"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'service_orders_unit_id_fkey'
-            columns: ['unit_id']
+            foreignKeyName: "service_orders_unit_id_fkey"
+            columns: ["unit_id"]
             isOneToOne: false
-            referencedRelation: 'units'
-            referencedColumns: ['id']
+            referencedRelation: "units"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1060,11 +1419,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'stock_movements_material_id_fkey'
-            columns: ['material_id']
+            foreignKeyName: "stock_movements_material_id_fkey"
+            columns: ["material_id"]
             isOneToOne: false
-            referencedRelation: 'materials'
-            referencedColumns: ['id']
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1152,11 +1511,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'teams_supervisor_id_fkey'
-            columns: ['supervisor_id']
+            foreignKeyName: "teams_supervisor_id_fkey"
+            columns: ["supervisor_id"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1190,18 +1549,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'technicians_team_id_fkey'
-            columns: ['team_id']
+            foreignKeyName: "technicians_team_id_fkey"
+            columns: ["team_id"]
             isOneToOne: false
-            referencedRelation: 'teams'
-            referencedColumns: ['id']
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'technicians_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "technicians_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1241,11 +1600,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'units_client_id_fkey'
-            columns: ['client_id']
+            foreignKeyName: "units_client_id_fkey"
+            columns: ["client_id"]
             isOneToOne: false
-            referencedRelation: 'clients'
-            referencedColumns: ['id']
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1270,18 +1629,18 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'user_roles_role_id_fkey'
-            columns: ['role_id']
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
             isOneToOne: false
-            referencedRelation: 'roles'
-            referencedColumns: ['id']
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: 'user_roles_user_id_fkey'
-            columns: ['user_id']
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: 'users'
-            referencedColumns: ['id']
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1348,11 +1707,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'vehicles_technician_id_fkey'
-            columns: ['technician_id']
+            foreignKeyName: "vehicles_technician_id_fkey"
+            columns: ["technician_id"]
             isOneToOne: false
-            referencedRelation: 'technicians'
-            referencedColumns: ['id']
+            referencedRelation: "technicians"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1364,20 +1723,36 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      checklist_status: 'pending' | 'in_progress' | 'completed'
-      measurement_status: 'aberta' | 'em_conferencia' | 'enviada' | 'aprovada' | 'faturada'
-      service_order_priority: 'low' | 'medium' | 'high' | 'urgent'
+      checklist_status: "pending" | "in_progress" | "completed"
+      measurement_status:
+        | "aberta"
+        | "em_conferencia"
+        | "enviada"
+        | "aprovada"
+        | "faturada"
+      project_finance_type:
+        | "purchase"
+        | "operational_cost"
+        | "revenue"
+        | "misc_expense"
+      project_status:
+        | "planejamento"
+        | "mobilização"
+        | "execução"
+        | "finalização"
+        | "concluída"
+      service_order_priority: "low" | "medium" | "high" | "urgent"
       service_order_status:
-        | 'draft'
-        | 'pending'
-        | 'scheduled'
-        | 'in_progress'
-        | 'paused'
-        | 'in_audit'
-        | 'completed'
-        | 'rejected'
-        | 'cancelled'
-      sla_status: 'within_sla' | 'warning' | 'breached'
+        | "draft"
+        | "pending"
+        | "scheduled"
+        | "in_progress"
+        | "paused"
+        | "in_audit"
+        | "completed"
+        | "rejected"
+        | "cancelled"
+      sla_status: "within_sla" | "warning" | "breached"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1385,31 +1760,33 @@ export type Database = {
   }
 }
 
-type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
-    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -1418,23 +1795,23 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -1443,23 +1820,23 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema['Tables']
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
-    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -1468,59 +1845,79 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema['Enums']
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
-    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema['CompositeTypes']
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
-    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
 
 export const Constants = {
   public: {
     Enums: {
-      checklist_status: ['pending', 'in_progress', 'completed'],
-      measurement_status: ['aberta', 'em_conferencia', 'enviada', 'aprovada', 'faturada'],
-      service_order_priority: ['low', 'medium', 'high', 'urgent'],
-      service_order_status: [
-        'draft',
-        'pending',
-        'scheduled',
-        'in_progress',
-        'paused',
-        'in_audit',
-        'completed',
-        'rejected',
-        'cancelled',
+      checklist_status: ["pending", "in_progress", "completed"],
+      measurement_status: [
+        "aberta",
+        "em_conferencia",
+        "enviada",
+        "aprovada",
+        "faturada",
       ],
-      sla_status: ['within_sla', 'warning', 'breached'],
+      project_finance_type: [
+        "purchase",
+        "operational_cost",
+        "revenue",
+        "misc_expense",
+      ],
+      project_status: [
+        "planejamento",
+        "mobilização",
+        "execução",
+        "finalização",
+        "concluída",
+      ],
+      service_order_priority: ["low", "medium", "high", "urgent"],
+      service_order_status: [
+        "draft",
+        "pending",
+        "scheduled",
+        "in_progress",
+        "paused",
+        "in_audit",
+        "completed",
+        "rejected",
+        "cancelled",
+      ],
+      sla_status: ["within_sla", "warning", "breached"],
     },
   },
 } as const
+
 
 // ====== DATABASE EXTENDED CONTEXT (auto-generated) ======
 // This section contains actual PostgreSQL column types, constraints, RLS policies,
@@ -1615,6 +2012,31 @@ export const Constants = {
 //   manager_id: uuid (nullable)
 //   has_monthly_measurement: boolean (nullable, default: false)
 //   measurement_day: integer (nullable)
+// Table: contratos
+//   id: uuid (not null, default: gen_random_uuid())
+//   numero_contrato: text (nullable)
+//   nome_contrato: text (nullable)
+//   cliente: text (nullable)
+//   tipo_contrato: text (nullable)
+//   possui_preventiva: boolean (nullable, default: false)
+//   possui_medicao: boolean (nullable, default: false)
+//   data_fixa_medicao: integer (nullable)
+//   valor_contrato: numeric (nullable)
+//   data_inicio: date (nullable)
+//   data_fim: date (nullable)
+//   status: text (nullable, default: 'ativo'::text)
+//   created_at: timestamp without time zone (nullable, default: now())
+// Table: etapas_obra
+//   id: uuid (not null, default: gen_random_uuid())
+//   obra_id: uuid (nullable)
+//   nome_etapa: text (nullable)
+//   responsavel: text (nullable)
+//   data_inicio: date (nullable)
+//   data_fim: date (nullable)
+//   percentual_execucao: numeric (nullable, default: 0)
+//   status: text (nullable)
+//   observacoes: text (nullable)
+//   created_at: timestamp without time zone (nullable, default: now())
 // Table: inventory
 //   id: uuid (not null, default: gen_random_uuid())
 //   material_id: uuid (not null)
@@ -1651,6 +2073,33 @@ export const Constants = {
 //   labor_total: numeric (nullable, default: 0)
 //   created_at: timestamp with time zone (not null, default: now())
 //   updated_at: timestamp with time zone (not null, default: now())
+// Table: obras
+//   id: uuid (not null, default: gen_random_uuid())
+//   numero_obra: text (not null)
+//   nome_obra: text (nullable)
+//   cliente: text (nullable)
+//   endereco: text (nullable)
+//   responsavel_tecnico: text (nullable)
+//   art: text (nullable)
+//   data_inicio: date (nullable)
+//   data_termino: date (nullable)
+//   valor_total: numeric (nullable)
+//   status: text (nullable)
+//   progresso_geral: numeric (nullable, default: 0)
+//   created_at: timestamp without time zone (nullable, default: now())
+// Table: ordens_servico
+//   id: uuid (not null, default: gen_random_uuid())
+//   numero_os: text (not null)
+//   contrato_id: uuid (nullable)
+//   unidade: text (nullable)
+//   prefixo_unidade: text (nullable)
+//   descricao_servico: text (nullable)
+//   solicitante: text (nullable)
+//   tecnico_responsavel: text (nullable)
+//   prioridade: text (nullable)
+//   status: text (nullable)
+//   data_abertura: timestamp without time zone (nullable, default: now())
+//   created_at: timestamp without time zone (nullable, default: now())
 // Table: photos
 //   id: uuid (not null, default: gen_random_uuid())
 //   service_order_id: uuid (not null)
@@ -1659,6 +2108,42 @@ export const Constants = {
 //   uploaded_by: uuid (nullable)
 //   created_at: timestamp with time zone (nullable, default: CURRENT_TIMESTAMP)
 //   updated_at: timestamp with time zone (nullable, default: CURRENT_TIMESTAMP)
+// Table: project_finance
+//   id: uuid (not null, default: gen_random_uuid())
+//   project_id: uuid (nullable)
+//   type: project_finance_type (not null)
+//   category: text (not null)
+//   description: text (nullable)
+//   amount: numeric (nullable, default: 0)
+//   date: date (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
+//   updated_at: timestamp with time zone (nullable, default: now())
+// Table: project_stages
+//   id: uuid (not null, default: gen_random_uuid())
+//   project_id: uuid (nullable)
+//   name: text (not null)
+//   responsible_id: uuid (nullable)
+//   start_date: date (nullable)
+//   end_date: date (nullable)
+//   completion_percentage: numeric (nullable, default: 0)
+//   status: text (nullable)
+//   observations: text (nullable)
+//   created_at: timestamp with time zone (nullable, default: now())
+//   updated_at: timestamp with time zone (nullable, default: now())
+// Table: projects
+//   id: uuid (not null, default: gen_random_uuid())
+//   project_number: text (nullable)
+//   name: text (not null)
+//   client_id: uuid (nullable)
+//   address: text (nullable)
+//   technical_responsible: text (nullable)
+//   art_number: text (nullable)
+//   start_date: date (nullable)
+//   end_date: date (nullable)
+//   total_value: numeric (nullable, default: 0)
+//   status: project_status (nullable, default: 'planejamento'::project_status)
+//   created_at: timestamp with time zone (nullable, default: now())
+//   updated_at: timestamp with time zone (nullable, default: now())
 // Table: purchase_orders
 //   id: uuid (not null, default: gen_random_uuid())
 //   supplier_id: uuid (nullable)
@@ -1865,6 +2350,11 @@ export const Constants = {
 //   FOREIGN KEY contracts_manager_id_fkey: FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL
 //   PRIMARY KEY contracts_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY contracts_sla_id_fkey: FOREIGN KEY (sla_id) REFERENCES sla_definitions(id) ON DELETE SET NULL
+// Table: contratos
+//   PRIMARY KEY contratos_pkey: PRIMARY KEY (id)
+// Table: etapas_obra
+//   FOREIGN KEY etapas_obra_obra_id_fkey: FOREIGN KEY (obra_id) REFERENCES obras(id)
+//   PRIMARY KEY etapas_obra_pkey: PRIMARY KEY (id)
 // Table: inventory
 //   FOREIGN KEY inventory_material_id_fkey: FOREIGN KEY (material_id) REFERENCES materials(id) ON UPDATE CASCADE ON DELETE CASCADE
 //   PRIMARY KEY inventory_pkey: PRIMARY KEY (id)
@@ -1878,11 +2368,27 @@ export const Constants = {
 // Table: measurements
 //   FOREIGN KEY measurements_contract_id_fkey: FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE RESTRICT
 //   PRIMARY KEY measurements_pkey: PRIMARY KEY (id)
+// Table: obras
+//   PRIMARY KEY obras_pkey: PRIMARY KEY (id)
+// Table: ordens_servico
+//   FOREIGN KEY ordens_servico_contrato_id_fkey: FOREIGN KEY (contrato_id) REFERENCES contratos(id)
+//   PRIMARY KEY ordens_servico_pkey: PRIMARY KEY (id)
 // Table: photos
 //   PRIMARY KEY photos_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY photos_service_order_id_fkey: FOREIGN KEY (service_order_id) REFERENCES service_orders(id) ON UPDATE CASCADE ON DELETE CASCADE
 //   CHECK photos_type_check: CHECK (((type)::text = ANY ((ARRAY['initial'::character varying, 'final'::character varying])::text[])))
 //   FOREIGN KEY photos_uploaded_by_fkey: FOREIGN KEY (uploaded_by) REFERENCES users(id) ON UPDATE CASCADE ON DELETE SET NULL
+// Table: project_finance
+//   PRIMARY KEY project_finance_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY project_finance_project_id_fkey: FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+// Table: project_stages
+//   CHECK project_stages_completion_percentage_check: CHECK (((completion_percentage >= (0)::numeric) AND (completion_percentage <= (100)::numeric)))
+//   PRIMARY KEY project_stages_pkey: PRIMARY KEY (id)
+//   FOREIGN KEY project_stages_project_id_fkey: FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+//   FOREIGN KEY project_stages_responsible_id_fkey: FOREIGN KEY (responsible_id) REFERENCES users(id) ON DELETE SET NULL
+// Table: projects
+//   FOREIGN KEY projects_client_id_fkey: FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE RESTRICT
+//   PRIMARY KEY projects_pkey: PRIMARY KEY (id)
 // Table: purchase_orders
 //   PRIMARY KEY purchase_orders_pkey: PRIMARY KEY (id)
 //   FOREIGN KEY purchase_orders_supplier_id_fkey: FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
@@ -1974,6 +2480,14 @@ export const Constants = {
 //   Policy "authenticated_update" (UPDATE, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
+// Table: contratos
+//   Policy "liberar contratos" (ALL, PERMISSIVE) roles={public}
+//     USING: true
+//     WITH CHECK: true
+// Table: etapas_obra
+//   Policy "liberar etapas" (ALL, PERMISSIVE) roles={public}
+//     USING: true
+//     WITH CHECK: true
 // Table: measurements
 //   Policy "authenticated_delete_measurements" (DELETE, PERMISSIVE) roles={authenticated}
 //     USING: true
@@ -1982,6 +2496,26 @@ export const Constants = {
 //   Policy "authenticated_select_measurements" (SELECT, PERMISSIVE) roles={authenticated}
 //     USING: true
 //   Policy "authenticated_update_measurements" (UPDATE, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: obras
+//   Policy "liberar obras" (ALL, PERMISSIVE) roles={public}
+//     USING: true
+//     WITH CHECK: true
+// Table: ordens_servico
+//   Policy "liberar os" (ALL, PERMISSIVE) roles={public}
+//     USING: true
+//     WITH CHECK: true
+// Table: project_finance
+//   Policy "auth_all_project_finance" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: project_stages
+//   Policy "auth_all_project_stages" (ALL, PERMISSIVE) roles={authenticated}
+//     USING: true
+//     WITH CHECK: true
+// Table: projects
+//   Policy "auth_all_projects" (ALL, PERMISSIVE) roles={authenticated}
 //     USING: true
 //     WITH CHECK: true
 // Table: purchase_orders
@@ -2088,7 +2622,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//
+//   
 // FUNCTION trigger_set_timestamp()
 //   CREATE OR REPLACE FUNCTION public.trigger_set_timestamp()
 //    RETURNS trigger
@@ -2099,7 +2633,7 @@ export const Constants = {
 //     RETURN NEW;
 //   END;
 //   $function$
-//
+//   
 
 // --- TRIGGERS ---
 // Table: audits
@@ -2209,3 +2743,4 @@ export const Constants = {
 // Table: vehicles
 //   CREATE INDEX idx_vehicles_technician_id ON public.vehicles USING btree (technician_id)
 //   CREATE UNIQUE INDEX vehicles_plate_key ON public.vehicles USING btree (plate)
+
