@@ -31,6 +31,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { MeasurementsDashboard } from './MeasurementsDashboard'
 
 const statusColors: Record<string, string> = {
   aberta: 'bg-blue-100 text-blue-800',
@@ -47,9 +49,6 @@ const statusLabels: Record<string, string> = {
   aprovada: 'Aprovada',
   faturada: 'Faturada',
 }
-
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MeasurementsDashboard } from './MeasurementsDashboard'
 
 export default function MeasurementsPage() {
   const [measurements, setMeasurements] = useState<any[]>([])
