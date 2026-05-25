@@ -1,33 +1,19 @@
 import { Navigate, Outlet } from 'react-router-dom'
-import useAuthStore, { Permission } from '@/stores/useAuthStore'
-import { toast } from '@/hooks/use-toast'
-import { useEffect } from 'react'
+import { useAuth } from '@/hooks/use-auth'
 
-export default function ProtectedRoute({
-  requiredPermission,
-}: {
-  requiredPermission?: Permission
-}) {
-  const { isAuthenticated, isLoading, hasPermission } = useAuthStore()
+export function ProtectedRoute() {
+  const { user, loading } = useAuth()
 
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && requiredPermission && !hasPermission(requiredPermission)) {
-      toast({
-        title: 'Acesso Restrito',
-        description: 'Você não tem permissão para acessar esta área.',
-        variant: 'destructive',
-      })
-    }
-  }, [isAuthenticated, isLoading, requiredPermission, hasPermission])
-
-  if (isLoading) return null
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
   }
 
-  if (requiredPermission && !hasPermission(requiredPermission)) {
-    return <Navigate to="/dashboard" replace />
+  if (!user) {
+    return <Navigate to="/login" replace />
   }
 
   return <Outlet />

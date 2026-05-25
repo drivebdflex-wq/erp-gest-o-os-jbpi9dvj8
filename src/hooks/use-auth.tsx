@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase/client'
 
 interface Profile {
   id: string
@@ -34,42 +35,69 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Hardcoded Developer Session bypass
-    const mockUser = { id: 'dev-user', email: 'dev@bdflex.com.br' } as User
-    const mockSession = {
-      access_token: 'mock',
-      refresh_token: 'mock',
-      user: mockUser,
-    } as unknown as Session
-    const mockProfile = {
-      id: 'dev-user',
-      email: 'dev@bdflex.com.br',
-      full_name: 'Developer',
-      role: 'developer',
-    } as Profile
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, currentSession) => {
+        setSession(currentSession)
+        setUser(currentSession?.user ?? null)
+        
+        if (currentSession?.user) {
+          const metadata = currentSession.user.user_metadata || {}
+          setProfile({
+            id: currentSession.user.id,
+            email: currentSession.user.email ?? '',
+            full_name: metadata.full_name || metadata.name || null,
+            role: metadata.role || 'admin',
+          })
+        } else {
+          setProfile(null)
+        }
+        setLoading(false)
+      }
+    )
 
-    setUser(mockUser)
-    setSession(mockSession)
-    setProfile(mockProfile)
-    setLoading(false)
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession)
+      setUser(currentSession?.user ?? null)
+      
+      if (currentSession?.user) {
+        const metadata = currentSession.user.user_metadata || {}
+        setProfile({
+          id: currentSession.user.id,
+          email: currentSession.user.email ?? '',
+          full_name: metadata.full_name || metadata.name || null,
+          role: metadata.role || 'admin',
+        })
+      }
+      setLoading(false)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
-  const signUp = async (_email: string, _password: string) => {
-    return { error: null }
+  const signUp = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/` }
+    })
+    return { error }
   }
 
-  const signIn = async (_email: string, _password: string) => {
-    return { error: null }
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    return { error }
   }
 
   const signOut = async () => {
-    return { error: null }
+    const { error } = await supabase.auth.signOut()
+    return { error }
   }
 
   const hasPermission = (permission: string) => {
-    if (!permission) return false
-    if (profile?.role === 'developer' || profile?.role === 'admin') return true
-    return true
+    if (!permission || !profile) return false
+    return profile.role === 'developer' || profile.role === 'admin'
   }
 
   return (
