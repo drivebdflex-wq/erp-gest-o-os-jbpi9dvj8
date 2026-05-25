@@ -158,8 +158,6 @@ const fetchProfile = async (
   }
 }
 
-const IS_DEV_BYPASS = true;
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
@@ -169,37 +167,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true
-
-    if (IS_DEV_BYPASS) {
-      const mockSession = {
-        access_token: 'mock-token',
-        refresh_token: 'mock-refresh',
-        expires_in: 3600,
-        token_type: 'bearer',
-        user: {
-          id: 'mock-dev-id',
-          email: 'dev@bdflex.com.br',
-          app_metadata: {},
-          user_metadata: {},
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-        }
-      } as Session;
-      
-      const mockUser: User = {
-        id: 'mock-dev-id',
-        name: 'Developer',
-        email: 'dev@bdflex.com.br',
-        role_id: 'role-admin',
-        active: true,
-        created_at: new Date().toISOString(),
-      };
-
-      setSession(mockSession);
-      setCurrentUser(mockUser);
-      setIsLoading(false);
-      return;
-    }
 
     const initializeAuth = async () => {
       if (!supabase?.auth?.getSession) {
@@ -248,8 +215,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    if (IS_DEV_BYPASS) return;
-
     let mounted = true
 
     const loadProfile = async () => {
@@ -287,11 +252,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, pass: string) => {
     setIsLoading(true)
 
-    if (IS_DEV_BYPASS) {
-      setTimeout(() => setIsLoading(false), 500)
-      return true
-    }
-
     if (!supabase?.auth?.signInWithPassword) {
       setIsLoading(false)
       return false
@@ -325,11 +285,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     setIsLoading(true)
 
-    if (IS_DEV_BYPASS) {
-      setTimeout(() => setIsLoading(false), 500)
-      return
-    }
-
     if (supabase?.auth?.signOut) {
       try {
         await supabase.auth.signOut()
@@ -341,11 +296,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerUser = async (data: RegisterData) => {
     setIsLoading(true)
-
-    if (IS_DEV_BYPASS) {
-      setTimeout(() => setIsLoading(false), 500)
-      return true
-    }
 
     if (!supabase?.auth?.signUp) {
       setIsLoading(false)
