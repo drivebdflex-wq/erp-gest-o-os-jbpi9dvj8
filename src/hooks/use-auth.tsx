@@ -35,59 +35,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, currentSession) => {
-        setSession(currentSession)
-        setUser(currentSession?.user ?? null)
-        if (!currentSession?.user) {
-          setProfile(null)
-          setLoading(false)
-        }
-      }
-    )
+    // Hardcoded Developer Session bypass
+    const mockUser = { id: 'dev-user', email: 'dev@bdflex.com.br' } as User
+    const mockSession = {
+      access_token: 'mock',
+      refresh_token: 'mock',
+      user: mockUser,
+    } as unknown as Session
+    const mockProfile = {
+      id: 'dev-user',
+      email: 'dev@bdflex.com.br',
+      full_name: 'Developer',
+      role: 'developer',
+    } as Profile
 
-    supabase.auth.getSession().then(({ data: { session: initSession } }) => {
-      setSession(initSession)
-      setUser(initSession?.user ?? null)
-      if (!initSession?.user) {
-        setLoading(false)
-      }
-    })
-
-    return () => subscription.unsubscribe()
+    setUser(mockUser)
+    setSession(mockSession)
+    setProfile(mockProfile)
+    setLoading(false)
   }, [])
 
-  useEffect(() => {
-    if (user) {
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
-          if (data) setProfile(data as Profile)
-        })
-        .finally(() => setLoading(false))
-    }
-  }, [user])
-
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/` },
-    })
-    return { error }
+    return { error: null }
   }
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error }
+    return { error: null }
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    return { error }
+    return { error: null }
   }
 
   const hasPermission = (permission: string) => {
