@@ -7,7 +7,7 @@ import React, {
   useEffect,
 } from 'react'
 import { toast } from '@/hooks/use-toast'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 
 export type Permission =
@@ -112,30 +112,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async (userId: string, email: string, userMetadata?: any) => {
     try {
-      const { data: user, error } = await supabase
-        .from('users')
+      const { data: profile } = await supabase
+        .from('profiles' as any)
         .select('*')
         .eq('id', userId)
         .maybeSingle()
 
-      let role_id = 'role-admin'
-      const { data: userRoles } = await supabase
-        .from('user_roles')
-        .select('roles(*)')
-        .eq('user_id', userId)
-      if (userRoles && userRoles.length > 0) {
-        role_id = userRoles[0].roles?.name === 'Administrator' ? 'role-admin' : 'role-supervisor'
+      let role_id = 'role-tecnico'
+      
+      if (profile?.role === 'developer') {
+        role_id = 'role-admin'
+      } else if (profile?.role === 'user') {
+        role_id = 'role-tecnico'
       }
 
-      if (user) {
+      if (profile) {
         return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
+          id: profile.id,
+          name: profile.full_name || email.split('@')[0],
+          email: profile.email,
           role_id: role_id,
-          active: user.status === 'active',
-          created_at: user.created_at || new Date().toISOString(),
-          avatar_url: user.avatar_url,
+          active: true,
+          created_at: profile.created_at || new Date().toISOString(),
         } as User
       }
 
@@ -157,8 +155,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true
 
     const initializeAuth = async () => {
-      setIsLoading(true)
-
       if (!supabase?.auth?.getSession) {
         if (mounted) setIsLoading(false)
         return
@@ -166,22 +162,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         const { data } = await supabase.auth.getSession()
-
-        if (data?.session && mounted) {
-          setSession(data.session)
-          const profile = await fetchProfile(
-            data.session.user.id,
-            data.session.user.email,
-            data.session.user.user_metadata,
-          )
-          setCurrentUser(profile)
+        if (mounted) {
+          setSession(data?.session || null)
+          if (!data?.session) {
+            setIsLoading(false)
+          }
         }
       } catch (err) {
         console.error('Failed to get session:', err)
-      } finally {
-        if (mounted) {
-          setIsLoading(false)
-        }
+        if (mounted) setIsLoading(false)
       }
     }
 
@@ -192,21 +181,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (supabase?.auth?.onAuthStateChange) {
       try {
         const { data } = supabase.auth.onAuthStateChange(
-          async (event: any, currentSession: any) => {
+          (_event: any, currentSession: any) => {
             if (!mounted) return
-
-            setSession(currentSession)
-            if (currentSession) {
-              const profile = await fetchProfile(
-                currentSession.user.id,
-                currentSession.user.email,
-                currentSession.user.user_metadata,
-              )
-              setCurrentUser(profile)
-            } else {
-              setCurrentUser(null)
-            }
-            setIsLoading(false)
+            setSession(currentSession || null)
           },
         )
         authListener = data
@@ -223,6 +200,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  useEffect(() => {
+    let mounted = true
+
+    const loadProfile = async () => {
+      if (!session) {
+        if (mounted) {
+          setCurrentUser(null)
+          setIsLoading(false)
+        }
+        return
+      }
+      
+      try {
+        const profile = await fetchProfile(
+          session.user.id,
+          session.user.email,
+          session.user.user_metadata,
+        )
+        if (mounted) {
+          setCurrentUser(profile)
+          setIsLoading(false)
+        }
+      } catch (err) {
+        console.error(err)
+        if (mounted) setIsLoading(false)
+      }
+    }
+
+    loadProfile()
+
+    return () => {
+      mounted = false
+    }
+  }, [session])
+
   const login = async (email: string, pass: string) => {
     setIsLoading(true)
 
@@ -232,7 +244,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass })
+      const { error } = await supabase.auth.signInWithPassword({ email, password: pass })
 
       if (error) {
         setIsLoading(false)
@@ -244,17 +256,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false
       }
 
-      if (data?.session) {
-        setSession(data.session)
-        const profile = await fetchProfile(
-          data.session.user.id,
-          data.session.user.email,
-          data.session.user.user_metadata,
-        )
-        setCurrentUser(profile)
-      }
-
-      setIsLoading(false)
       return true
     } catch (err: any) {
       setIsLoading(false)
@@ -277,10 +278,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Failed to sign out:', err)
       }
     }
-
-    setSession(null)
-    setCurrentUser(null)
-    setIsLoading(false)
   }
 
   const registerUser = async (data: any) => {
@@ -304,15 +301,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
 
       if (!error && signUpData.user) {
-        await supabase.from('users').insert([
-          {
-            id: signUpData.user.id,
-            name: data.name || data.email.split('@')[0],
-            email: data.email,
-            password_hash: '',
-            status: 'active',
-          },
-        ])
+        if (data.name) {
+          await supabase.from('profiles' as any).update({
+            full_name: data.name,
+          }).eq('id', signUpData.user.id)
+        }
       }
 
       if (error) {
@@ -325,17 +318,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return false
       }
 
-      if (signUpData?.session) {
-        setSession(signUpData.session)
-        const profile = await fetchProfile(
-          signUpData.session.user.id,
-          signUpData.session.user.email,
-          signUpData.session.user.user_metadata,
-        )
-        setCurrentUser(profile)
-      }
-
-      setIsLoading(false)
       return true
     } catch (err: any) {
       setIsLoading(false)
