@@ -1,6 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase/client'
 
 interface Profile {
   id: string
@@ -55,11 +54,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(false)
   }, [])
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (_email: string, _password: string) => {
     return { error: null }
   }
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (_email: string, _password: string) => {
     return { error: null }
   }
 
