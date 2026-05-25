@@ -1,0 +1,95 @@
+### 1. AUTHENTICATION (AUTH)
+
+### Login with Success
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@fieldops.com",
+  "password": "strongpassword123"
+}
+
+### Login with Error
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@fieldops.com",
+  "password": "wrongpassword"
+}
+
+### 2. SERVICE ORDERS
+
+### Create OS
+POST http://localhost:3000/service-orders
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "client_name": "ACME Corp",
+  "address": "123 Industrial Way",
+  "description": "Preventive maintenance on HVAC system",
+  "technician_id": "tech-uuid-456",
+  "priority": "high"
+}
+
+### List OS
+GET http://localhost:3000/service-orders
+Authorization: Bearer {{token}}
+
+### Alter Status (To In Progress)
+PATCH http://localhost:3000/service-orders/os-999/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "in_progress"
+}
+
+### 3. VALIDATIONS (Finalization Rules)
+
+### Finalize without checklist -> error
+PATCH http://localhost:3000/service-orders/os-999/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "completed"
+}
+
+### Finalize without photos -> error
+PATCH http://localhost:3000/service-orders/os-999/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "completed"
+}
+
+### Finalize without signature -> error
+PATCH http://localhost:3000/service-orders/os-999/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "completed"
+}
+
+### Finalize correctly -> sucesso
+PATCH http://localhost:3000/service-orders/os-999/status
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "status": "completed"
+}
+
+### 4. RBAC (Role-Based Access Control)
+
+### Técnico tentando acessar OS de outro -> erro
+GET http://localhost:3000/service-orders/os-from-another-tech
+Authorization: Bearer {{technician_token}}
+
+### Supervisor acessando equipe -> sucesso
+GET http://localhost:3000/service-orders/team-member-os
+Authorization: Bearer {{supervisor_token}}

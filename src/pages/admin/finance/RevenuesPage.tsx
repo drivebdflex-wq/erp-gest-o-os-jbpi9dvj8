@@ -1,7 +1,6 @@
 import FinanceNav from '@/components/admin/finance/FinanceNav'
-import { useState } from 'react'
-import useFinanceStore from '@/stores/useFinanceStore'
-import useAppStore from '@/stores/useAppStore'
+import { useState, useEffect } from 'react'
+import { supabase } from '@/lib/supabase/client'
 import {
   Table,
   TableBody,
@@ -31,20 +30,54 @@ import { Badge } from '@/components/ui/badge'
 import { Plus } from 'lucide-react'
 
 export default function RevenuesPage() {
-  const { revenues, addRevenue } = useFinanceStore()
-  const { contracts } = useAppStore()
+  const [revenues, setRevenues] = useState<any[]>([
+    {
+      id: '1',
+      contractId: 'c1',
+      value: 1500,
+      type: 'mensal',
+      date: new Date().toISOString(),
+      status: 'completed',
+    },
+    {
+      id: '2',
+      contractId: 'c2',
+      value: 3500,
+      type: 'medição',
+      date: new Date().toISOString(),
+      status: 'pending',
+    },
+  ])
+  const [contracts, setContracts] = useState<any[]>([])
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState<any>({ type: 'mensal', status: 'pending' })
 
+  useEffect(() => {
+    async function loadContracts() {
+      const { data } = await supabase.from('contracts').select('id, contract_number, description')
+      if (data) {
+        setContracts(
+          data.map((c) => ({
+            id: c.id,
+            name: c.contract_number || c.description || 'Contrato sem nome',
+          })),
+        )
+      }
+    }
+    loadContracts()
+  }, [])
+
   const handleSave = () => {
     if (!form.contractId || !form.value || !form.date) return
-    addRevenue({
+    const newRevenue = {
+      id: Math.random().toString(),
       contractId: form.contractId,
       value: Number(form.value),
       type: form.type,
       date: form.date,
       status: form.status,
-    })
+    }
+    setRevenues([newRevenue, ...revenues])
     setOpen(false)
     setForm({ type: 'mensal', status: 'pending' })
   }
