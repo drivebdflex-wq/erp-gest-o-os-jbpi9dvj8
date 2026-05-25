@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -64,12 +64,7 @@ export default function MeasurementsPage() {
   const { toast } = useToast()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    fetchMeasurements()
-    fetchContracts()
-  }, [statusFilter, contractFilter, startDateFilter, endDateFilter])
-
-  async function fetchMeasurements() {
+  const fetchMeasurements = useCallback(async () => {
     setLoading(true)
     let query = supabase
       .from('measurements')
@@ -101,9 +96,9 @@ export default function MeasurementsPage() {
       setMeasurements(data)
     }
     setLoading(false)
-  }
+  }, [statusFilter, contractFilter, startDateFilter, endDateFilter])
 
-  async function fetchContracts() {
+  const fetchContracts = useCallback(async () => {
     const { data, error } = await supabase
       .from('contracts')
       .select(`id, contract_number, clients(name)`)
@@ -112,7 +107,12 @@ export default function MeasurementsPage() {
     if (!error && data) {
       setContracts(data)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchMeasurements()
+    fetchContracts()
+  }, [fetchMeasurements, fetchContracts])
 
   async function handleCreateMeasurement(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -259,56 +259,56 @@ export default function MeasurementsPage() {
           </div>
 
           <div className="bg-white rounded-md border shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Número</TableHead>
-              <TableHead>Contrato</TableHead>
-              <TableHead>Período</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Valor Total</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {measurements.map((m) => (
-              <TableRow key={m.id}>
-                <TableCell>
-                  <Link
-                    to={`/medicoes/${m.id}`}
-                    className="font-medium text-blue-600 hover:underline"
-                  >
-                    {m.number}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  {m.contracts?.contract_number} - {m.contracts?.clients?.name}
-                </TableCell>
-                <TableCell>
-                  {format(new Date(m.start_date + 'T12:00:00Z'), 'dd/MM/yyyy')} a{' '}
-                  {format(new Date(m.end_date + 'T12:00:00Z'), 'dd/MM/yyyy')}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={statusColors[m.status] || ''}>
-                    {statusLabels[m.status] || m.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                    m.total_value || 0,
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-            {measurements.length === 0 && !loading && (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  Nenhuma medição encontrada.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Número</TableHead>
+                  <TableHead>Contrato</TableHead>
+                  <TableHead>Período</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Valor Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {measurements.map((m) => (
+                  <TableRow key={m.id}>
+                    <TableCell>
+                      <Link
+                        to={`/medicoes/${m.id}`}
+                        className="font-medium text-blue-600 hover:underline"
+                      >
+                        {m.number}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      {m.contracts?.contract_number} - {m.contracts?.clients?.name}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(m.start_date + 'T12:00:00Z'), 'dd/MM/yyyy')} a{' '}
+                      {format(new Date(m.end_date + 'T12:00:00Z'), 'dd/MM/yyyy')}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={statusColors[m.status] || ''}>
+                        {statusLabels[m.status] || m.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                        m.total_value || 0,
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {measurements.length === 0 && !loading && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      Nenhuma medição encontrada.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </TabsContent>
         <TabsContent value="dashboard">
           <MeasurementsDashboard />

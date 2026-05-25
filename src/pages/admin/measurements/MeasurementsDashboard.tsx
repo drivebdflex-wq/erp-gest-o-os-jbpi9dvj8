@@ -1,12 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Legend } from 'recharts'
 import { startOfMonth, endOfMonth, format } from 'date-fns'
 
+interface DashboardData {
+  currentMonthTotal: number
+  pendingApproval: number
+  totalInvoiced: number
+  chartData: Array<{ name: string; measured: number; invoiced: number }>
+}
+
 export function MeasurementsDashboard() {
-  const [data, setData] = useState<any>({
+  const [data, setData] = useState<DashboardData>({
     currentMonthTotal: 0,
     pendingApproval: 0,
     totalInvoiced: 0,
@@ -14,11 +21,7 @@ export function MeasurementsDashboard() {
   })
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchDashboardData()
-  }, [])
-
-  async function fetchDashboardData() {
+  const fetchDashboardData = useCallback(async () => {
     const { data: measurements } = await supabase.from('measurements').select('*')
     
     if (!measurements) {
@@ -52,7 +55,6 @@ export function MeasurementsDashboard() {
         totalInvoiced += val
       }
 
-      // Format like "Jan/26"
       const monthKey = format(mDate, 'MMM/yy')
       if (!monthlyData[monthKey]) {
         monthlyData[monthKey] = { measured: 0, invoiced: 0 }
@@ -71,7 +73,11 @@ export function MeasurementsDashboard() {
 
     setData({ currentMonthTotal, pendingApproval, totalInvoiced, chartData })
     setLoading(false)
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [fetchDashboardData])
 
   if (loading) return <div className="p-8 text-center text-muted-foreground">Carregando dashboard...</div>
 

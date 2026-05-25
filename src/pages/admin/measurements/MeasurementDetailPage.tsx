@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -63,24 +63,18 @@ export default function MeasurementDetailPage() {
   const [attachments, setAttachments] = useState<any[]>([])
   const { toast } = useToast()
 
-  useEffect(() => {
-    if (id) {
-      fetchMeasurement()
-      fetchLinkedOS()
-      fetchAttachments()
-    }
-  }, [id])
-
-  async function fetchAttachments() {
+  const fetchAttachments = useCallback(async () => {
+    if (!id) return
     const { data } = await supabase
       .from('measurement_attachments')
       .select('*')
       .eq('measurement_id', id)
       .order('created_at', { ascending: false })
     if (data) setAttachments(data)
-  }
+  }, [id])
 
-  async function fetchMeasurement() {
+  const fetchMeasurement = useCallback(async () => {
+    if (!id) return
     const { data, error } = await supabase
       .from('measurements')
       .select(`
@@ -96,9 +90,10 @@ export default function MeasurementDetailPage() {
     if (!error && data) {
       setMeasurement(data)
     }
-  }
+  }, [id])
 
-  async function fetchLinkedOS() {
+  const fetchLinkedOS = useCallback(async () => {
+    if (!id) return
     const { data, error } = await supabase
       .from('service_orders')
       .select('*')
@@ -109,12 +104,19 @@ export default function MeasurementDetailPage() {
       setServiceOrders(data)
     }
     setLoading(false)
-  }
+  }, [id])
+
+  useEffect(() => {
+    if (id) {
+      fetchMeasurement()
+      fetchLinkedOS()
+      fetchAttachments()
+    }
+  }, [id, fetchMeasurement, fetchLinkedOS, fetchAttachments])
 
   async function fetchAvailableOS() {
     if (!measurement) return
     
-    // Filter pending OS within the measurement period
     const { data, error } = await supabase
       .from('service_orders')
       .select('*')
@@ -160,7 +162,6 @@ export default function MeasurementDetailPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Fake upload for demonstration
     const fakeUrl = `https://img.usecurling.com/p/800/600?q=document&seed=${Math.random()}`
     
     const { error } = await supabase.from('measurement_attachments').insert({
@@ -186,6 +187,33 @@ export default function MeasurementDetailPage() {
     } else {
       toast({ title: 'Sucesso', description: 'Anexo removido' })
       fetchAttachments()
+    }
+  }
+
+  async function updateTotals() {
+    const { data } = await supabase
+      .from('service_orders')
+      .select('travel_cost, labor_cost, material_cost')
+      .eq('measurement_id', id)
+
+    if (data) {
+      const totals = data.reduce(
+        (acc, curr) => {
+          const travel = Number(curr.travel_cost) || 0
+          const labor = Number(curr.labor_cost) || 0
+          const material = Number(curr.material_cost) || 0
+          return {
+            travel_total: acc.travel_total + travel,
+            labor_total: acc.labor_total + labor,
+            material_total: acc.material_total + material,
+            total_value: acc.total_value + travel + labor + material,
+          }
+        },
+        { travel_total: 0, labor_total: 0, material_total: 0, total_value: 0 },
+      )
+
+      await supabase.from('measurements').update(totals).eq('id', id)
+      fetchMeasurement()
     }
   }
 
@@ -220,34 +248,6 @@ export default function MeasurementDetailPage() {
       toast({ title: 'Sucesso', description: 'OS desvinculada com sucesso' })
       fetchLinkedOS()
       updateTotals()
-    }
-  }
-
-  async function updateTotals() {
-    const { data } = await supabase
-      .from('service_orders')
-      .select('travel_cost, labor_cost, material_cost')
-      .eq('measurement_id', id)
-
-    if (data) {
-      const totals = data.reduce(
-        (acc, curr) => {
-          const travel = Number(curr.travel_cost) || 0
-          const labor = Number(curr.labor_cost) || 0
-          const material = Number(curr.material_cost) || 0
-          return {
-            travel_total: acc.travel_total + travel,
-            labor_total: acc.labor_total + labor,
-            material_total: acc.material_total + material,
-            total_value: acc.total_value + travel + labor + material,
-          }
-        },
-        { travel_total: 0, labor_total: 0, material_total: 0, total_value: 0 },
-      )
-
-      await supabase.from('measurements').update(totals).eq('id', id)
-
-      fetchMeasurement()
     }
   }
 
@@ -343,137 +343,137 @@ export default function MeasurementDetailPage() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Ordens de Serviço Vinculadas</CardTitle>
                 <Dialog
-              open={isDialogOpen}
-              onOpenChange={(open) => {
-                setIsDialogOpen(open)
-                if (open) fetchAvailableOS()
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button size="sm">
-                  <Plus className="mr-2 h-4 w-4" /> Adicionar OS
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                  <DialogTitle>Vincular OS à Medição</DialogTitle>
-                </DialogHeader>
-                <div className="max-h-[60vh] overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[50px]"></TableHead>
-                        <TableHead>Número</TableHead>
-                        <TableHead>Unidade</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {availableOS.map((os) => (
-                        <TableRow key={os.id}>
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedOS.includes(os.id)}
-                              onCheckedChange={(checked) => {
-                                setSelectedOS((prev) =>
-                                  checked ? [...prev, os.id] : prev.filter((i) => i !== os.id),
-                                )
-                              }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            {os.service_order_number || os.order_number || os.id.substring(0, 8)}
-                          </TableCell>
-                          <TableCell>
-                            {os.unit_prefix} - {os.unit_name}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{os.status}</Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {new Intl.NumberFormat('pt-BR', {
-                              style: 'currency',
-                              currency: 'BRL',
-                            }).format(os.total_cost || 0)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                      {availableOS.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-4">
-                            Nenhuma OS disponível para vincular.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancelar</Button>
-                  </DialogClose>
-                  <Button onClick={handleLinkOS} disabled={selectedOS.length === 0}>
-                    Vincular Selecionadas
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Unidade</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Situação</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {serviceOrders.map((os) => (
-                  <TableRow key={os.id}>
-                    <TableCell>
-                      <Link to={`/ordens/${os.id}`} className="text-blue-600 hover:underline">
-                        {os.service_order_number || os.order_number || os.id.substring(0, 8)}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      {os.unit_prefix} {os.unit_name}
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={os.description || ''}>
-                      {os.description}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{os.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      }).format(os.total_cost || 0)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleUnlinkOS(os.id)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        Remover
+                  open={isDialogOpen}
+                  onOpenChange={(open) => {
+                    setIsDialogOpen(open)
+                    if (open) fetchAvailableOS()
+                  }}
+                >
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <Plus className="mr-2 h-4 w-4" /> Adicionar OS
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                      <DialogTitle>Vincular OS à Medição</DialogTitle>
+                    </DialogHeader>
+                    <div className="max-h-[60vh] overflow-y-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[50px]"></TableHead>
+                            <TableHead>Número</TableHead>
+                            <TableHead>Unidade</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="text-right">Valor</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {availableOS.map((os) => (
+                            <TableRow key={os.id}>
+                              <TableCell>
+                                <Checkbox
+                                  checked={selectedOS.includes(os.id)}
+                                  onCheckedChange={(checked) => {
+                                    setSelectedOS((prev) =>
+                                      checked ? [...prev, os.id] : prev.filter((i) => i !== os.id),
+                                    )
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                {os.service_order_number || os.order_number || os.id.substring(0, 8)}
+                              </TableCell>
+                              <TableCell>
+                                {os.unit_prefix} - {os.unit_name}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{os.status}</Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {new Intl.NumberFormat('pt-BR', {
+                                  style: 'currency',
+                                  currency: 'BRL',
+                                }).format(os.total_cost || 0)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {availableOS.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center py-4">
+                                Nenhuma OS disponível para vincular.
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Cancelar</Button>
+                      </DialogClose>
+                      <Button onClick={handleLinkOS} disabled={selectedOS.length === 0}>
+                        Vincular Selecionadas
                       </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {serviceOrders.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      Nenhuma OS vinculada a esta medição.
-                    </TableCell>
-                  </TableRow>
-                )}
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Número</TableHead>
+                      <TableHead>Unidade</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Situação</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {serviceOrders.map((os) => (
+                      <TableRow key={os.id}>
+                        <TableCell>
+                          <Link to={`/ordens/${os.id}`} className="text-blue-600 hover:underline">
+                            {os.service_order_number || os.order_number || os.id.substring(0, 8)}
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          {os.unit_prefix} {os.unit_name}
+                        </TableCell>
+                        <TableCell className="max-w-[200px] truncate" title={os.description || ''}>
+                          {os.description}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{os.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {new Intl.NumberFormat('pt-BR', {
+                            style: 'currency',
+                            currency: 'BRL',
+                          }).format(os.total_cost || 0)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleUnlinkOS(os.id)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            Remover
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {serviceOrders.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          Nenhuma OS vinculada a esta medição.
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -483,31 +483,31 @@ export default function MeasurementDetailPage() {
               <CardHeader>
                 <CardTitle>Totais</CardTitle>
               </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Deslocamento</span>
-              <span className="font-medium">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                  measurement.travel_total || 0,
-                )}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Materiais</span>
-              <span className="font-medium">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                  measurement.material_total || 0,
-                )}
-              </span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Mão de Obra</span>
-              <span className="font-medium">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                  measurement.labor_total || 0,
-                )}
-              </span>
-            </div>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Deslocamento</span>
+                  <span className="font-medium">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      measurement.travel_total || 0,
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Materiais</span>
+                  <span className="font-medium">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      measurement.material_total || 0,
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Mão de Obra</span>
+                  <span className="font-medium">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      measurement.labor_total || 0,
+                    )}
+                  </span>
+                </div>
                 <div className="pt-4 border-t flex justify-between items-center">
                   <span className="font-semibold">Total Geral</span>
                   <span className="text-lg font-bold text-primary">
