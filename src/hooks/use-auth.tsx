@@ -39,43 +39,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (_event, currentSession) => {
         setSession(currentSession)
         setUser(currentSession?.user ?? null)
-        if (!currentSession?.user) {
+        
+        if (currentSession?.user) {
+          const metadata = currentSession.user.user_metadata || {}
+          setProfile({
+            id: currentSession.user.id,
+            email: currentSession.user.email ?? '',
+            full_name: metadata.full_name || metadata.name || null,
+            role: metadata.role || 'admin',
+          })
+        } else {
           setProfile(null)
-          setLoading(false)
         }
+        setLoading(false)
       }
     )
 
-    supabase.auth.getSession().then(({ data: { session: initSession } }) => {
-      setSession(initSession)
-      setUser(initSession?.user ?? null)
-      if (!initSession?.user) {
-        setLoading(false)
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession)
+      setUser(currentSession?.user ?? null)
+      
+      if (currentSession?.user) {
+        const metadata = currentSession.user.user_metadata || {}
+        setProfile({
+          id: currentSession.user.id,
+          email: currentSession.user.email ?? '',
+          full_name: metadata.full_name || metadata.name || null,
+          role: metadata.role || 'admin',
+        })
       }
+      setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
-  }, [])
-
-  useEffect(() => {
-    if (user) {
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-        .then(({ data }) => {
-          if (data) setProfile(data as Profile)
-        })
-        .finally(() => setLoading(false))
+    return () => {
+      subscription.unsubscribe()
     }
-  }, [user])
+  }, [])
 
   const signUp = async (email: string, password: string) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/` },
+      options: { emailRedirectTo: `${window.location.origin}/` }
     })
     return { error }
   }
@@ -91,9 +96,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const hasPermission = (permission: string) => {
-    if (!permission) return false
-    if (profile?.role === 'developer' || profile?.role === 'admin') return true
-    return true
+    if (!permission || !profile) return false
+    return profile.role === 'developer' || profile.role === 'admin'
   }
 
   return (
