@@ -6,7 +6,6 @@ import {
   useCallback,
   useEffect,
 } from 'react'
-import { supabase } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
 import { Session } from '@supabase/supabase-js'
 
@@ -127,9 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     created_at: new Date().toISOString(),
   }
 
-  const [session, setSession] = useState<Session | null>({ access_token: 'mock', refresh_token: 'mock', user: { id: 'dev-user', email: 'dev@bdflex.com.br' } } as unknown as Session)
+  const [session] = useState<Session | null>({ access_token: 'mock', refresh_token: 'mock', user: { id: 'dev-user', email: 'dev@bdflex.com.br' } } as unknown as Session)
   const [currentUser, setCurrentUser] = useState<User | null>(mockUser)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading] = useState(false)
   const [roles, setRoles] = useState<Role[]>(MOCK_ROLES)
   const [users, setUsers] = useState<User[]>([mockUser])
 
@@ -137,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Mock developer session bypass
   }, [])
 
-  const login = async (email: string, pass: string) => {
+  const login = async (_email: string, _pass: string) => {
     return true
   }
 
@@ -145,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // No-op
   }
 
-  const registerUser = async (data: RegisterData) => {
+  const registerUser = async (_data: RegisterData) => {
     return true
   }
 
