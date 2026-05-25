@@ -118,82 +118,35 @@ const MOCK_ROLES: Role[] = [
 ]
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const mockUser: User = {
+    id: 'dev-user',
+    name: 'Developer',
+    email: 'dev@bdflex.com.br',
+    role_id: 'developer',
+    active: true,
+    created_at: new Date().toISOString(),
+  }
+
+  const [session, setSession] = useState<Session | null>({ access_token: 'mock', refresh_token: 'mock', user: { id: 'dev-user', email: 'dev@bdflex.com.br' } } as unknown as Session)
+  const [currentUser, setCurrentUser] = useState<User | null>(mockUser)
+  const [isLoading, setIsLoading] = useState(false)
   const [roles, setRoles] = useState<Role[]>(MOCK_ROLES)
-  const [users, setUsers] = useState<User[]>([])
+  const [users, setUsers] = useState<User[]>([mockUser])
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, sess) => {
-        setSession(sess)
-        if (!sess?.user) {
-          setCurrentUser(null)
-          setIsLoading(false)
-        }
-      }
-    )
-
-    supabase.auth.getSession().then(({ data: { session: sess } }) => {
-      setSession(sess)
-      if (!sess?.user) {
-        setIsLoading(false)
-      }
-    })
-
-    return () => subscription.unsubscribe()
+    // Mock developer session bypass
   }, [])
 
-  useEffect(() => {
-    if (session?.user) {
-      const u = session.user
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', u.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          const profile = data as Record<string, unknown> | null
-
-          let role_id = 'role-tecnico'
-          if (profile?.role === 'developer') {
-            role_id = 'role-admin'
-          } else if (profile?.role === 'admin') {
-            role_id = 'role-admin'
-          } else if (profile?.role === 'user') {
-            role_id = 'role-tecnico'
-          }
-
-          setCurrentUser({
-            id: u.id,
-            name: (profile?.full_name as string) || u.email?.split('@')[0] || 'User',
-            email: u.email || '',
-            role_id,
-            active: true,
-            created_at: (profile?.created_at as string) || new Date().toISOString(),
-          })
-          setIsLoading(false)
-        })
-    }
-  }, [session])
-
   const login = async (email: string, pass: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass })
-    return !error
+    return true
   }
 
   const logout = async () => {
-    setCurrentUser(null)
-    await supabase.auth.signOut()
+    // No-op
   }
 
   const registerUser = async (data: RegisterData) => {
-    const { error } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-    })
-    return !error
+    return true
   }
 
   const hasPermission = useCallback(

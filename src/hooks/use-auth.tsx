@@ -29,75 +29,30 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>({ id: 'dev-user', email: 'dev@bdflex.com.br' } as User)
+  const [session, setSession] = useState<Session | null>({ access_token: 'mock', refresh_token: 'mock', user: { id: 'dev-user', email: 'dev@bdflex.com.br' } } as unknown as Session)
+  const [profile, setProfile] = useState<Profile | null>({
+    id: 'dev-user',
+    email: 'dev@bdflex.com.br',
+    full_name: 'Developer',
+    role: 'developer'
+  })
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        if (!session?.user) {
-          setProfile(null)
-          setLoading(false)
-        }
-      }
-    )
-    
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (!session?.user) {
-        setLoading(false)
-      }
-    })
-
-    return () => subscription.unsubscribe()
+    // Mock developer session bypass
   }, [])
 
-  useEffect(() => {
-    if (user) {
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data) {
-            setProfile(data as unknown as Profile)
-          } else {
-            setProfile({
-              id: user.id,
-              email: user.email || '',
-              full_name: 'User',
-              role: 'user'
-            })
-          }
-          setLoading(false)
-        })
-    }
-  }, [user])
-
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ 
-      email, 
-      password, 
-      options: { emailRedirectTo: `${window.location.origin}/` } 
-    })
-    return { error }
+    return { error: null }
   }
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error }
+    return { error: null }
   }
 
   const signOut = async () => {
-    setProfile(null)
-    const { error } = await supabase.auth.signOut()
-    return { error }
+    return { error: null }
   }
 
   const hasPermission = (_permission: string) => {
