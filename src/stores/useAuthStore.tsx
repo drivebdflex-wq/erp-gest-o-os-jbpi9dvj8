@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
@@ -9,6 +9,7 @@ import React, {
 import { toast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
+import { Session, AuthError, AuthChangeEvent } from '@supabase/supabase-js'
 
 export type Permission =
   | 'view_dashboard'
@@ -51,15 +52,22 @@ export interface User {
   avatar_url?: string
 }
 
+interface RegisterData {
+  email: string
+  password: string
+  name?: string
+  role?: string
+}
+
 interface AuthState {
   currentUser: User | null
-  session: any | null
+  session: Session | null
   isAuthenticated: boolean
   isLoading: boolean
   users: User[]
   roles: Role[]
   login: (email: string, pass: string) => Promise<boolean>
-  registerUser: (data: any) => Promise<boolean>
+  registerUser: (data: RegisterData) => Promise<boolean>
   logout: () => Promise<void>
   hasPermission: (perm: Permission) => boolean
   addUser: (u: Omit<User, 'id' | 'created_at'>) => void
@@ -103,53 +111,59 @@ const MOCK_ROLES: Role[] = [
   },
 ]
 
+const fetchProfile = async (
+  userId: string,
+  email?: string,
+  userMetadata?: Record<string, unknown>
+) => {
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
+
+    let role_id = 'role-tecnico'
+
+    if (profile?.role === 'developer') {
+      role_id = 'role-admin'
+    } else if (profile?.role === 'user') {
+      role_id = 'role-tecnico'
+    }
+
+    const defaultEmail = email || ''
+
+    if (profile) {
+      return {
+        id: profile.id,
+        name: profile.full_name || defaultEmail.split('@')[0],
+        email: profile.email,
+        role_id: role_id,
+        active: true,
+        created_at: profile.created_at || new Date().toISOString(),
+      } as User
+    }
+
+    return {
+      id: userId,
+      name: (userMetadata?.name as string) || defaultEmail.split('@')[0],
+      email: defaultEmail,
+      role_id,
+      active: true,
+      created_at: new Date().toISOString(),
+    } as User
+  } catch (e) {
+    console.error('Profile evaluation failed', e)
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<any | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [roles, setRoles] = useState<Role[]>(MOCK_ROLES)
   const [users, setUsers] = useState<User[]>([])
-
-  const fetchProfile = async (userId: string, email: string, userMetadata?: any) => {
-    try {
-      const { data: profile } = await supabase
-        .from('profiles' as any)
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle()
-
-      let role_id = 'role-tecnico'
-      
-      if (profile?.role === 'developer') {
-        role_id = 'role-admin'
-      } else if (profile?.role === 'user') {
-        role_id = 'role-tecnico'
-      }
-
-      if (profile) {
-        return {
-          id: profile.id,
-          name: profile.full_name || email.split('@')[0],
-          email: profile.email,
-          role_id: role_id,
-          active: true,
-          created_at: profile.created_at || new Date().toISOString(),
-        } as User
-      }
-
-      return {
-        id: userId,
-        name: userMetadata?.name || email.split('@')[0],
-        email,
-        role_id,
-        active: true,
-        created_at: new Date().toISOString(),
-      } as User
-    } catch (e) {
-      console.error('Profile evaluation failed', e)
-      return null
-    }
-  }
 
   useEffect(() => {
     let mounted = true
@@ -176,12 +190,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initializeAuth()
 
-    let authListener: any = null
+    let authListener: { subscription: { unsubscribe: () => void } } | null = null
 
     if (supabase?.auth?.onAuthStateChange) {
       try {
         const { data } = supabase.auth.onAuthStateChange(
-          (_event: any, currentSession: any) => {
+          (_event: AuthChangeEvent, currentSession: Session | null) => {
             if (!mounted) return
             setSession(currentSession || null)
           },
@@ -211,12 +225,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return
       }
-      
+
       try {
         const profile = await fetchProfile(
           session.user.id,
           session.user.email,
-          session.user.user_metadata,
+          session.user.user_metadata
         )
         if (mounted) {
           setCurrentUser(profile)
@@ -257,11 +271,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       return true
-    } catch (err: any) {
+    } catch (err) {
       setIsLoading(false)
       toast({
         title: 'Falha no Login',
-        description: err.message || 'Erro ao tentar realizar o login.',
+        description: (err as AuthError).message || 'Erro ao tentar realizar o login.',
         variant: 'destructive',
       })
       return false
@@ -280,7 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const registerUser = async (data: any) => {
+  const registerUser = async (data: RegisterData) => {
     setIsLoading(true)
 
     if (!supabase?.auth?.signUp) {
@@ -302,7 +316,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!error && signUpData.user) {
         if (data.name) {
-          await supabase.from('profiles' as any).update({
+          await supabase.from('profiles').update({
             full_name: data.name,
           }).eq('id', signUpData.user.id)
         }
@@ -319,11 +333,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       return true
-    } catch (err: any) {
+    } catch (err) {
       setIsLoading(false)
       toast({
         title: 'Erro no Cadastro',
-        description: err.message || 'Erro ao tentar realizar o cadastro.',
+        description: (err as AuthError).message || 'Erro ao tentar realizar o cadastro.',
         variant: 'destructive',
       })
       return false
@@ -338,13 +352,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (role.isSystem && role.name === 'Admin') return true
       return role.permissions.includes(perm)
     },
-    [currentUser, roles],
+    [currentUser, roles]
   )
 
   const addUser = (u: Omit<User, 'id' | 'created_at'>) => {
     setUsers((prev) => [
       ...prev,
-      { ...u, id: crypto.randomUUID(), created_at: new Date().toISOString() } as any,
+      { ...u, id: crypto.randomUUID(), created_at: new Date().toISOString() } as User,
     ])
   }
 
