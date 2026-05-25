@@ -35,52 +35,74 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const mockUser = {
-      id: 'dev-user',
-      app_metadata: {},
-      user_metadata: {},
-      aud: 'authenticated',
-      created_at: new Date().toISOString(),
-      email: 'dev@bdflex.com.br'
-    } as User;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        if (!session?.user) {
+          setProfile(null)
+          setLoading(false)
+        }
+      }
+    )
     
-    const mockProfile = {
-      id: 'dev-user',
-      email: 'dev@bdflex.com.br',
-      full_name: 'Developer',
-      role: 'developer'
-    };
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      if (!session?.user) {
+        setLoading(false)
+      }
+    })
 
-    const mockSession = {
-      access_token: 'mock-token',
-      refresh_token: 'mock-token',
-      expires_in: 3600,
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-      token_type: 'bearer',
-      user: mockUser
-    } as Session;
+    return () => subscription.unsubscribe()
+  }, [])
 
-    setUser(mockUser);
-    setSession(mockSession);
-    setProfile(mockProfile);
-    setLoading(false);
-  }, []);
+  useEffect(() => {
+    if (user) {
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setProfile(data as unknown as Profile)
+          } else {
+            setProfile({
+              id: user.id,
+              email: user.email || '',
+              full_name: 'User',
+              role: 'user'
+            })
+          }
+          setLoading(false)
+        })
+    }
+  }, [user])
 
-  const signUp = async (_email: string, _password: string) => {
-    return { error: null }
+  const signUp = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({ 
+      email, 
+      password, 
+      options: { emailRedirectTo: `${window.location.origin}/` } 
+    })
+    return { error }
   }
 
-  const signIn = async (_email: string, _password: string) => {
-    return { error: null }
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    return { error }
   }
 
   const signOut = async () => {
-    return { error: null }
+    setProfile(null)
+    const { error } = await supabase.auth.signOut()
+    return { error }
   }
 
   const hasPermission = (_permission: string) => {
-    if (profile?.role === 'developer') return true
-    return true // Fallback for backwards compatibility, actual RBAC in useAuthStore
+    if (profile?.role === 'developer' || profile?.role === 'admin') return true
+    return true // Fallback for backwards compatibility
   }
 
   return (

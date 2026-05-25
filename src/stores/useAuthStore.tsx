@@ -6,10 +6,9 @@ import {
   useCallback,
   useEffect,
 } from 'react'
-import { toast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase/client'
 import { Loader2 } from 'lucide-react'
-import { Session, AuthError, AuthChangeEvent } from '@supabase/supabase-js'
+import { Session } from '@supabase/supabase-js'
 
 export type Permission =
   | 'view_dashboard'
@@ -118,53 +117,6 @@ const MOCK_ROLES: Role[] = [
   },
 ]
 
-const fetchProfile = async (
-  userId: string,
-  email?: string,
-  userMetadata?: Record<string, unknown>
-) => {
-  try {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle()
-
-    let role_id = 'role-tecnico'
-
-    if (profile?.role === 'developer') {
-      role_id = 'role-admin'
-    } else if (profile?.role === 'user') {
-      role_id = 'role-tecnico'
-    }
-
-    const defaultEmail = email || ''
-
-    if (profile) {
-      return {
-        id: profile.id,
-        name: profile.full_name || defaultEmail.split('@')[0],
-        email: profile.email,
-        role_id: role_id,
-        active: true,
-        created_at: profile.created_at || new Date().toISOString(),
-      } as User
-    }
-
-    return {
-      id: userId,
-      name: (userMetadata?.name as string) || defaultEmail.split('@')[0],
-      email: defaultEmail,
-      role_id,
-      active: true,
-      created_at: new Date().toISOString(),
-    } as User
-  } catch (e) {
-    console.error('Profile evaluation failed', e)
-    return null
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
@@ -173,42 +125,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>([])
 
   useEffect(() => {
-    const mockUser: User = {
-      id: 'dev-user',
-      name: 'Developer',
-      email: 'dev@bdflex.com.br',
-      role_id: 'developer',
-      active: true,
-      created_at: new Date().toISOString(),
-    }
-
-    const mockSession = {
-      access_token: 'mock-token',
-      refresh_token: 'mock-token',
-      expires_in: 3600,
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-      token_type: 'bearer',
-      user: {
-        id: 'dev-user',
-        email: 'dev@bdflex.com.br',
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, sess) => {
+        setSession(sess)
+        if (!sess?.user) {
+          setCurrentUser(null)
+          setIsLoading(false)
+        }
       }
-    } as unknown as Session;
+    )
 
-    setSession(mockSession)
-    setCurrentUser(mockUser)
-    setIsLoading(false)
+    supabase.auth.getSession().then(({ data: { session: sess } }) => {
+      setSession(sess)
+      if (!sess?.user) {
+        setIsLoading(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
-  const login = async (_email: string, _pass: string) => {
-    return true
+  useEffect(() => {
+    if (session?.user) {
+      const u = session.user
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', u.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          const profile = data as Record<string, unknown> | null
+
+          let role_id = 'role-tecnico'
+          if (profile?.role === 'developer') {
+            role_id = 'role-admin'
+          } else if (profile?.role === 'admin') {
+            role_id = 'role-admin'
+          } else if (profile?.role === 'user') {
+            role_id = 'role-tecnico'
+          }
+
+          setCurrentUser({
+            id: u.id,
+            name: (profile?.full_name as string) || u.email?.split('@')[0] || 'User',
+            email: u.email || '',
+            role_id,
+            active: true,
+            created_at: (profile?.created_at as string) || new Date().toISOString(),
+          })
+          setIsLoading(false)
+        })
+    }
+  }, [session])
+
+  const login = async (email: string, pass: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass })
+    return !error
   }
 
   const logout = async () => {
-    // Do nothing in mock mode
+    setCurrentUser(null)
+    await supabase.auth.signOut()
   }
 
-  const registerUser = async (_data: RegisterData) => {
-    return true
+  const registerUser = async (data: RegisterData) => {
+    const { error } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password,
+    })
+    return !error
   }
 
   const hasPermission = useCallback(
