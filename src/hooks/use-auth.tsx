@@ -35,62 +35,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    const mockUser = {
+      id: 'dev-user',
+      app_metadata: {},
+      user_metadata: {},
+      aud: 'authenticated',
+      created_at: new Date().toISOString(),
+      email: 'dev@bdflex.com.br'
+    } as User;
+    
+    const mockProfile = {
+      id: 'dev-user',
+      email: 'dev@bdflex.com.br',
+      full_name: 'Developer',
+      role: 'developer'
+    };
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    const mockSession = {
+      access_token: 'mock-token',
+      refresh_token: 'mock-token',
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: 'bearer',
+      user: mockUser
+    } as Session;
 
-    return () => subscription.unsubscribe()
-  }, [])
+    setUser(mockUser);
+    setSession(mockSession);
+    setProfile(mockProfile);
+    setLoading(false);
+  }, []);
 
-  useEffect(() => {
-    const fetchProfile = async (userId: string) => {
-      try {
-        const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
-        if (data) {
-          setProfile(data as Profile)
-        } else {
-          setProfile(null)
-        }
-      } catch (e) {
-        console.error(e)
-      }
-    }
-
-    if (user) {
-      void fetchProfile(user.id).then(() => setLoading(false))
-    } else {
-      setProfile(null)
-      setLoading(false)
-    }
-  }, [user])
-
-  const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: `${window.location.origin}/` },
-    })
-    return { error }
+  const signUp = async (_email: string, _password: string) => {
+    return { error: null }
   }
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error }
+  const signIn = async (_email: string, _password: string) => {
+    return { error: null }
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    return { error }
+    return { error: null }
   }
 
   const hasPermission = (_permission: string) => {

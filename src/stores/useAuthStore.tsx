@@ -80,6 +80,13 @@ const AuthContext = createContext<AuthState | undefined>(undefined)
 
 const MOCK_ROLES: Role[] = [
   {
+    id: 'developer',
+    name: 'Developer',
+    description: 'Acesso de desenvolvedor (Bypass)',
+    permissions: AVAILABLE_PERMISSIONS.map((p) => p.id),
+    isSystem: true,
+  },
+  {
     id: 'role-admin',
     name: 'Admin',
     description: 'Acesso total ao sistema',
@@ -166,182 +173,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>([])
 
   useEffect(() => {
-    let mounted = true
-
-    const initializeAuth = async () => {
-      if (!supabase?.auth?.getSession) {
-        if (mounted) setIsLoading(false)
-        return
-      }
-
-      try {
-        const { data } = await supabase.auth.getSession()
-        if (mounted) {
-          setSession(data?.session || null)
-          if (!data?.session) {
-            setIsLoading(false)
-          }
-        }
-      } catch (err) {
-        console.error('Failed to get session:', err)
-        if (mounted) setIsLoading(false)
-      }
+    const mockUser: User = {
+      id: 'dev-user',
+      name: 'Developer',
+      email: 'dev@bdflex.com.br',
+      role_id: 'developer',
+      active: true,
+      created_at: new Date().toISOString(),
     }
 
-    void initializeAuth()
-
-    let authListener: { subscription: { unsubscribe: () => void } } | null = null
-
-    if (supabase?.auth?.onAuthStateChange) {
-      try {
-        const { data } = supabase.auth.onAuthStateChange(
-          (_event: AuthChangeEvent, currentSession: Session | null) => {
-            if (!mounted) return
-            setSession(currentSession || null)
-          },
-        )
-        authListener = data
-      } catch (err) {
-        console.error('Failed to subscribe to auth changes:', err)
+    const mockSession = {
+      access_token: 'mock-token',
+      refresh_token: 'mock-token',
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: 'bearer',
+      user: {
+        id: 'dev-user',
+        email: 'dev@bdflex.com.br',
       }
-    }
+    } as unknown as Session;
 
-    return () => {
-      mounted = false
-      if (authListener?.subscription?.unsubscribe) {
-        authListener.subscription.unsubscribe()
-      }
-    }
+    setSession(mockSession)
+    setCurrentUser(mockUser)
+    setIsLoading(false)
   }, [])
 
-  useEffect(() => {
-    let mounted = true
-
-    const loadProfile = async () => {
-      if (!session) {
-        if (mounted) {
-          setCurrentUser(null)
-          setIsLoading(false)
-        }
-        return
-      }
-
-      try {
-        const profile = await fetchProfile(
-          session.user.id,
-          session.user.email,
-          session.user.user_metadata as Record<string, unknown>
-        )
-        if (mounted) {
-          setCurrentUser(profile)
-          setIsLoading(false)
-        }
-      } catch (err) {
-        console.error(err)
-        if (mounted) setIsLoading(false)
-      }
-    }
-
-    void loadProfile()
-
-    return () => {
-      mounted = false
-    }
-  }, [session])
-
-  const login = async (email: string, pass: string) => {
-    setIsLoading(true)
-
-    if (!supabase?.auth?.signInWithPassword) {
-      setIsLoading(false)
-      return false
-    }
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: pass })
-
-      if (error) {
-        setIsLoading(false)
-        toast({
-          title: 'Falha no Login',
-          description: error.message || 'E-mail ou senha incorretos.',
-          variant: 'destructive',
-        })
-        return false
-      }
-
-      return true
-    } catch (err) {
-      setIsLoading(false)
-      toast({
-        title: 'Falha no Login',
-        description: (err as AuthError).message || 'Erro ao tentar realizar o login.',
-        variant: 'destructive',
-      })
-      return false
-    }
+  const login = async (_email: string, _pass: string) => {
+    return true
   }
 
   const logout = async () => {
-    setIsLoading(true)
-
-    if (supabase?.auth?.signOut) {
-      try {
-        await supabase.auth.signOut()
-      } catch (err) {
-        console.error('Failed to sign out:', err)
-      }
-    }
+    // Do nothing in mock mode
   }
 
-  const registerUser = async (data: RegisterData) => {
-    setIsLoading(true)
-
-    if (!supabase?.auth?.signUp) {
-      setIsLoading(false)
-      return false
-    }
-
-    try {
-      const { data: signUpData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            name: data.name,
-            role_id: data.role,
-          },
-        },
-      })
-
-      if (!error && signUpData.user) {
-        if (data.name) {
-          await supabase.from('profiles').update({
-            full_name: data.name,
-          }).eq('id', signUpData.user.id)
-        }
-      }
-
-      if (error) {
-        setIsLoading(false)
-        toast({
-          title: 'Erro no Cadastro',
-          description: error.message || 'Não foi possível criar a conta.',
-          variant: 'destructive',
-        })
-        return false
-      }
-
-      return true
-    } catch (err) {
-      setIsLoading(false)
-      toast({
-        title: 'Erro no Cadastro',
-        description: (err as AuthError).message || 'Erro ao tentar realizar o cadastro.',
-        variant: 'destructive',
-      })
-      return false
-    }
+  const registerUser = async (_data: RegisterData) => {
+    return true
   }
 
   const hasPermission = useCallback(
@@ -349,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!currentUser) return false
       const role = roles.find((r) => r.id === currentUser.role_id)
       if (!role) return false
-      if (role.isSystem && role.name === 'Admin') return true
+      if (role.isSystem && (role.name === 'Admin' || role.id === 'developer')) return true
       return role.permissions.includes(perm)
     },
     [currentUser, roles]
