@@ -28,6 +28,8 @@ export const useAuth = () => {
   return context
 }
 
+const IS_DEV_BYPASS = true;
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
@@ -35,6 +37,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (IS_DEV_BYPASS) {
+      const mockUser = {
+        id: 'mock-dev-id',
+        email: 'dev@bdflex.com.br',
+        app_metadata: {},
+        user_metadata: {},
+        aud: 'authenticated',
+        created_at: new Date().toISOString(),
+      } as User;
+      const mockSession = {
+        access_token: 'mock-token',
+        refresh_token: 'mock-refresh',
+        expires_in: 3600,
+        token_type: 'bearer',
+        user: mockUser,
+      } as Session;
+      const mockProfile = {
+        id: 'mock-dev-id',
+        email: 'dev@bdflex.com.br',
+        full_name: 'Developer Mode',
+        role: 'developer'
+      } as Profile;
+
+      setSession(mockSession);
+      setUser(mockUser);
+      setProfile(mockProfile);
+      setLoading(false);
+      return;
+    }
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -54,6 +86,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   useEffect(() => {
+    if (IS_DEV_BYPASS) return;
+
     const fetchProfile = async (userId: string) => {
       try {
         const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
@@ -76,6 +110,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user])
 
   const signUp = async (email: string, password: string) => {
+    if (IS_DEV_BYPASS) return { error: null }
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -85,11 +120,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signIn = async (email: string, password: string) => {
+    if (IS_DEV_BYPASS) return { error: null }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error }
   }
 
   const signOut = async () => {
+    if (IS_DEV_BYPASS) return { error: null }
     const { error } = await supabase.auth.signOut()
     return { error }
   }
