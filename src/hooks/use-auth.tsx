@@ -40,14 +40,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
+      setLoading(false)
     })
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
-      if (!session?.user) {
-        setLoading(false)
-      }
+      setLoading(false)
     })
 
     return () => subscription.unsubscribe()
@@ -68,7 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (user) {
-      fetchProfile(user.id).then(() => setLoading(false))
+      void fetchProfile(user.id).then(() => setLoading(false))
     } else {
       setProfile(null)
       setLoading(false)

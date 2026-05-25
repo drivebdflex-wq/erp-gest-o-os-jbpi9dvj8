@@ -188,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    initializeAuth()
+    void initializeAuth()
 
     let authListener: { subscription: { unsubscribe: () => void } } | null = null
 
@@ -230,7 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const profile = await fetchProfile(
           session.user.id,
           session.user.email,
-          session.user.user_metadata
+          session.user.user_metadata as Record<string, unknown>
         )
         if (mounted) {
           setCurrentUser(profile)
@@ -242,7 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    loadProfile()
+    void loadProfile()
 
     return () => {
       mounted = false
