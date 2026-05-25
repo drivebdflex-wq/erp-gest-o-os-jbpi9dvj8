@@ -44,7 +44,7 @@ export class ServiceOrdersService {
 
   static async findById(id: string, userId: string = 'system') {
     const order = await ServiceOrdersRepository.findById(id)
-    if (!order || (order as any).deleted_at) throw new BusinessError('Service order not found')
+    if (!order || order.deleted_at) throw new BusinessError('Service order not found')
     return order
   }
 
@@ -162,7 +162,6 @@ export class ServiceOrdersService {
     const now = new Date().toISOString()
     const updated = await ServiceOrdersRepository.update(orderId, {
       deleted_at: now,
-      deletedAt: now,
     } as any)
 
     await AuditsRepository.create({

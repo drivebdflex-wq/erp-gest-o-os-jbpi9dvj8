@@ -112,11 +112,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchProfile = async (userId: string, email: string, userMetadata?: any) => {
     try {
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle()
+
+      let role_id = 'role-admin'
+      const { data: userRoles } = await supabase
+        .from('user_roles')
+        .select('roles(*)')
+        .eq('user_id', userId)
+      if (userRoles && userRoles.length > 0) {
+        role_id = userRoles[0].roles?.name === 'Administrator' ? 'role-admin' : 'role-supervisor'
+      }
+
+      if (user) {
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role_id: role_id,
+          active: user.status === 'active',
+          created_at: user.created_at || new Date().toISOString(),
+          avatar_url: user.avatar_url,
+        } as User
+      }
+
       return {
         id: userId,
         name: userMetadata?.name || email.split('@')[0],
         email,
-        role_id: userMetadata?.role_id || 'role-admin',
+        role_id,
         active: true,
         created_at: new Date().toISOString(),
       } as User
@@ -275,6 +302,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
         },
       })
+
+      if (!error && signUpData.user) {
+        await supabase.from('users').insert([
+          {
+            id: signUpData.user.id,
+            name: data.name || data.email.split('@')[0],
+            email: data.email,
+            password_hash: '',
+            status: 'active',
+          },
+        ])
+      }
 
       if (error) {
         setIsLoading(false)

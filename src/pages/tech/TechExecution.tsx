@@ -36,8 +36,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Trash2, Loader2 } from 'lucide-react'
-// @ts-expect-error
 import useAuthStore from '@/stores/useAuthStore'
+import { supabase } from '@/lib/supabase/client'
 
 export default function TechExecution() {
   // @ts-expect-error
@@ -70,12 +70,7 @@ export default function TechExecution() {
     if (!id) return
     setIsDeleting(true)
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '/api'
-      const res = await fetch(`${apiUrl}/service-orders/${id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        throw new Error('Error deleting record. Please try again.')
-      }
-
+      await ServiceOrdersService.delete(id)
       window.dispatchEvent(new Event('service-order-deleted'))
       toast({ title: 'Sucesso', description: 'Service Order deleted successfully.' })
       navigate('/ordens')
@@ -99,8 +94,11 @@ export default function TechExecution() {
       setOrder(data)
       const allSoChecklists = await ServiceOrderChecklistsRepository.findAll()
       setChecklists(allSoChecklists.filter((c) => c.service_order_id === id))
-      const allPhotos = await PhotosRepository.findAll()
-      setPhotos(allPhotos.filter((p) => p.related_entity_id === id))
+      const { data: allPhotos } = await supabase
+        .from('photos')
+        .select('*')
+        .eq('service_order_id', id)
+      setPhotos(allPhotos || [])
     } catch (error) {
       toast({ title: 'Erro', description: 'OS não encontrada', variant: 'destructive' })
       navigate('/tech')
@@ -142,15 +140,34 @@ export default function TechExecution() {
     }
   }
 
-  const mockAddPhoto = async (type: string) => {
-    await PhotosRepository.create({
-      related_entity_type: type,
-      related_entity_id: id!,
-      storage_url: `https://img.usecurling.com/p/400/300?q=maintenance&color=gray&dpr=1&seed=${Math.random()}`,
-      uploaded_by: 'tech-user-id',
-    })
-    toast({ title: 'Foto Adicionada', description: `Foto salva com sucesso.` })
-    loadOrderData()
+  const uploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
+    const file = e.target.files?.[0]
+    if (!file || !id) return
+
+    setLoading(true)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${id}/${type}_${Math.random()}.${fileExt}`
+
+      const { data, error } = await supabase.storage.from('photos').upload(fileName, file)
+      if (error) throw error
+
+      const { data: publicUrlData } = supabase.storage.from('photos').getPublicUrl(fileName)
+
+      await supabase.from('photos').insert({
+        service_order_id: id,
+        type: type === 'service_order_initial' ? 'initial' : 'final',
+        storage_url: publicUrlData.publicUrl,
+        uploaded_by: user?.id,
+      })
+
+      toast({ title: 'Foto Adicionada', description: `Foto salva com sucesso.` })
+      loadOrderData()
+    } catch (error: any) {
+      toast({ title: 'Erro ao fazer upload', description: error.message, variant: 'destructive' })
+    } finally {
+      setLoading(false)
+    }
   }
 
   const mockSignDocument = async () => {
@@ -438,28 +455,34 @@ export default function TechExecution() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-4">
-                <Button
-                  variant={
-                    photos.some((p) => p.related_entity_type === 'service_order_initial')
-                      ? 'secondary'
-                      : 'default'
-                  }
-                  onClick={() => mockAddPhoto('service_order_initial')}
-                  className="flex-1"
-                >
-                  <Camera className="w-4 h-4 mr-2" /> Foto Inicial
-                </Button>
-                <Button
-                  variant={
-                    photos.some((p) => p.related_entity_type === 'service_order_final')
-                      ? 'secondary'
-                      : 'default'
-                  }
-                  onClick={() => mockAddPhoto('service_order_final')}
-                  className="flex-1"
-                >
-                  <Camera className="w-4 h-4 mr-2" /> Foto Final
-                </Button>
+                <div className="flex-1 relative">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={(e) => uploadPhoto(e, 'service_order_initial')}
+                  />
+                  <Button
+                    variant={photos.some((p) => p.type === 'initial') ? 'secondary' : 'default'}
+                    className="w-full pointer-events-none"
+                  >
+                    <Camera className="w-4 h-4 mr-2" /> Foto Inicial
+                  </Button>
+                </div>
+                <div className="flex-1 relative">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={(e) => uploadPhoto(e, 'service_order_final')}
+                  />
+                  <Button
+                    variant={photos.some((p) => p.type === 'final') ? 'secondary' : 'default'}
+                    className="w-full pointer-events-none"
+                  >
+                    <Camera className="w-4 h-4 mr-2" /> Foto Final
+                  </Button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4 mt-4">
                 {photos.map((p) => (
@@ -473,7 +496,7 @@ export default function TechExecution() {
                       className="object-cover w-full h-full"
                     />
                     <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-1 text-xs text-white text-center">
-                      {p.related_entity_type}
+                      {p.type === 'initial' ? 'Foto Inicial' : 'Foto Final'}
                     </div>
                   </div>
                 ))}
