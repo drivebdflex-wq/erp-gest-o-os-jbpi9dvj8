@@ -48,20 +48,31 @@ const statusLabels: Record<string, string> = {
   faturada: 'Faturada',
 }
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { MeasurementsDashboard } from './MeasurementsDashboard'
+
 export default function MeasurementsPage() {
   const [measurements, setMeasurements] = useState<any[]>([])
   const [contracts, setContracts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // Filters
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [contractFilter, setContractFilter] = useState('all')
+  const [startDateFilter, setStartDateFilter] = useState('')
+  const [endDateFilter, setEndDateFilter] = useState('')
+
   const { toast } = useToast()
   const navigate = useNavigate()
 
   useEffect(() => {
     fetchMeasurements()
     fetchContracts()
-  }, [])
+  }, [statusFilter, contractFilter, startDateFilter, endDateFilter])
 
   async function fetchMeasurements() {
-    const { data, error } = await supabase
+    setLoading(true)
+    let query = supabase
       .from('measurements')
       .select(`
         *,
@@ -71,6 +82,21 @@ export default function MeasurementsPage() {
         )
       `)
       .order('created_at', { ascending: false })
+
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter)
+    }
+    if (contractFilter !== 'all') {
+      query = query.eq('contract_id', contractFilter)
+    }
+    if (startDateFilter) {
+      query = query.gte('start_date', startDateFilter)
+    }
+    if (endDateFilter) {
+      query = query.lte('end_date', endDateFilter)
+    }
+
+    const { data, error } = await query
 
     if (!error && data) {
       setMeasurements(data)
@@ -92,11 +118,20 @@ export default function MeasurementsPage() {
   async function handleCreateMeasurement(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
+    
+    const start_date = formData.get('start_date') as string
+    const end_date = formData.get('end_date') as string
+    
+    if (new Date(start_date) > new Date(end_date)) {
+      toast({ title: 'Erro de Validação', description: 'A data inicial não pode ser maior que a data final', variant: 'destructive' })
+      return
+    }
+
     const payload = {
       number: formData.get('number') as string,
       contract_id: formData.get('contract_id') as string,
-      start_date: formData.get('start_date') as string,
-      end_date: formData.get('end_date') as string,
+      start_date,
+      end_date,
       status: 'aberta',
     }
 
@@ -168,7 +203,63 @@ export default function MeasurementsPage() {
         </Dialog>
       </div>
 
-      <div className="bg-white rounded-md border shadow-sm">
+      <Tabs defaultValue="list" className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="list">Lista de Medições</TabsTrigger>
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="list" className="space-y-4">
+          <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-md border shadow-sm">
+            <div className="space-y-1">
+              <Label className="text-xs">Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Todos os status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {Object.entries(statusLabels).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-1">
+              <Label className="text-xs">Contrato</Label>
+              <Select value={contractFilter} onValueChange={setContractFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Todos os contratos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {contracts.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.contract_number}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Data Inicial</Label>
+              <Input type="date" value={startDateFilter} onChange={e => setStartDateFilter(e.target.value)} />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs">Data Final</Label>
+              <Input type="date" value={endDateFilter} onChange={e => setEndDateFilter(e.target.value)} />
+            </div>
+
+            <Button variant="ghost" className="mt-5" onClick={() => {
+              setStatusFilter('all')
+              setContractFilter('all')
+              setStartDateFilter('')
+              setEndDateFilter('')
+            }}>Limpar Filtros</Button>
+          </div>
+
+          <div className="bg-white rounded-md border shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
@@ -219,6 +310,11 @@ export default function MeasurementsPage() {
           </TableBody>
         </Table>
       </div>
+        </TabsContent>
+        <TabsContent value="dashboard">
+          <MeasurementsDashboard />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

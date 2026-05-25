@@ -30,7 +30,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { ArrowLeft, Plus, Edit, Paperclip, Trash2 } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 const statusColors: Record<string, string> = {
   aberta: 'bg-blue-100 text-blue-800',
@@ -56,14 +59,26 @@ export default function MeasurementDetailPage() {
   const [selectedOS, setSelectedOS] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [attachments, setAttachments] = useState<any[]>([])
   const { toast } = useToast()
 
   useEffect(() => {
     if (id) {
       fetchMeasurement()
       fetchLinkedOS()
+      fetchAttachments()
     }
   }, [id])
+
+  async function fetchAttachments() {
+    const { data } = await supabase
+      .from('measurement_attachments')
+      .select('*')
+      .eq('measurement_id', id)
+      .order('created_at', { ascending: false })
+    if (data) setAttachments(data)
+  }
 
   async function fetchMeasurement() {
     const { data, error } = await supabase
@@ -98,15 +113,79 @@ export default function MeasurementDetailPage() {
 
   async function fetchAvailableOS() {
     if (!measurement) return
+    
+    // Filter pending OS within the measurement period
     const { data, error } = await supabase
       .from('service_orders')
       .select('*')
       .eq('contract_id', measurement.contract_id)
       .is('measurement_id', null)
-      .in('status', ['completed', 'in_audit'])
+      .gte('created_at', measurement.start_date)
+      .lte('created_at', measurement.end_date)
 
     if (!error && data) {
       setAvailableOS(data)
+    }
+  }
+
+  async function handleUpdateMeasurement(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    
+    const start_date = formData.get('start_date') as string
+    const end_date = formData.get('end_date') as string
+    
+    if (new Date(start_date) > new Date(end_date)) {
+      toast({ title: 'Erro de Validação', description: 'A data inicial não pode ser maior que a data final', variant: 'destructive' })
+      return
+    }
+
+    const payload = {
+      number: formData.get('number') as string,
+      start_date,
+      end_date,
+    }
+
+    const { error } = await supabase.from('measurements').update(payload).eq('id', id)
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } else {
+      toast({ title: 'Sucesso', description: 'Medição atualizada com sucesso' })
+      setIsEditDialogOpen(false)
+      fetchMeasurement()
+    }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Fake upload for demonstration
+    const fakeUrl = `https://img.usecurling.com/p/800/600?q=document&seed=${Math.random()}`
+    
+    const { error } = await supabase.from('measurement_attachments').insert({
+      measurement_id: id,
+      file_name: file.name,
+      storage_url: fakeUrl
+    })
+
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } else {
+      toast({ title: 'Sucesso', description: 'Anexo adicionado' })
+      fetchAttachments()
+    }
+    
+    e.target.value = ''
+  }
+
+  async function handleDeleteAttachment(attachmentId: string) {
+    const { error } = await supabase.from('measurement_attachments').delete().eq('id', attachmentId)
+    if (error) {
+      toast({ title: 'Erro', description: error.message, variant: 'destructive' })
+    } else {
+      toast({ title: 'Sucesso', description: 'Anexo removido' })
+      fetchAttachments()
     }
   }
 
@@ -147,17 +226,22 @@ export default function MeasurementDetailPage() {
   async function updateTotals() {
     const { data } = await supabase
       .from('service_orders')
-      .select('travel_cost, labor_cost, material_cost, total_cost')
+      .select('travel_cost, labor_cost, material_cost')
       .eq('measurement_id', id)
 
     if (data) {
       const totals = data.reduce(
-        (acc, curr) => ({
-          travel_total: acc.travel_total + (Number(curr.travel_cost) || 0),
-          labor_total: acc.labor_total + (Number(curr.labor_cost) || 0),
-          material_total: acc.material_total + (Number(curr.material_cost) || 0),
-          total_value: acc.total_value + (Number(curr.total_cost) || 0),
-        }),
+        (acc, curr) => {
+          const travel = Number(curr.travel_cost) || 0
+          const labor = Number(curr.labor_cost) || 0
+          const material = Number(curr.material_cost) || 0
+          return {
+            travel_total: acc.travel_total + travel,
+            labor_total: acc.labor_total + labor,
+            material_total: acc.material_total + material,
+            total_value: acc.total_value + travel + labor + material,
+          }
+        },
         { travel_total: 0, labor_total: 0, material_total: 0, total_value: 0 },
       )
 
@@ -197,6 +281,39 @@ export default function MeasurementDetailPage() {
           </p>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Edit className="w-4 h-4 mr-2" />
+                Editar
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Editar Medição</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleUpdateMeasurement} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Número da Medição</Label>
+                  <Input name="number" required defaultValue={measurement.number} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Data Inicial</Label>
+                    <Input type="date" name="start_date" required defaultValue={measurement.start_date} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Data Final</Label>
+                    <Input type="date" name="end_date" required defaultValue={measurement.end_date} />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Salvar</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
           <Select value={measurement.status} onValueChange={handleStatusChange}>
             <SelectTrigger
               className={`w-[180px] font-medium ${statusColors[measurement.status] || ''}`}
@@ -214,11 +331,18 @@ export default function MeasurementDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="col-span-1 md:col-span-3">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Ordens de Serviço Vinculadas</CardTitle>
-            <Dialog
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="details">Detalhes e OS</TabsTrigger>
+          <TabsTrigger value="attachments">Anexos ({attachments.length})</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="details">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="col-span-1 md:col-span-3">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Ordens de Serviço Vinculadas</CardTitle>
+                <Dialog
               open={isDialogOpen}
               onOpenChange={(open) => {
                 setIsDialogOpen(open)
@@ -350,15 +474,15 @@ export default function MeasurementDetailPage() {
                     </TableCell>
                   </TableRow>
                 )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
 
-        <Card className="col-span-1 h-fit">
-          <CardHeader>
-            <CardTitle>Totais</CardTitle>
-          </CardHeader>
+            <Card className="col-span-1 h-fit">
+              <CardHeader>
+                <CardTitle>Totais</CardTitle>
+              </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Deslocamento</span>
@@ -384,17 +508,69 @@ export default function MeasurementDetailPage() {
                 )}
               </span>
             </div>
-            <div className="pt-4 border-t flex justify-between items-center">
-              <span className="font-semibold">Total Geral</span>
-              <span className="text-lg font-bold text-primary">
-                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
-                  measurement.total_value || 0,
-                )}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                <div className="pt-4 border-t flex justify-between items-center">
+                  <span className="font-semibold">Total Geral</span>
+                  <span className="text-lg font-bold text-primary">
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                      measurement.total_value || 0,
+                    )}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="attachments">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Anexos da Medição</CardTitle>
+              <div>
+                <Label htmlFor="file-upload" className="cursor-pointer bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium h-9 px-4 py-2">
+                  <Paperclip className="w-4 h-4 mr-2" />
+                  Novo Anexo
+                </Label>
+                <Input id="file-upload" type="file" className="hidden" onChange={handleFileUpload} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Arquivo</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attachments.map(att => (
+                    <TableRow key={att.id}>
+                      <TableCell>
+                        <a href={att.storage_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                          {att.file_name}
+                        </a>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(att.created_at).toLocaleDateString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={() => handleDeleteAttachment(att.id)} className="text-red-500 hover:text-red-700">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {attachments.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">Nenhum anexo encontrado.</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
