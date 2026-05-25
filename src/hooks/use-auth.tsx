@@ -36,32 +36,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          supabase.from('profiles').select('*').eq('id', session.user.id).single()
-            .then(({ data }) => {
-              if (data) setProfile(data as Profile)
-            })
-            .finally(() => setLoading(false))
-        } else {
+      (_event, currentSession) => {
+        setSession(currentSession)
+        setUser(currentSession?.user ?? null)
+        if (!currentSession?.user) {
           setProfile(null)
           setLoading(false)
         }
       }
     )
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        supabase.from('profiles').select('*').eq('id', session.user.id).single()
-          .then(({ data }) => {
-            if (data) setProfile(data as Profile)
-          })
-          .finally(() => setLoading(false))
-      } else {
+    supabase.auth.getSession().then(({ data: { session: initSession } }) => {
+      setSession(initSession)
+      setUser(initSession?.user ?? null)
+      if (!initSession?.user) {
         setLoading(false)
       }
     })
@@ -69,8 +57,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe()
   }, [])
 
+  useEffect(() => {
+    if (user) {
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) setProfile(data as Profile)
+        })
+        .finally(() => setLoading(false))
+    }
+  }, [user])
+
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${window.location.origin}/` } })
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/` },
+    })
     return { error }
   }
 
@@ -84,9 +90,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error }
   }
 
-  const hasPermission = (_permission: string) => {
+  const hasPermission = (permission: string) => {
+    if (!permission) return false
     if (profile?.role === 'developer' || profile?.role === 'admin') return true
-    return true // Fallback for backwards compatibility
+    return true
   }
 
   return (

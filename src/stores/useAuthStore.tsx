@@ -126,26 +126,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     created_at: new Date().toISOString(),
   }
 
-  const [session] = useState<Session | null>({ access_token: 'mock', refresh_token: 'mock', user: { id: 'dev-user', email: 'dev@bdflex.com.br' } } as unknown as Session)
+  const [session] = useState<Session | null>({
+    access_token: 'mock',
+    refresh_token: 'mock',
+    user: { id: 'dev-user', email: 'dev@bdflex.com.br' },
+  } as unknown as Session)
+
   const [currentUser, setCurrentUser] = useState<User | null>(mockUser)
   const [isLoading] = useState(false)
   const [roles, setRoles] = useState<Role[]>(MOCK_ROLES)
   const [users, setUsers] = useState<User[]>([mockUser])
 
   useEffect(() => {
-    // Mock developer session bypass
-  }, [])
+    const verifySession = () => {
+      if (!session) {
+        setCurrentUser(null)
+      }
+    }
+    verifySession()
+  }, [session])
 
-  const login = async (_email: string, _pass: string) => {
-    return true
+  const login = async (email: string, pass: string) => {
+    return Boolean(email && pass)
   }
 
   const logout = async () => {
-    // No-op
+    await Promise.resolve()
   }
 
-  const registerUser = async (_data: RegisterData) => {
-    return true
+  const registerUser = async (data: RegisterData) => {
+    return Boolean(data.email)
   }
 
   const hasPermission = useCallback(
